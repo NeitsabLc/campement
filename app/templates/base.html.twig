@@ -36,7 +36,10 @@
                     <a class="sidebar__link" href="{{ path('app_sejours') }}"><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 20 9-16 9 16H3Z"/><path d="m12 4 3 16M12 4 9 20M9 20l3-5 3 5"/></svg></span><span class="sidebar__text">Gestion des séjours</span></a>{% endif %}
                 </nav>
                 <div class="sidebar__user user-summary"><span class="sidebar__avatar">{{ app.user.prenom|first }}{{ app.user.nom|first }}</span><span class="sidebar__text"><strong>{{ app.user.prenom }} {{ app.user.nom }}</strong><small>{{ is_granted('ROLE_ADMIN') ? 'Administrateur' : (is_granted('ROLE_GROUPE') ? 'Unité participante' : 'Gestionnaire') }}</small><span class="visually-hidden">{{ app.user.role }}</span></span></div>
-                <a class="sidebar__logout" href="{{ path('app_deconnexion') }}"><span class="sidebar__icon">↪</span><span class="sidebar__text">Se déconnecter</span></a>
+                <form class="sidebar__logout-form" method="post" action="{{ path('app_deconnexion') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                    <button class="sidebar__logout" type="submit"><span class="sidebar__icon">↪</span><span class="sidebar__text">Se déconnecter</span></button>
+                </form>
             </aside><div class="sidebar-backdrop" data-sidebar-toggle></div>
         {% endif %}
 

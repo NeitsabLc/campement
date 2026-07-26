@@ -9,15 +9,24 @@ use App\Repository\UtilisateurRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\RateLimit;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class MotDePasseController extends AbstractController
 {
+    public function __construct(
+        #[Autowire('%env(APP_PUBLIC_URL)%')]
+        private readonly string $urlPublique,
+    ) {
+    }
+
     #[Route('/mot-de-passe-oublie', name: 'app_mot_de_passe_oublie', methods: ['GET', 'POST'])]
+    #[RateLimit('password_reset_request', methods: ['POST'])]
     public function demander(
         Request $request,
         UtilisateurRepository $utilisateurs,
@@ -36,12 +45,17 @@ final class MotDePasseController extends AbstractController
                 $utilisateur->definirJetonReinitialisation($jeton, new \DateTimeImmutable('+1 hour'));
                 $entityManager->flush();
 
+                $lienReinitialisation = rtrim($this->urlPublique, '/').$this->generateUrl(
+                    'app_reinitialiser_mot_de_passe',
+                    ['jeton' => $jeton],
+                );
+
                 $mailer->send((new TemplatedEmail())
                     ->from('no-reply@campement.local')
                     ->to($utilisateur->getEmail())
                     ->subject('Réinitialisation de votre mot de passe Campement')
                     ->htmlTemplate('emails/reinitialisation_mot_de_passe.html.twig')
-                    ->context(['utilisateur' => $utilisateur, 'jeton' => $jeton]));
+                    ->context(['utilisateur' => $utilisateur, 'lien_reinitialisation' => $lienReinitialisation]));
             }
             $envoye = true;
         }
@@ -50,6 +64,7 @@ final class MotDePasseController extends AbstractController
     }
 
     #[Route('/reinitialiser-mot-de-passe/{jeton}', name: 'app_reinitialiser_mot_de_passe', methods: ['GET', 'POST'])]
+    #[RateLimit('password_reset_submit', methods: ['POST'])]
     public function reinitialiser(
         string $jeton,
         Request $request,

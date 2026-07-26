@@ -16,12 +16,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\RateLimit;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 
 final class SortieConsommationController extends AbstractController
 {
     #[Route('/distribution/{jeton}', name: 'app_sortie_consommation', requirements: ['jeton' => '[0-9a-fA-F-]{36}'], methods: ['GET', 'POST'])]
+    #[RateLimit('public_distribution', methods: ['POST'])]
     public function index(
         string $jeton,
         Request $request,

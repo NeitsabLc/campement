@@ -24,7 +24,7 @@ final class ConnexionController extends AbstractController
         ]);
     }
 
-    #[Route('/logout', name: 'app_deconnexion', methods: ['GET'])]
+    #[Route('/logout', name: 'app_deconnexion', methods: ['POST'])]
     public function deconnexion(): never
     {
         throw new \LogicException('Cette route est interceptée par le pare-feu Symfony.');
