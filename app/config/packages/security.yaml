@@ -26,9 +26,13 @@ security:
                 check_path: app_connexion
                 default_target_path: app_tableau_de_bord
                 enable_csrf: true
+            login_throttling:
+                max_attempts: 5
+                interval: '1 minute'
             logout:
                 path: app_deconnexion
                 target: app_connexion
+                enable_csrf: true
 
     # Note: Only the *first* matching rule is applied
     access_control:
