@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+{% block title %}Nouveau mot de passe | Campement{% endblock %}
+{% block body %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-card__header"><h1>Nouveau mot de passe</h1><p class="auth-card__intro">Choisissez un mot de passe personnel et robuste.</p></header>
+        {% if not jeton_valide %}
+            <p class="alert" role="alert">Ce lien est invalide ou a expiré.</p>
+            <p class="auth-card__footer"><a href="{{ path('app_mot_de_passe_oublie') }}">Demander un nouveau lien</a></p>
+        {% else %}
+            {% if erreurs %}<div class="alert" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+            <form method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('reinitialiser_mot_de_passe_' ~ app.request.attributes.get('jeton')) }}">
+                <div class="form-field"><label for="mot_de_passe">Nouveau mot de passe</label><input id="mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password"></div>
+                <div class="form-field"><label for="confirmation">Confirmer le mot de passe</label><input id="confirmation" type="password" name="confirmation" required minlength="12" autocomplete="new-password"></div>
+                <button class="primary-button" type="submit">Mettre à jour le mot de passe</button>
+            </form>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

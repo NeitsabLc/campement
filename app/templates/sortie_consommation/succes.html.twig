@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}Distribution enregistrée | Campement{% endblock %}
+{% block body_class %}distribution-shell{% endblock %}
+{% block body %}
+<main class="distribution-page">
+    <header class="distribution-header"><img src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France"><strong>Campement</strong></header>
+    <div class="distribution-content distribution-success">
+        <span class="distribution-success__icon">✓</span>
+        <h1>Distribution enregistrée</h1>
+        <p><strong>{{ groupe.nom }}</strong><br>{{ menu.sejourTypeRepas.typeRepas.libelle }} · {{ menu.dateMenu|date('d/m/Y') }}</p>
+        <a class="distribution-button" href="{{ path('app_sortie_consommation', {jeton: menu.sejour.jetonDistributionPublique}) }}">Saisir une autre distribution</a>
+    </div>
+</main>
+{% endblock %}

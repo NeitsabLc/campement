@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Accueil | Campement{% endblock %}
+
+{% block body %}
+    <main>
+        {% for message in app.flashes('error') %}<div class="flash flash--error">{{ message }}</div>{% endfor %}
+        <header class="page-heading">
+            <h1>Accueil</h1>
+            <p>Bienvenue sur l’application Campement</p>
+        </header>
+
+        <section class="dashboard-card stay-picker">
+            <div><h2>Mes séjours</h2><p>Sélectionnez un séjour pour accéder à ses modules.</p></div>
+            {% if sejours is empty %}<div class="empty-state"><strong>Aucun séjour disponible</strong><p>Contactez un administrateur pour être affecté à un séjour.</p></div>{% endif %}
+            <div class="stay-grid">
+                {% for sejour in sejours %}
+                    <article class="stay-card{{ sejour_selectionne == sejour ? ' stay-card--selected' : '' }}">
+                        <div><span class="stay-card__eyebrow">{{ sejour_selectionne == sejour ? 'Séjour actif' : 'Séjour' }}</span><h3>{{ sejour.nom }}</h3><p>{{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }}</p></div>
+                        <form method="post" action="{{ path('app_sejour_selectionner', {id: sejour.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('selectionner_sejour_' ~ sejour.id) }}"><button class="button button--primary" type="submit">{{ sejour_selectionne == sejour ? 'Sélectionné' : 'Sélectionner' }}</button></form>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+{% endblock %}

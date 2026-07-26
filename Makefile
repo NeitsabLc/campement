@@ -1,0 +1,137 @@
+.DEFAULT_GOAL := help
+
+DOCKER_COMPOSE := docker compose
+PHP := $(DOCKER_COMPOSE) exec php
+PHP_RUN := $(DOCKER_COMPOSE) run --rm php
+LIQUIBASE := $(DOCKER_COMPOSE) --profile tools run --rm liquibase
+
+.PHONY: help
+help: ## Afficher les commandes disponibles
+	@awk 'BEGIN {FS = ":.*##"; printf "\nCommandes disponibles :\n\n"} /^[a-zA-Z0-9_-]+:.*?##/ {printf "  %-25s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+.PHONY: install
+install: build up composer-install db-update-dev ## Installer complètement le projet
+
+.PHONY: build
+build: ## Construire les images Docker
+	$(DOCKER_COMPOSE) build
+
+.PHONY: rebuild
+rebuild: ## Reconstruire les images sans cache
+	$(DOCKER_COMPOSE) build --no-cache
+
+.PHONY: up
+up: ## Démarrer l'environnement
+	$(DOCKER_COMPOSE) up -d
+
+.PHONY: down
+down: ## Arrêter l'environnement
+	$(DOCKER_COMPOSE) down
+
+.PHONY: restart
+restart: down up ## Redémarrer l'environnement
+
+.PHONY: ps
+ps: ## Afficher l'état des conteneurs
+	$(DOCKER_COMPOSE) ps
+
+.PHONY: logs
+logs: ## Afficher les journaux
+	$(DOCKER_COMPOSE) logs -f --tail=100
+
+.PHONY: logs-php
+logs-php: ## Afficher les journaux PHP
+	$(DOCKER_COMPOSE) logs -f --tail=100 php
+
+.PHONY: logs-nginx
+logs-nginx: ## Afficher les journaux Nginx
+	$(DOCKER_COMPOSE) logs -f --tail=100 nginx
+
+.PHONY: logs-database
+logs-database: ## Afficher les journaux PostgreSQL
+	$(DOCKER_COMPOSE) logs -f --tail=100 database
+
+.PHONY: shell
+shell: ## Ouvrir un terminal dans PHP
+	$(PHP) sh
+
+.PHONY: console
+console: ## Exécuter une commande Symfony : make console ARGS="about"
+	$(PHP) php bin/console $(ARGS)
+
+.PHONY: composer
+composer: ## Exécuter Composer : make composer ARGS="require package"
+	$(PHP_RUN) composer $(ARGS)
+
+.PHONY: composer-install
+composer-install: ## Installer les dépendances PHP
+	$(PHP_RUN) composer install
+
+.PHONY: cache-clear
+cache-clear: ## Vider le cache Symfony
+	$(PHP) php bin/console cache:clear
+
+.PHONY: assets-compile
+assets-compile: ## Recompiler les assets servis directement par Nginx
+	$(PHP) php bin/console asset-map:compile
+
+.PHONY: db-validate
+db-validate: ## Valider les changelogs Liquibase
+	$(LIQUIBASE) validate
+
+.PHONY: db-status
+db-status: ## Afficher les changesets en attente
+	$(LIQUIBASE) status
+
+.PHONY: db-status-dev
+db-status-dev: ## Afficher les changesets de développement en attente
+	$(LIQUIBASE) status --context-filter=dev
+
+.PHONY: db-sql
+db-sql: ## Afficher le SQL Liquibase sans l'exécuter
+	$(LIQUIBASE) update-sql
+
+.PHONY: db-sql-dev
+db-sql-dev: ## Afficher le SQL de développement sans l'exécuter
+	$(LIQUIBASE) update-sql --context-filter=dev
+
+.PHONY: db-update
+db-update: ## Appliquer les migrations communes
+	$(LIQUIBASE) update
+
+.PHONY: db-update-dev
+db-update-dev: ## Appliquer les migrations communes et de développement
+	$(LIQUIBASE) update --context-filter=dev
+
+.PHONY: db-history
+db-history: ## Afficher l'historique Liquibase
+	docker compose exec database sh -c \
+		'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" \
+		-c "SELECT id, author, filename, dateexecuted, exectype FROM public.databasechangelog ORDER BY orderexecuted;"'
+
+.PHONY: db-shell
+db-shell: ## Ouvrir une console PostgreSQL
+	$(DOCKER_COMPOSE) exec database \
+		psql -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+
+.PHONY: doctrine-validate
+doctrine-validate: ## Vérifier le mapping Doctrine
+	docker compose exec php php bin/console doctrine:schema:validate --skip-sync
+
+.PHONY: test
+test: ## Exécuter les tests
+	$(PHP) php bin/phpunit
+
+.PHONY: reset
+reset: ## Supprimer les conteneurs et la base locale
+	$(DOCKER_COMPOSE) down --volumes --remove-orphans
+
+.PHONY: clean
+clean: ## Nettoyer les fichiers temporaires Symfony
+	rm -rf app/var/cache/*
+	rm -rf app/var/log/*
+
+.PHONY: db-check-connection
+db-check-connection: ## Vérifier la connexion Doctrine à PostgreSQL
+	$(PHP) php bin/console dbal:run-sql \
+		"SELECT current_database(), current_user, current_schema(), current_setting('search_path')"

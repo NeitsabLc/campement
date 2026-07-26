@@ -1,0 +1,106 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des menus | Campement{% endblock %}
+
+{% block body %}
+    <main class="menus-page" data-controller="menu-editor">
+        <header class="menus-heading">
+            <h1>Gestion des menus</h1>
+            {% if sejour %}
+                <span class="stay-badge" aria-label="Séjour actif">⌁ <strong>{{ sejour.nom }}</strong></span>
+            {% endif %}
+        </header>
+
+        {% for message in app.flashes('success') %}<div class="flash flash--success" role="status" data-menu-editor-target="flash">{{ message }}</div>{% endfor %}
+        {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
+
+        {% if not sejour %}
+            <section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour pour commencer à saisir ses menus.</p></section>
+        {% elseif repas is empty %}
+            <section class="empty-state"><h2>Aucun repas disponible</h2><p>Configurez les types de repas du séjour avant de saisir les menus.</p></section>
+        {% else %}
+            <div class="menus-layout">
+                <aside class="meal-calendar" aria-label="Jours et repas du séjour">
+                    {% for jour in jours %}
+                        <section class="meal-day">
+                            <h2>{{ jour.libelle }}</h2>
+                            <div class="meal-day__items">
+                                {% for repas_item in repas %}
+                                    {% set menu_renseigne = menus_existants[jour.date|date('Y-m-d') ~ '|' ~ repas_item.id]|default(false) %}
+                                    {% set actif = jour.date == date_selectionnee and repas_item.id == repas_selectionne.id %}
+                                    <a class="meal-slot{{ actif ? ' meal-slot--active' : '' }}{{ menu_renseigne ? ' meal-slot--complete' : '' }}"
+                                       href="{{ path('app_menus', {date: jour.date|date('Y-m-d'), repas: repas_item.id}) }}"
+                                       aria-label="{{ repas_item.typeRepas.libelle }} — {{ menu_renseigne ? 'renseigné' : 'à compléter' }}"
+                                       {% if actif %}aria-current="true"{% endif %}>
+                                        <span class="meal-slot__status" aria-hidden="true">{{ menu_renseigne ? '✓' : '' }}</span>
+                                        <strong>{{ repas_item.typeRepas.libelle }}</strong>
+                                        <span class="meal-slot__arrow" aria-hidden="true">›</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    {% endfor %}
+                </aside>
+
+                <section class="meal-editor">
+                    <h2>{{ repas_selectionne.typeRepas.libelle }} · {{ date_selectionnee|date('d/m/Y') }}</h2>
+
+                    <form method="post" data-menu-editor-target="form">
+                        <input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}">
+
+                        <div class="food-table" role="table" aria-label="Composition du repas" style="--public-count: {{ publicsCibles|length }}">
+                            <div class="food-row food-row--header" role="row">
+                                <span>Denrée</span><span>Unité de référence</span>
+                                {% for publicCible in publicsCibles %}
+                                    <span><strong>{{ publicCible.publicCible.libelle }}</strong></span>
+                                {% endfor %}
+                                <span class="visually-hidden">Actions</span>
+                            </div>
+                            <div data-menu-editor-target="rows">
+                                {% for ligne in lignes_formulaire %}
+                                        <div class="food-row" role="row" data-denree-id="{{ ligne.denree.id }}">
+                                            <strong>{{ ligne.denree.nom }}</strong>
+                                            <span class="unit-chip">{{ ligne.denree.uniteReference.symbole }}</span>
+                                            {% for publicCible in publicsCibles %}
+                                                {% set valeur = ligne.quantites[publicCible.id ~ '']|default('') %}
+                                                <input aria-label="{{ publicCible.publicCible.libelle }} — {{ ligne.denree.nom }}" inputmode="decimal" required name="denrees[{{ ligne.denree.id }}][quantites][{{ publicCible.id }}]" value="{{ valeur|replace({'.': ','}) }}">
+                                            {% endfor %}
+                                            <button class="delete-food" type="button" aria-label="Supprimer {{ ligne.denree.nom }}" title="Supprimer" data-action="menu-editor#remove"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Supprimer</span></button>
+                                        </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="food-picker-group">
+                            <label class="food-picker-label" for="food-picker">Ajouter une denrée</label>
+                            <input
+                                id="food-picker"
+                                class="food-picker"
+                                type="search"
+                                list="food-catalog"
+                                placeholder="Rechercher une denrée dans le catalogue…"
+                                autocomplete="off"
+                                data-menu-editor-target="picker"
+                                data-action="change->menu-editor#add keydown.enter->menu-editor#add"
+                            >
+                            <datalist id="food-catalog" data-menu-editor-target="catalog">
+                                {% for denree in denrees %}
+                                    <option value="{{ denree.nom }}" data-id="{{ denree.id }}" data-unit="{{ denree.uniteReference.symbole }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="meal-editor__actions"><button class="save-meal-button" type="submit">Enregistrer ce repas</button></div>
+                    </form>
+                </section>
+            </div>
+
+            <template data-menu-editor-target="template">
+                <div class="food-row" role="row" data-denree-id="__ID__">
+                    <strong>__NAME__</strong><span class="unit-chip">__UNIT__</span>
+                    {% for publicCible in publicsCibles %}<input aria-label="{{ publicCible.publicCible.libelle }} — __NAME__" inputmode="decimal" required name="denrees[__ID__][quantites][{{ publicCible.id }}]" placeholder="0,000">{% endfor %}
+                    <button class="delete-food" type="button" aria-label="Supprimer __NAME__" title="Supprimer" data-action="menu-editor#remove"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Supprimer</span></button>
+                </div>
+            </template>
+        {% endif %}
+    </main>
+{% endblock %}
