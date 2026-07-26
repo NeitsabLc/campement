@@ -1,0 +1,102 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mouvement de stock | Campement{% endblock %}
+
+{% block body %}
+<main class="stock-movement-page" data-controller="stock-movement">
+    <header class="stock-movement-heading">
+        <div>
+            <h1>{{ mouvementExistant ? 'Modifier le mouvement' : 'Saisir un mouvement de stock' }}</h1>
+            <p>{{ mouvementExistant ? 'Corrigez les informations du mouvement enregistré.' : 'Enregistrez une entrée fournisseur ou une sortie de denrée.' }}</p>
+        </div>
+    </header>
+
+    {% for message in app.flashes('success') %}
+        <div class="stock-movement-success" role="status">✓ {{ message }}</div>
+    {% endfor %}
+
+    {% if not sejour %}
+        <section class="stock-movement-card stock-movement-empty"><h2>Saisie indisponible</h2><p>Aucun séjour actif n’est configuré.</p></section>
+    {% else %}
+        {% if erreurs %}<div class="stock-movement-errors" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+
+        <form method="post" novalidate data-turbo="false">
+            <input type="hidden" name="_token" value="{{ csrf_token('mouvement_stock') }}">
+            <section class="stock-movement-card">
+                <h2>Nature du mouvement</h2>
+                <div class="movement-type-switch">
+                    <label><input type="radio" name="type" value="SORTIE"{{ valeurs.type == 'SORTIE' ? ' checked' : '' }} data-stock-movement-target="type" data-action="change->stock-movement#refresh"><span>↗ <strong>Sortie</strong><small>Denrée retirée du stock</small></span></label>
+                    <label><input type="radio" name="type" value="ENTREE"{{ valeurs.type == 'ENTREE' ? ' checked' : '' }} data-stock-movement-target="type" data-action="change->stock-movement#refresh"><span>↙ <strong>Entrée</strong><small>Denrée ajoutée au stock</small></span></label>
+                </div>
+
+                <div class="stock-movement-grid">
+                    <label>Denrée <b>*</b>
+                        <select name="denree" required data-stock-movement-target="food" data-action="change->stock-movement#refresh">
+                            <option value="">Sélectionner une denrée</option>
+                            {% for denree in denreesActives %}<option value="{{ denree.id }}"{{ valeurs.denree == denree.id ~ '' ? ' selected' : '' }} data-unit="{{ denree.uniteReference.symbole }}">{{ denree.nom }}</option>{% endfor %}
+                        </select>
+                    </label>
+                    <label>Origine du mouvement <b>*</b>
+                        <select name="origine" required data-stock-movement-target="origin" data-action="change->stock-movement#refresh">
+                            <option value="">Sélectionner une origine</option>
+                            {% for origine in originesActives %}<option value="{{ origine.id }}" data-code="{{ origine.code }}"{{ valeurs.origine == origine.id ~ '' ? ' selected' : '' }}>{{ origine.libelle }}</option>{% endfor %}
+                        </select>
+                    </label>
+                </div>
+            </section>
+
+            <section class="stock-movement-card" data-stock-movement-target="exitFields">
+                <h2>Détail de la sortie</h2>
+                <div class="stock-movement-grid">
+                    <label>Quantité de référence <b>*</b>
+                        <div class="movement-quantity"><input name="quantite" value="{{ valeurs.quantite }}" inputmode="decimal" placeholder="0" data-stock-movement-target="exitInput"><span data-stock-movement-target="unit">—</span></div>
+                    </label>
+                    <label data-stock-movement-target="groupField">Groupe <b>*</b>
+                        <select name="groupe" data-stock-movement-target="group">
+                            <option value="">Sélectionner un groupe</option>
+                            {% for groupe in groupesActifs %}<option value="{{ groupe.id }}"{{ valeurs.groupe == groupe.id ~ '' ? ' selected' : '' }}>{{ groupe.nom }}</option>{% endfor %}
+                        </select>
+                        <small>Obligatoire pour une distribution.</small>
+                    </label>
+                </div>
+            </section>
+
+            <section class="stock-movement-card" data-stock-movement-target="entryFields" hidden>
+                <h2>Détail de l’entrée</h2>
+                <p class="stock-movement-help">Le fournisseur et ses conditionnements sont proposés selon la denrée sélectionnée.</p>
+                <label class="movement-supplier">Fournisseur <b>*</b>
+                    <select name="reference" data-stock-movement-target="reference" data-action="change->stock-movement#refreshPackagings">
+                        <option value="">Sélectionner un fournisseur</option>
+                        {% for denreeId, liste in referencesParDenree %}
+                            {% for reference in liste %}
+                                <option value="{{ reference.id }}" data-food="{{ denreeId }}"{{ valeurs.reference == reference.id ~ '' ? ' selected' : '' }}>{{ reference.fournisseur.nom }} — {{ reference.reference }}</option>
+                            {% endfor %}
+                        {% endfor %}
+                    </select>
+                </label>
+
+                {% for referenceId, liste in conditionnementsParReference %}
+                    <div class="movement-packagings" data-stock-movement-target="packagings" data-reference="{{ referenceId }}" hidden>
+                        {% if liste is empty %}
+                            <p class="movement-no-packaging">Aucun conditionnement n’est configuré pour cette référence.</p>
+                        {% else %}
+                            <h3>Quantités reçues par conditionnement</h3>
+                            <div class="movement-packaging-grid">
+                                {% for conditionnement in liste %}
+                                    <label><span>{{ conditionnement.libelle }}</span>
+                                        <input name="conditionnements[{{ conditionnement.id }}]" value="{{ valeurs.conditionnements[conditionnement.id ~ '']|default('') }}" inputmode="decimal" min="0" placeholder="0">
+                                        <small>1 {{ conditionnement.libelle }} contient {{ conditionnement.quantiteContenu|number_format(3, ',', ' ')|replace({',000': ''}) }} {{ conditionnement.libelleContenu ?: (conditionnement.uniteContenu ? conditionnement.uniteContenu.symbole : 'unité(s)') }}</small>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <p class="movement-no-supplier" data-stock-movement-target="noSupplier" hidden>Aucun fournisseur actif n’est associé à cette denrée. Ajoutez-en un depuis sa fiche avant d’enregistrer une entrée.</p>
+            </section>
+
+            <div class="stock-movement-actions"><a class="food-secondary" href="{{ path('app_mouvements_stock') }}">Annuler</a><button class="food-primary" type="submit">{{ mouvementExistant ? 'Enregistrer les modifications' : 'Enregistrer le mouvement' }}</button></div>
+        </form>
+    {% endif %}
+</main>
+{% endblock %}

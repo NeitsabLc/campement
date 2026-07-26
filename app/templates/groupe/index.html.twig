@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des unités participantes | Campement{% endblock %}
+
+{% block body %}
+    <main class="groups-page" data-controller="group-dialog" data-group-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
+        <header class="groups-heading">
+            <div>
+                <h1>Gestion des unités participantes</h1>
+            </div>
+            {% if sejour %}<span class="stay-badge" aria-label="Séjour actif">⌁ <strong>{{ sejour.nom }}</strong></span>{% endif %}
+        </header>
+
+        {% for message in app.flashes('success') %}<div class="flash flash--success" role="status" data-group-dialog-target="message">{{ message }}</div>{% endfor %}
+        {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert" data-group-dialog-target="message">{{ message }}</div>{% endfor %}
+
+        {% if not sejour %}
+            <section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour avant de gérer ses unités participantes.</p></section>
+        {% else %}
+            <section class="groups-list-card">
+                    <div class="groups-card-heading">
+                        <div><h2>Unités du séjour</h2><p>{{ groupes|length }} unité{{ groupes|length > 1 ? 's' : '' }} participante{{ groupes|length > 1 ? 's' : '' }}</p></div>
+                        <div class="groups-card-actions">
+                            <form method="get" class="inactive-groups-toggle">
+                                <label><input type="checkbox" name="inactifs" value="1"{{ afficher_inactifs ? ' checked' : '' }} data-action="change->group-dialog#submitFilter"><span>Afficher les unités inactives</span></label>
+                            </form>
+                            <button class="add-group-button" type="button" data-action="group-dialog#openCreate"><span aria-hidden="true">＋</span> Ajouter une unité</button>
+                        </div>
+                    </div>
+
+                    {% if groupes is empty %}
+                        <div class="groups-empty"><strong>Aucune unité participante pour le moment</strong><span>Utilisez le bouton « Ajouter une unité » pour commencer.</span></div>
+                    {% else %}
+                        <div class="groups-list">
+                            {% for groupe in groupes %}
+                                <article class="group-row{{ groupe.actif ? '' : ' group-row--inactive' }}">
+                                    <span class="group-type group-type--{{ groupe.type }}">{{ types[groupe.type] }}</span>
+                                    <div class="group-row__identity"><h3>{{ groupe.nom }}{% if not groupe.actif %} <span class="inactive-group-badge">Inactif</span>{% endif %}</h3><span>{{ groupe.effectifJeune + groupe.effectifAdulte }} personnes au total</span></div>
+                                    <dl><div><dt>Jeunes</dt><dd>{{ groupe.effectifJeune }}</dd></div><div><dt>Adultes</dt><dd>{{ groupe.effectifAdulte }}</dd></div></dl>
+                                    {% if groupe.actif %}<button
+                                        class="edit-group-button"
+                                        type="button"
+                                        aria-label="Modifier l’unité {{ groupe.nom }}"
+                                        title="Modifier l’unité {{ groupe.nom }}"
+                                        data-action="group-dialog#openEdit"
+                                        data-group-id="{{ groupe.id }}"
+                                        data-group-name="{{ groupe.nom|e('html_attr') }}"
+                                        data-group-type="{{ groupe.type }}"
+                                        data-group-young="{{ groupe.effectifJeune }}"
+                                        data-group-adult="{{ groupe.effectifAdulte }}"
+                                    ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></button>
+                                    <button
+                                        class="delete-group-button"
+                                        type="button"
+                                        aria-label="Désactiver l’unité {{ groupe.nom }}"
+                                        title="Désactiver l’unité {{ groupe.nom }}"
+                                        data-action="group-dialog#openDelete"
+                                        data-group-name="{{ groupe.nom|e('html_attr') }}"
+                                        data-delete-url="{{ path('app_groupes_supprimer', {id: groupe.id}) }}"
+                                        data-delete-token="{{ csrf_token('supprimer_groupe_' ~ groupe.id) }}"
+                                    ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Désactiver</span></button>{% endif %}
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+            </section>
+
+            <dialog class="group-dialog" data-group-dialog-target="dialog" data-action="click->group-dialog#closeOnBackdrop">
+                <section class="group-dialog__content" aria-labelledby="group-dialog-title">
+                    <header class="group-dialog__header">
+                        <div><h2 id="group-dialog-title" data-group-dialog-target="title">{{ donnees.groupe_id ? 'Modifier l’unité participante' : 'Ajouter une unité' }}</h2><p>Renseignez les informations de l’unité participante.</p></div>
+                        <button class="group-dialog__close" type="button" aria-label="Fermer" data-action="group-dialog#close">×</button>
+                    </header>
+
+                    {% if erreurs %}
+                        <div class="distribution-errors flash" role="alert" data-group-dialog-target="message">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>
+                    {% endif %}
+
+                    <form method="post" class="group-dialog__form" data-group-dialog-target="form">
+                        <input type="hidden" name="_token" value="{{ csrf_token('enregistrer_groupe') }}">
+                        <input type="hidden" name="groupe_id" value="{{ donnees.groupe_id }}" data-group-dialog-target="groupId">
+                        <div class="group-form-field">
+                            <label for="nom">Nom de l’unité</label>
+                            <input id="nom" name="nom" maxlength="150" required autocomplete="organization" value="{{ donnees.nom }}" data-group-dialog-target="name">
+                        </div>
+                        <fieldset class="group-type-picker">
+                            <legend>Type de l’unité</legend>
+                            {% for valeur, libelle in types %}
+                                <label class="group-type-option group-type-option--{{ valeur }}">
+                                    <input type="radio" name="type" value="{{ valeur }}" required{{ donnees.type == valeur ? ' checked' : '' }} data-group-dialog-target="type">
+                                    <span><strong>{{ libelle }}</strong></span>
+                                </label>
+                            {% endfor %}
+                        </fieldset>
+                        <div class="group-counts">
+                            <div class="group-form-field"><label for="effectif_jeune">Effectif jeune</label><input id="effectif_jeune" type="number" name="effectif_jeune" min="0" step="1" required value="{{ donnees.effectif_jeune }}" data-group-dialog-target="young"></div>
+                            <div class="group-form-field"><label for="effectif_adulte">Effectif adulte</label><input id="effectif_adulte" type="number" name="effectif_adulte" min="0" step="1" required value="{{ donnees.effectif_adulte }}" data-group-dialog-target="adult"></div>
+                        </div>
+                        <div class="group-dialog__actions">
+                            <button class="cancel-group-button" type="button" data-action="group-dialog#close">Annuler</button>
+                            <button class="save-group-button" type="submit" data-group-dialog-target="submit">{{ donnees.groupe_id ? 'Enregistrer les modifications' : 'Créer l’unité' }}</button>
+                        </div>
+                    </form>
+                </section>
+            </dialog>
+
+            <dialog class="delete-group-dialog" data-group-dialog-target="deleteDialog" data-action="click->group-dialog#closeDeleteOnBackdrop">
+                <section class="delete-group-dialog__content" aria-labelledby="delete-group-dialog-title">
+                    <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
+                    <h2 id="delete-group-dialog-title">Désactiver cette unité ?</h2>
+                    <p>L’unité <strong data-group-dialog-target="deleteName"></strong> ne sera plus proposée dans les écrans du séjour.</p>
+                    <p class="delete-group-dialog__warning">Vous pourrez toujours la consulter en affichant les unités inactives.</p>
+                    <form method="post" data-group-dialog-target="deleteForm">
+                        <input type="hidden" name="_token" data-group-dialog-target="deleteToken">
+                        <div class="group-dialog__actions">
+                            <button class="cancel-group-button" type="button" data-action="group-dialog#closeDelete">Annuler</button>
+                            <button class="confirm-delete-group-button" type="submit">Désactiver l’unité</button>
+                        </div>
+                    </form>
+                </section>
+            </dialog>
+        {% endif %}
+    </main>
+{% endblock %}

@@ -1,0 +1,7 @@
+<h1>Bienvenue sur Campement</h1>
+<p>Bonjour {{ utilisateur.prenom }},</p>
+<p>Votre compte Campement a été créé.</p>
+<p><strong>Identifiant :</strong> {{ utilisateur.email }}<br>
+<strong>Mot de passe provisoire :</strong> {{ mot_de_passe }}</p>
+<p>À votre première connexion, vous devrez choisir un nouveau mot de passe.</p>
+<p><a href="{{ url('app_connexion') }}">Se connecter à Campement</a></p>

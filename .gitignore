@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Local environment
+.env
+.env.local
+.env.*.local
+
+# Docker overrides
+compose.override.yaml
+docker-compose.override.yaml
+
+# Temporary files
+*.log
+*.tmp

@@ -1,0 +1,88 @@
+<?php
+
+declare(strict_types=1);
+namespace App\Entity;
+
+use App\Entity\Traits\ActivableTrait;
+use App\Entity\Traits\EntityIdTrait;
+use App\Entity\Traits\TimestampableTrait;
+use App\Repository\UniteRepository;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: UniteRepository::class)]
+#[ORM\Table(name: "unite", schema: "campement")]
+#[ORM\UniqueConstraint(name: "uq_unite_nom", columns: ["nom"])]
+#[ORM\UniqueConstraint(name: "uq_unite_symbole", columns: ["symbole"])]
+class Unite
+{
+    use EntityIdTrait;
+    use TimestampableTrait;
+    use ActivableTrait;
+
+    #[ORM\Column(length: 50)]
+    private string $nom;
+
+    #[ORM\Column(length: 10)]
+    private string $symbole;
+
+    #[ORM\Column(name: "facteur_conversion",type: "decimal",precision: 12,scale: 6,),]
+    private string $facteurConversion;
+
+    public function __construct(string $nom, string $symbole, string $facteurConversion)
+    {
+        if ((float) $facteurConversion <= 0) {
+            throw new \InvalidArgumentException("Facteur invalide.");
+        }
+
+        $this->initializeId();
+        $this->initializeTimestamps();
+        $this->nom = $nom;
+        $this->symbole = $symbole;
+        $this->facteurConversion = $facteurConversion;
+    }
+
+    public function getNom(): string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(string $nom): self
+    {
+        $this->nom = $nom;
+        $this->touch();
+        return $this;
+    }
+
+    public function getSymbole(): string
+    {
+        return $this->symbole;
+    }
+
+    public function setSymbole(string $symbole): self
+    {
+        $this->symbole = $symbole;
+        $this->touch();
+        return $this;
+    }
+
+    public function getFacteurConversion(): string
+    {
+        return $this->facteurConversion;
+    }
+
+    public function setFacteurConversion(string $facteurConversion): self
+    {
+        if ((float) $facteurConversion <= 0) {
+            throw new \InvalidArgumentException("Facteur invalide.");
+        }
+
+        $this->facteurConversion = $facteurConversion;
+        $this->touch();
+        return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->symbole;
+    }
+}

@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion | Campement{% endblock %}
+
+{% block body %}
+    <main class="auth-page">
+        <div class="auth-brand">
+            <img class="auth-brand__logo" src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France">
+            <span class="brand__name">Campement</span>
+            <span class="brand__tagline">Gestion des camps accompagnés</span>
+        </div>
+
+        <section class="auth-card" aria-labelledby="connexion-title">
+            <header class="auth-card__header">
+                <h1 id="connexion-title">Connexion</h1>
+                <p class="auth-card__intro">Accédez à votre espace Campement.</p>
+            </header>
+
+            {% if erreur %}
+                <p class="alert" role="alert">Identifiants incorrects.</p>
+            {% endif %}
+            {% for message in app.flashes('success') %}<p class="flash flash--success" role="status">{{ message }}</p>{% endfor %}
+
+            <form method="post" action="{{ path('app_connexion') }}">
+                <div class="form-field">
+                    <label for="email">Adresse électronique</label>
+                    <input
+                        id="email"
+                        name="_username"
+                        type="email"
+                        value="{{ derniere_adresse }}"
+                        autocomplete="email"
+                        required
+                        autofocus
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="mot-de-passe">Mot de passe</label>
+                    <input
+                        id="mot-de-passe"
+                        name="_password"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <button class="primary-button" type="submit">Se connecter</button>
+            </form>
+            <p class="auth-card__footer"><a href="{{ path('app_mot_de_passe_oublie') }}">Mot de passe oublié ?</a></p>
+        </section>
+    </main>
+{% endblock %}

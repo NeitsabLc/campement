@@ -1,0 +1,50 @@
+# Campement
+
+Campement est une application de gestion des camps accompagnés.
+
+Elle est destinée principalement aux équipes pilotes.
+Les unités accueillies pourront également accéder à certaines fonctionnalités.
+
+## Périmètre fonctionnel
+
+Les premiers modules prévus sont :
+
+- gestion des séjours
+- gestion des unités
+- intendance
+- recensement des documents administratifs
+
+## Architecture technique
+
+- Symfony
+- PHP 8.4
+- Doctrine ORM
+- PostgreSQL 18
+- Liquibase
+- Nginx
+- Docker Compose
+- Twig
+- AssetMapper
+
+### Responsabilités
+
+- Docker crée l'instance PostgreSQL, la base et l'utilisateur.
+- Liquibase crée et versionne le contenu de la base.
+- Doctrine ORM assure le mapping entre le modèle objet et la base.
+- Doctrine ne crée et ne modifie jamais le schéma.
+
+## Prérequis
+
+- Docker Desktop
+- Docker Compose
+- Make
+- Git
+
+Aucune installation locale de PHP, Composer, PostgreSQL ou Liquibase n'est nécessaire.
+
+## Installation
+
+Créer le fichier d'environnement :
+
+```bash
+cp .env.example .env
