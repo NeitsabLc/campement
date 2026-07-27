@@ -44,7 +44,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Produits laitiers et frais
@@ -95,7 +95,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Velouté soupe
@@ -115,7 +115,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Goûter
@@ -147,7 +147,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Épicerie sucrée
@@ -169,7 +169,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Epicerie salée
@@ -193,7 +193,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Féculent
@@ -231,7 +231,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Conserves et sous vides
@@ -275,7 +275,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Fruits et légumes frais
@@ -327,7 +327,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Poisson et viande
@@ -348,7 +348,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Alternatives Végé
@@ -364,7 +364,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Sans gluten
@@ -380,7 +380,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Congelés
@@ -424,7 +424,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Divers (hygiène)
@@ -449,7 +449,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Autre
@@ -463,7 +463,7 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
 
 -- Epices
@@ -503,5 +503,5 @@ FROM (VALUES
          JOIN campement.unite AS unite
               ON unite.nom = donnees.unite_nom
 CROSS JOIN campement.sejour AS sejour
-WHERE sejour.nom = 'Séjour de développement'
+WHERE sejour.nom = 'Test séjour'
     ON CONFLICT (sejour_id, nom) DO NOTHING;
