@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\RateLimit;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -22,6 +23,10 @@ final class MotDePasseController extends AbstractController
     public function __construct(
         #[Autowire('%env(APP_PUBLIC_URL)%')]
         private readonly string $urlPublique,
+        #[Autowire('%env(MAILER_FROM_EMAIL)%')]
+        private readonly string $emailExpediteur,
+        #[Autowire('%env(MAILER_FROM_NAME)%')]
+        private readonly string $nomExpediteur,
     ) {
     }
 
@@ -51,7 +56,7 @@ final class MotDePasseController extends AbstractController
                 );
 
                 $mailer->send((new TemplatedEmail())
-                    ->from('no-reply@campement.local')
+                    ->from(new Address($this->emailExpediteur, $this->nomExpediteur))
                     ->to($utilisateur->getEmail())
                     ->subject('Réinitialisation de votre mot de passe Campement')
                     ->htmlTemplate('emails/reinitialisation_mot_de_passe.html.twig')
