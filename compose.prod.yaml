@@ -1,0 +1,19 @@
+services:
+  php:
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+
+  database:
+    command:
+      - postgres
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    volumes:
+      - ./docker/postgres/pg_hba.prod.conf:/etc/postgresql/pg_hba.conf:ro
+
+networks:
+  campement:
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16

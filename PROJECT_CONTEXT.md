@@ -595,6 +595,41 @@ La production actuelle repose sur :
 * un serveur SMTP OVH, avec envoi synchrone ;
 * des sauvegardes PostgreSQL placées dans `/srv/backups/campement`.
 
+La configuration Compose de production fusionne obligatoirement les deux
+fichiers suivants :
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml config
+docker compose -f compose.yaml -f compose.prod.yaml up -d
+```
+
+Les raccourcis équivalents sont `make prod-config`, `make prod-up` et
+`make prod-ps`. Un lancement de production avec le seul `compose.yaml` ne monte
+pas la politique PostgreSQL durcie et doit être évité.
+
+Le fichier `docker/postgres/pg_hba.prod.conf` constitue la source de vérité des
+règles d'authentification PostgreSQL de production. Il est monté en lecture
+seule par `compose.prod.yaml`. Le réseau Docker de production utilise le
+sous-réseau fixe `172.18.0.0/16`, correspondant à la règle accordée à Symfony et
+Liquibase.
+
+La variable `POSTGRES_BIND_ADDRESS` du fichier `/srv/campement/.env` doit être
+égale à l'adresse LAN fixe de la VM (`192.168.2.4` dans l'installation actuelle).
+La valeur par défaut et celle de `.env.example` restent `127.0.0.1`, afin qu'une
+installation incomplète n'expose jamais PostgreSQL sur toutes les interfaces.
+
+Les accès directs actuellement autorisés en production sont :
+
+* le rôle `campement` depuis le réseau Docker `172.18.0.0/16` ;
+* le rôle nominatif `blecaer` depuis le LAN `192.168.2.0/24` ;
+* le rôle nominatif `blecaer` depuis son adresse WireGuard
+  `192.168.27.65/32` ;
+* toute autre connexion TCP est explicitement rejetée.
+
+Tout nouvel utilisateur nominatif ou nouveau profil WireGuard doit faire
+l'objet d'une règle dédiée, puis d'une validation avec `pg_hba_file_rules`
+avant rechargement de PostgreSQL.
+
 La branche actuellement déployée est `dev`. Cette information décrit l’état
 actuel et ne constitue pas une recommandation à long terme.
 
