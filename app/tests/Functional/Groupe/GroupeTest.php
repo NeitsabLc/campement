@@ -28,7 +28,7 @@ final class GroupeTest extends WebTestCase
         $client->request('GET', '/groupes');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Gestion des groupes');
+        self::assertSelectorTextContains('h1', 'Gestion des unités participantes');
         self::assertSelectorExists('form input[name="nom"]');
         self::assertSelectorCount(3, 'form input[name="type"]');
         self::assertSelectorExists('.edit-group-button[data-group-id]');
