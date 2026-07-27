@@ -1,5 +1,6 @@
 services:
   php:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: docker/php/Dockerfile
@@ -15,6 +16,7 @@ services:
       - campement
 
   nginx:
+    restart: unless-stopped
     image: "nginx:${NGINX_VERSION}"
     ports:
       - "${NGINX_HOST_PORT:-8080}:80"
@@ -27,6 +29,7 @@ services:
       - campement
 
   database:
+    restart: unless-stopped
     image: "postgres:${POSTGRES_VERSION}"
     environment:
       POSTGRES_DB: "${POSTGRES_DB}"
