@@ -11,7 +11,7 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('configurer_distribution_' ~ sejour.id) }}">
                 <label class="distribution-master"><input type="checkbox" name="distribution_publique_active"{{ sejour.distributionPubliqueActive ? ' checked' : '' }}><span><strong>Saisie publique activée</strong><small>Le lien public accepte de nouvelles distributions.</small></span></label>
                 <fieldset class="distribution-meals"><legend>Repas proposés aux unités</legend>
-                    {% for item in repas %}<label><input type="checkbox" name="repas[{{ item.id }}]"{{ item.distributionActive ? ' checked' : '' }}><span>{{ item.typeRepas.libelle }}</span></label>{% else %}<p>Aucun type de repas n’est configuré pour ce séjour.</p>{% endfor %}
+                    {% for item in repas %}<label><input type="checkbox" name="repas[{{ item.type.id }}]"{{ item.selectionne ? ' checked' : '' }}><span>{{ item.type.libelle }}</span></label>{% else %}<p>Aucun type de repas n’est disponible.</p>{% endfor %}
                 </fieldset>
                 <button class="button button--primary" type="submit">Enregistrer la configuration</button>
             </form>

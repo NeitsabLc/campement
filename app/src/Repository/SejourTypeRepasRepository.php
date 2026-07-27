@@ -38,4 +38,17 @@ final class SejourTypeRepasRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /** @return list<SejourTypeRepas> */
+    public function findPourSejour(Sejour $sejour): array
+    {
+        return $this->createQueryBuilder('repasSejour')
+            ->addSelect('typeRepas')
+            ->join('repasSejour.typeRepas', 'typeRepas')
+            ->andWhere('repasSejour.sejour = :sejour')
+            ->setParameter('sejour', $sejour)
+            ->orderBy('repasSejour.ordre', 'ASC')
+            ->addOrderBy('typeRepas.ordre', 'ASC')
+            ->getQuery()->getResult();
+    }
 }
