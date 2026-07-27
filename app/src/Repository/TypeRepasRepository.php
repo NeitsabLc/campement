@@ -19,6 +19,10 @@ final class TypeRepasRepository extends ServiceEntityRepository
     /** @return list<TypeRepas> */
     public function findActifs(): array
     {
-        return $this->createQueryBuilder('e')->andWhere('e.actif = true')->getQuery()->getResult();
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.actif = true')
+            ->orderBy('e.ordre', 'ASC')
+            ->addOrderBy('e.libelle', 'ASC')
+            ->getQuery()->getResult();
     }
 }

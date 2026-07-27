@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\SejourTypeRepas;
 use App\Entity\Utilisateur;
 use App\Repository\SejourTypeRepasRepository;
+use App\Repository\TypeRepasRepository;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use Endroid\QrCode\Color\Color;
@@ -24,11 +26,15 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class DistributionController extends AbstractController
 {
     #[Route('/intendance/distribution', name: 'app_distribution', methods: ['GET', 'POST'])]
-    public function index(Request $request, ContexteSejour $contexte, SejourTypeRepasRepository $repas, EntityManagerInterface $em): Response
+    public function index(Request $request, ContexteSejour $contexte, SejourTypeRepasRepository $repas, TypeRepasRepository $typesRepasRepository, EntityManagerInterface $em): Response
     {
         $sejour = $contexte->actif();
         if (null === $sejour) { return $this->redirectToRoute('app_tableau_de_bord'); }
-        $typesRepas = $repas->findActifsPourSejour($sejour);
+        $typesRepas = $typesRepasRepository->findActifs();
+        $associations = [];
+        foreach ($repas->findPourSejour($sejour) as $association) {
+            $associations[(string) $association->getTypeRepas()->getId()] = $association;
+        }
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('configurer_distribution_'.$sejour->getId(), $request->request->getString('_token'))) {
@@ -41,7 +47,17 @@ final class DistributionController extends AbstractController
                 $sejour->setDistributionPubliqueActive($request->request->has('distribution_publique_active'));
                 $actifs = $request->request->all('repas');
                 foreach ($typesRepas as $typeRepas) {
-                    $typeRepas->setDistributionActive(isset($actifs[(string) $typeRepas->getId()]));
+                    $id = (string) $typeRepas->getId();
+                    $active = isset($actifs[$id]);
+                    $association = $associations[$id] ?? null;
+                    if ($active && null === $association) {
+                        $association = new SejourTypeRepas($sejour, $typeRepas, $typeRepas->getOrdre());
+                        $em->persist($association);
+                    }
+                    if (null !== $association) {
+                        if ($active) { $association->setActif(true); }
+                        $association->setDistributionActive($active);
+                    }
                 }
                 $message = 'La configuration de la distribution a bien été enregistrée.';
             }
@@ -52,7 +68,13 @@ final class DistributionController extends AbstractController
 
         return $this->render('distribution/index.html.twig', [
             'sejour' => $sejour,
-            'repas' => $typesRepas,
+            'repas' => array_map(static function ($typeRepas) use ($associations): array {
+                $association = $associations[(string) $typeRepas->getId()] ?? null;
+                return [
+                    'type' => $typeRepas,
+                    'selectionne' => null !== $association && $association->isActif() && $association->isDistributionActive(),
+                ];
+            }, $typesRepas),
             'lien_public' => $this->generateUrl('app_sortie_consommation', ['jeton' => $sejour->getJetonDistributionPublique()], UrlGeneratorInterface::ABSOLUTE_URL),
         ]);
     }
