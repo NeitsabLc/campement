@@ -4,6 +4,8 @@ DOCKER_COMPOSE := docker compose
 PHP := $(DOCKER_COMPOSE) exec php
 PHP_RUN := $(DOCKER_COMPOSE) run --rm php
 LIQUIBASE := $(DOCKER_COMPOSE) --profile tools run --rm liquibase
+TEST_DATABASE := campement_test
+TEST_DATABASE_URL := jdbc:postgresql://database:5432/$(TEST_DATABASE)
 
 .PHONY: help
 help: ## Afficher les commandes disponibles
@@ -118,8 +120,18 @@ db-shell: ## Ouvrir une console PostgreSQL
 doctrine-validate: ## Vérifier le mapping Doctrine
 	docker compose exec php php bin/console doctrine:schema:validate --skip-sync
 
+.PHONY: test-db-reset
+test-db-reset: ## Recréer et initialiser la base de tests
+	$(DOCKER_COMPOSE) exec database sh -c \
+		'dropdb --username="$$POSTGRES_USER" --force --if-exists $(TEST_DATABASE)'
+	$(DOCKER_COMPOSE) exec database sh -c \
+		'createdb --username="$$POSTGRES_USER" --owner="$$POSTGRES_USER" $(TEST_DATABASE)'
+	$(DOCKER_COMPOSE) --profile tools run --rm \
+		-e LIQUIBASE_COMMAND_URL=$(TEST_DATABASE_URL) \
+		liquibase update --context-filter=dev
+
 .PHONY: test
-test: ## Exécuter les tests
+test: test-db-reset ## Recréer la base de tests puis exécuter les tests
 	$(PHP) php bin/phpunit
 
 .PHONY: reset
