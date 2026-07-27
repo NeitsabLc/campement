@@ -13,9 +13,11 @@ use App\Repository\UtilisateurRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -29,6 +31,14 @@ final class UtilisateurController extends AbstractController
         Utilisateur::ROLE_GESTIONNAIRE => 'Gestionnaire',
         Utilisateur::ROLE_GROUPE => 'Groupe',
     ];
+
+    public function __construct(
+        #[Autowire('%env(MAILER_FROM_EMAIL)%')]
+        private readonly string $emailExpediteur,
+        #[Autowire('%env(MAILER_FROM_NAME)%')]
+        private readonly string $nomExpediteur,
+    ) {
+    }
 
     #[Route('/utilisateurs', name: 'app_utilisateurs', methods: ['GET', 'POST'])]
     public function index(
@@ -159,7 +169,7 @@ final class UtilisateurController extends AbstractController
 
                     try {
                         $mailer->send((new TemplatedEmail())
-                            ->from('no-reply@campement.local')
+                            ->from(new Address($this->emailExpediteur, $this->nomExpediteur))
                             ->to($utilisateur->getEmail())
                             ->subject('Votre accès à Campement')
                             ->htmlTemplate('emails/nouvel_utilisateur.html.twig')
