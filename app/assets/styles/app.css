@@ -92,7 +92,10 @@ body.app-shell.sidebar-collapsed { padding-left: 4.75rem; }
 body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25rem, 4vw, 3.5rem); }
 @media (max-width: 760px) { body.app-shell, body.app-shell.sidebar-collapsed { padding-left: 0; } body.app-shell .page-content { padding-top: 4.5rem; } .sidebar-collapsed .sidebar__stay { display:flex; } }
 
-.distribution-admin__grid { display: grid; grid-template-columns: minmax(20rem, .85fr) minmax(28rem, 1.15fr); gap: 1.5rem; align-items: start; }
+.distribution-admin__grid { display: grid; grid-template-areas: "configuration public" "configuration courses"; grid-template-columns: minmax(20rem, .85fr) minmax(28rem, 1.15fr); gap: 1.5rem; align-items: start; }
+.distribution-config-card { grid-area: configuration; }
+.public-link-card { grid-area: public; }
+.shopping-lists-card { grid-area: courses; }
 .admin-card { padding: 1.5rem; border-radius: .65rem; background: white; box-shadow: 0 8px 24px rgb(0 58 93 / 8%); }
 .admin-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.3rem; }
 .admin-card__header h2 { margin: 0; font-family: var(--font-title); font-size: 1.35rem; }
@@ -112,7 +115,7 @@ body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25re
 .renew-link-form { margin-top: 1.3rem; padding-top: 1.3rem; border-top: 1px solid var(--border); }
 .status-badge { padding: .3rem .65rem; border-radius: 999px; font-size: .8rem; font-weight: 800; }.status-badge--active { color: #146c49; background: #e7f6ef; }.status-badge--inactive { color: var(--danger); background: var(--danger-surface); }
 .button--danger-outline { border: 1px solid var(--danger); color: var(--danger); background: white; }
-@media (max-width: 62rem) { .distribution-admin__grid { grid-template-columns: 1fr; } }
+@media (max-width: 62rem) { .distribution-admin__grid { grid-template-areas: "configuration" "public" "courses"; grid-template-columns: 1fr; } }
 @media (max-width: 34rem) { .distribution-qr { grid-template-columns: 1fr; } .distribution-qr img { margin: 0 auto; } }
 
 .button {

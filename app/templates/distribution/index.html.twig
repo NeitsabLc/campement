@@ -6,7 +6,7 @@
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
 
     <div class="distribution-admin__grid">
-        <section class="admin-card"><div class="admin-card__header"><div><h2>Configuration</h2><p>Ces réglages concernent le séjour <strong>{{ sejour.nom }}</strong>.</p></div></div>
+        <section class="admin-card distribution-config-card"><div class="admin-card__header"><div><h2>Configuration</h2><p>Ces réglages concernent le séjour <strong>{{ sejour.nom }}</strong>.</p></div></div>
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('configurer_distribution_' ~ sejour.id) }}">
                 <label class="distribution-master"><input type="checkbox" name="distribution_publique_active"{{ sejour.distributionPubliqueActive ? ' checked' : '' }}><span><strong>Saisie publique activée</strong><small>Le lien public accepte de nouvelles distributions.</small></span></label>
