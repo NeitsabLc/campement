@@ -20,6 +20,12 @@
             <div class="distribution-qr"><img src="{{ path('app_distribution_qr_code', {jeton: sejour.jetonDistributionPublique}) }}" alt="QR code vers la page publique de distribution"><div><a class="button button--secondary" href="{{ lien_public }}" target="_blank" rel="noopener">Ouvrir la page</a><a class="button button--secondary" href="{{ path('app_distribution_qr_code', {jeton: sejour.jetonDistributionPublique, telecharger: 1}) }}">Télécharger le QR code</a></div></div>
             <form method="post" class="renew-link-form" onsubmit="return confirm('L’ancien lien cessera immédiatement de fonctionner. Continuer ?')"><input type="hidden" name="_token" value="{{ csrf_token('configurer_distribution_' ~ sejour.id) }}"><input type="hidden" name="action" value="renouveler"><button class="button button--danger-outline" type="submit">Générer un nouveau lien</button></form>
         </section>
+
+        <section class="admin-card shopping-lists-card">
+            <div class="admin-card__header"><div><h2>Listes de course</h2><p>Préparez les fiches à remettre aux unités pour chaque repas distribué.</p></div></div>
+            <p>L’archive contient un dossier par jour et repas, puis un PDF nominatif par unité participante.</p>
+            <a class="button button--primary" href="{{ path('app_distribution_listes_courses') }}">Télécharger les listes de course</a>
+        </section>
     </div>
 </main>
 {% endblock %}

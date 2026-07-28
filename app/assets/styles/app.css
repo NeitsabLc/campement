@@ -919,6 +919,8 @@ select {
 /* Espacement de la configuration de distribution */
 .distribution-admin .distribution-master + .distribution-master { margin-top:1rem; }
 .distribution-admin .admin-card > form > .button { margin-top:1.25rem; }
+.shopping-lists-card p { color:var(--text-muted); }
+.shopping-lists-card > .button { margin-top:.5rem; }
 
 @media(max-width:60rem){.recipe-lines-card>header{align-items:stretch;flex-direction:column}.recipes-row{min-width:32rem}.meal-calendar{max-height:none}}
 

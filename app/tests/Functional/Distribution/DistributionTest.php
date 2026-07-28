@@ -44,4 +44,39 @@ final class DistributionTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('no-store', (string) $client->getResponse()->headers->get('Cache-Control'));
     }
+
+    public function testLeGestionnairePeutTelechargerUneArchiveDeListesDeCourses(): void
+    {
+        $client = static::createClient();
+        $gestionnaire = static::getContainer()->get(UtilisateurRepository::class)->findOneBy([
+            'email' => 'gestionnaire@campement.local',
+        ]);
+        self::assertInstanceOf(Utilisateur::class, $gestionnaire);
+        $client->loginUser($gestionnaire);
+
+        $client->request('GET', '/intendance/distribution/listes-courses');
+
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('content-type', 'application/zip');
+        self::assertStringContainsString('attachment;', (string) $client->getResponse()->headers->get('Content-Disposition'));
+        self::assertStringContainsString('no-store', (string) $client->getResponse()->headers->get('Cache-Control'));
+    }
+
+    public function testLeBoutonDesListesDeCoursesEstAfficheSurLaPageDistribution(): void
+    {
+        $client = static::createClient();
+        $gestionnaire = static::getContainer()->get(UtilisateurRepository::class)->findOneBy([
+            'email' => 'gestionnaire@campement.local',
+        ]);
+        self::assertInstanceOf(Utilisateur::class, $gestionnaire);
+        $client->loginUser($gestionnaire);
+
+        $crawler = $client->request('GET', '/intendance/distribution');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            '/intendance/distribution/listes-courses',
+            $crawler->selectLink('Télécharger les listes de course')->attr('href'),
+        );
+    }
 }

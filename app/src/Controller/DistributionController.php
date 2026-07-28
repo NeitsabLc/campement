@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Utilisateur;
+use App\Service\ArchiveListesCourses;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use Endroid\QrCode\Color\Color;
@@ -13,8 +14,10 @@ use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\SvgWriter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -70,6 +73,26 @@ final class DistributionController extends AbstractController
             $reponse->headers->set('Content-Disposition', 'attachment; filename="qr-distribution-'.$sejour->getId().'.svg"');
         }
         $reponse->headers->addCacheControlDirective('no-store');
+        return $reponse;
+    }
+
+    #[Route('/intendance/distribution/listes-courses', name: 'app_distribution_listes_courses', methods: ['GET'])]
+    public function listesCourses(ContexteSejour $contexte, ArchiveListesCourses $archive): Response
+    {
+        $sejour = $contexte->actif();
+        if (null === $sejour) {
+            throw $this->createNotFoundException();
+        }
+
+        $reponse = new BinaryFileResponse($archive->generer($sejour));
+        $reponse->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            'listes-courses-'.$sejour->getDateDebut()->format('Y-m-d').'.zip',
+        );
+        $reponse->headers->set('Content-Type', 'application/zip');
+        $reponse->headers->addCacheControlDirective('no-store');
+        $reponse->deleteFileAfterSend();
+
         return $reponse;
     }
 }
