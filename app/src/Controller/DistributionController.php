@@ -69,6 +69,7 @@ final class DistributionController extends AbstractController
         if ($request->query->getBoolean('telecharger')) {
             $reponse->headers->set('Content-Disposition', 'attachment; filename="qr-distribution-'.$sejour->getId().'.svg"');
         }
+        $reponse->headers->addCacheControlDirective('no-store');
         return $reponse;
     }
 }
