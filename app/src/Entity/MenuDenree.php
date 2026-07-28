@@ -15,7 +15,6 @@ use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity(repositoryClass: MenuDenreeRepository::class)]
 #[ORM\Table(name: 'menu_denree', schema: 'campement')]
-#[ORM\UniqueConstraint(name: 'uq_menu_denree', columns: ['menu_id', 'denree_id'])]
 #[ORM\Index(name: 'idx_menu_denree_menu', columns: ['menu_id'])]
 #[ORM\Index(name: 'idx_menu_denree_denree', columns: ['denree_id'])]
 #[ORM\HasLifecycleCallbacks]
@@ -32,6 +31,13 @@ class MenuDenree
     #[ORM\ManyToOne(inversedBy: 'menusDenrees')]
     #[ORM\JoinColumn(name: 'denree_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
     private Denree $denree;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'conditionnement_id', nullable: false, onDelete: 'RESTRICT')]
+    private Unite $conditionnement;
+
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $categorie = null;
 
     #[ORM\Column(type: Types::SMALLINT, options: ['default' => 0])]
     private int $ordre = 0;
@@ -88,6 +94,11 @@ class MenuDenree
 
         return $this;
     }
+
+    public function getConditionnement(): Unite { return $this->conditionnement; }
+    public function setConditionnement(Unite $conditionnement): self { $this->conditionnement = $conditionnement; return $this; }
+    public function getCategorie(): ?string { return $this->categorie; }
+    public function setCategorie(?string $categorie): self { $this->categorie = $categorie; return $this; }
 
     public function getOrdre(): int
     {

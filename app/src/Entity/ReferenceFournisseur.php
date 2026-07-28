@@ -28,13 +28,13 @@ class ReferenceFournisseur
     #[ORM\JoinColumn(name: "denree_id", nullable: false, onDelete: "RESTRICT")]
     private Denree $denree;
 
-    #[ORM\Column(length: 100)]
-    private string $reference;
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $reference;
 
     #[ORM\Column(length: 200)]
     private string $designation;
 
-    public function __construct(Fournisseur $fournisseur, Denree $denree, string $reference, string $designation,)
+    public function __construct(Fournisseur $fournisseur, Denree $denree, ?string $reference, string $designation,)
     {
         if ($fournisseur->getSejour() !== $denree->getSejour()) {
             throw new \InvalidArgumentException('Le fournisseur et la denrée doivent appartenir au même séjour.');
@@ -68,12 +68,12 @@ class ReferenceFournisseur
         return $this->denree;
     }
 
-    public function getReference(): string
+    public function getReference(): ?string
     {
         return $this->reference;
     }
 
-    public function setReference(string $reference): self
+    public function setReference(?string $reference): self
     {
         $this->reference = $reference;
         $this->touch();

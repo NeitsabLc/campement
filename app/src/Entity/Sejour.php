@@ -44,6 +44,9 @@ class Sejour
     #[ORM\Column(name: 'distribution_publique_active', options: ['default' => true])]
     private bool $distributionPubliqueActive = true;
 
+    #[ORM\Column(name: 'distribuer_gouter_dejeuner', options: ['default' => false])]
+    private bool $distribuerGouterDejeuner = false;
+
     #[ORM\Column(name: 'jeton_distribution_publique', type: 'uuid', unique: true)]
     private Uuid $jetonDistributionPublique;
 
@@ -142,6 +145,8 @@ class Sejour
     public function setModuleAdministratifActif(bool $actif): self { $this->moduleAdministratifActif = $actif; $this->touch(); return $this; }
     public function isDistributionPubliqueActive(): bool { return $this->distributionPubliqueActive; }
     public function setDistributionPubliqueActive(bool $actif): self { $this->distributionPubliqueActive = $actif; $this->touch(); return $this; }
+    public function isDistribuerGouterDejeuner(): bool { return $this->distribuerGouterDejeuner; }
+    public function setDistribuerGouterDejeuner(bool $valeur): self { $this->distribuerGouterDejeuner = $valeur; $this->touch(); return $this; }
     public function getJetonDistributionPublique(): Uuid { return $this->jetonDistributionPublique; }
     public function renouvelerJetonDistributionPublique(): self { $this->jetonDistributionPublique = new UuidV7(); $this->touch(); return $this; }
 

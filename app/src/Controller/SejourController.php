@@ -6,9 +6,11 @@ namespace App\Controller;
 
 use App\Entity\PublicCible;
 use App\Entity\Sejour;
+use App\Entity\SejourTypeRepas;
 use App\Entity\Utilisateur;
 use App\Repository\PublicCibleRepository;
 use App\Repository\SejourRepository;
+use App\Repository\TypeRepasRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,6 +29,7 @@ final class SejourController extends AbstractController
         Request $request,
         SejourRepository $repository,
         PublicCibleRepository $publics,
+        TypeRepasRepository $typesRepas,
         UtilisateurRepository $utilisateurs,
         ContexteSejour $contexte,
         EntityManagerInterface $entityManager,
@@ -73,7 +76,10 @@ final class SejourController extends AbstractController
                 foreach ($publics->findActifs() as $public) {
                     in_array((string) $public->getId(), $publicIds, true) ? $sejour->addPublicCible($public) : $sejour->removePublicCible($public);
                 }
-                if ($creation && $gestionnaire instanceof Utilisateur) { $sejour->addGestionnaire($gestionnaire); $entityManager->persist($sejour); }
+                if ($creation && $gestionnaire instanceof Utilisateur) {
+                    $sejour->addGestionnaire($gestionnaire); $entityManager->persist($sejour);
+                    foreach ($typesRepas->findActifs() as $typeRepas) $entityManager->persist(new SejourTypeRepas($sejour, $typeRepas, $typeRepas->getOrdre()));
+                }
                 $entityManager->flush();
                 $this->addFlash('success', $creation ? 'Le séjour a été créé.' : 'Le séjour a été mis à jour.');
                 return $this->redirectToRoute('app_sejours');

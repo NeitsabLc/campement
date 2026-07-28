@@ -22,8 +22,9 @@ final class MouvementStockLigneRepository extends ServiceEntityRepository
     public function findPourGestion(Sejour $sejour): array
     {
         return $this->createQueryBuilder('l')
-            ->addSelect('m', 'd', 'u', 'tm', 'o', 'g', 'r', 'f')
-            ->join('l.mouvementStock', 'm')->join('l.denree', 'd')->join('d.uniteReference', 'u')
+            ->addSelect('m', 'd', 'u', 'ui', 'us', 'tm', 'o', 'g', 'r', 'f')
+            ->join('l.mouvementStock', 'm')->join('l.denree', 'd')->join('d.uniteReference', 'u')->join('d.uniteInventaire', 'ui')
+            ->leftJoin('l.conditionnementSortie', 'us')
             ->join('m.typeMouvement', 'tm')->join('m.origineMouvement', 'o')
             ->leftJoin('m.groupe', 'g')->leftJoin('l.referenceFournisseur', 'r')->leftJoin('r.fournisseur', 'f')
             ->andWhere('m.sejour = :sejour')->setParameter('sejour', $sejour)

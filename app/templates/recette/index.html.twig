@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+{% block title %}Recettes | Campement{% endblock %}
+{% block body %}
+<main class="foods-page recipes-page">
+    <header class="foods-heading">
+        <div><h1>Recettes</h1></div>
+        <a class="food-primary" href="{{ path('app_recette_ajouter') }}"><span>＋</span> Ajouter une recette</a>
+    </header>
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    <section class="foods-card recipes-card">
+        <div class="foods-table" role="table">
+            <div class="foods-row recipes-row recipes-row--head" role="row"><span>Recette</span><span>Composition</span><span>Actions</span></div>
+            {% for recette in recettes %}
+                <div class="foods-row recipes-row" role="row">
+                    <strong>{{ recette.nom }}</strong>
+                    <span>{{ recette.denrees|length }} denrée{{ recette.denrees|length > 1 ? 's' : '' }}</span>
+                    <span class="food-actions">
+                        <a class="action-icon-button" href="{{ path('app_recette_modifier', {id: recette.id}) }}" aria-label="Modifier {{ recette.nom }}" title="Modifier">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                            <span class="visually-hidden">Modifier</span>
+                        </a>
+                    </span>
+                </div>
+            {% else %}<div class="foods-empty">Aucune recette.</div>{% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

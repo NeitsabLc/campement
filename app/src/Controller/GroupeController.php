@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Groupe;
 use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
+use App\Repository\SejourPublicCibleRepository;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,20 +20,22 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
 final class GroupeController extends AbstractController
 {
-    private const TYPES = [
-        'louveteaux-jeannettes' => 'Louveteaux-Jeannettes',
-        'scouts-guides' => 'Scouts-Guides',
-        'pionniers-caravelles' => 'Pionniers-Caravelles',
-    ];
-
     #[Route('/groupes', name: 'app_groupes', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
         ContexteSejour $sejourRepository,
         GroupeRepository $groupeRepository,
+        SejourPublicCibleRepository $publicCibleRepository,
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $sejourRepository->actif();
+        $types = [];
+        if (null !== $sejour) {
+            foreach ($publicCibleRepository->findActifsPourSejour($sejour) as $configuration) {
+                $public = $configuration->getPublicCible();
+                $types[strtolower(str_replace('_', '-', $public->getCode()))] = $public->getLibelle();
+            }
+        }
         $afficherInactifs = $request->query->getBoolean('inactifs');
         $donnees = [
             'groupe_id' => $request->request->getString('groupe_id'),
@@ -76,8 +79,8 @@ final class GroupeController extends AbstractController
                 }
             }
 
-            if (!isset(self::TYPES[$donnees['type']])) {
-                $erreurs[] = 'Sélectionnez un type d’unité.';
+            if (!isset($types[$donnees['type']])) {
+                $erreurs[] = 'Sélectionnez un type de public disponible pour ce séjour.';
             }
 
             if ([] === $erreurs) {
@@ -107,7 +110,7 @@ final class GroupeController extends AbstractController
             'sejour' => $sejour,
             'groupes' => null === $sejour ? [] : $groupeRepository->findPourSejour($sejour, $afficherInactifs),
             'afficher_inactifs' => $afficherInactifs,
-            'types' => self::TYPES,
+            'types' => $types,
             'donnees' => $donnees,
             'erreurs' => $erreurs,
         ]);

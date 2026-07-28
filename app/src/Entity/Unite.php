@@ -28,6 +28,9 @@ class Unite
     #[ORM\Column(name: "facteur_conversion",type: "decimal",precision: 12,scale: 6,),]
     private string $facteurConversion;
 
+    #[ORM\Column(name: "utilisable_conditionnement", options: ["default" => true])]
+    private bool $utilisableConditionnement = true;
+
     public function __construct(string $nom, string $symbole, string $facteurConversion)
     {
         if ((float) $facteurConversion <= 0) {
@@ -85,4 +88,7 @@ class Unite
     {
         return $this->symbole;
     }
+
+    public function isUtilisableConditionnement(): bool { return $this->utilisableConditionnement; }
+    public function setUtilisableConditionnement(bool $valeur): self { $this->utilisableConditionnement = $valeur; return $this; }
 }

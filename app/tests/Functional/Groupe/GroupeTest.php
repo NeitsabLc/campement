@@ -30,7 +30,12 @@ final class GroupeTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Gestion des unités participantes');
         self::assertSelectorExists('form input[name="nom"]');
-        self::assertSelectorCount(3, 'form input[name="type"]');
+        self::assertSelectorExists('form input[name="type"][value="farfadets"]');
+        self::assertSelectorExists('form input[name="type"][value="louveteaux-jeannettes"]');
+        self::assertSelectorExists('form input[name="type"][value="scouts-guides"]');
+        self::assertSelectorExists('form input[name="type"][value="pionniers-caravelles"]');
+        self::assertSelectorExists('form input[name="type"][value="compagnons"]');
+        self::assertSelectorExists('form input[name="type"][value="adulte"]');
         self::assertSelectorExists('.edit-group-button[data-group-id]');
         self::assertSelectorExists('.delete-group-button[data-delete-url]');
         self::assertSelectorExists('.delete-group-dialog');

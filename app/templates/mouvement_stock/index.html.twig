@@ -20,8 +20,9 @@
     {% else %}
         {% if erreurs %}<div class="stock-movement-errors" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
 
-        <form method="post" novalidate data-turbo="false">
+        <form method="post" novalidate data-turbo="false" data-action="submit->stock-movement#stampBrowserTime">
             <input type="hidden" name="_token" value="{{ csrf_token('mouvement_stock') }}">
+            <input type="hidden" name="date_navigateur" data-browser-datetime>
             <section class="stock-movement-card">
                 <h2>Nature du mouvement</h2>
                 <div class="movement-type-switch">
@@ -48,7 +49,15 @@
             <section class="stock-movement-card" data-stock-movement-target="exitFields">
                 <h2>Détail de la sortie</h2>
                 <div class="stock-movement-grid">
-                    <label>Quantité de référence <b>*</b>
+                    <label>Conditionnement de sortie <b>*</b>
+                        <select name="conditionnement_sortie" data-stock-movement-target="exitUnit" data-action="change->stock-movement#refresh">
+                            <option value="">Sélectionner un conditionnement</option>
+                            {% for denreeId, liste in conditionnementsSortieParDenree %}{% for unite in liste %}
+                                <option value="{{ unite.id }}" data-food="{{ denreeId }}" data-symbol="{{ unite.symbole }}"{{ valeurs.conditionnement_sortie == unite.id ~ '' ? ' selected' : '' }}>{{ unite.nom }}</option>
+                            {% endfor %}{% endfor %}
+                        </select>
+                    </label>
+                    <label>Quantité sortie <b>*</b>
                         <div class="movement-quantity"><input name="quantite" value="{{ valeurs.quantite }}" inputmode="decimal" placeholder="0" data-stock-movement-target="exitInput"><span data-stock-movement-target="unit">—</span></div>
                     </label>
                     <label data-stock-movement-target="groupField">Groupe <b>*</b>
@@ -69,7 +78,7 @@
                         <option value="">Sélectionner un fournisseur</option>
                         {% for denreeId, liste in referencesParDenree %}
                             {% for reference in liste %}
-                                <option value="{{ reference.id }}" data-food="{{ denreeId }}"{{ valeurs.reference == reference.id ~ '' ? ' selected' : '' }}>{{ reference.fournisseur.nom }} — {{ reference.reference }}</option>
+                                <option value="{{ reference.id }}" data-food="{{ denreeId }}"{{ valeurs.reference == reference.id ~ '' ? ' selected' : '' }}>{{ reference.fournisseur.nom }}{% if reference.reference %} — {{ reference.reference }}{% endif %}</option>
                             {% endfor %}
                         {% endfor %}
                     </select>

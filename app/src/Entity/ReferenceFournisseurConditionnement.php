@@ -28,6 +28,10 @@ class ReferenceFournisseurConditionnement
     #[ORM\Column(length: 50)]
     private string $libelle;
 
+    #[ORM\ManyToOne(targetEntity: Unite::class)]
+    #[ORM\JoinColumn(name: "conditionnement_id", nullable: false, onDelete: "RESTRICT")]
+    private Unite $conditionnement;
+
     #[ORM\Column(name: "quantite_contenu",type: "decimal",precision: 12,scale: 3,),]
     private string $quantiteContenu;
 
@@ -38,7 +42,7 @@ class ReferenceFournisseurConditionnement
     #[ORM\JoinColumn(name: "unite_contenu_id", nullable: true, onDelete: "RESTRICT")]
     private ?Unite $uniteContenu = null;
 
-    public function __construct(ReferenceFournisseur $ref, int $ordre, string $libelle, string $quantite, ?Unite $unite = null, ?string $libelleContenu = null)
+    public function __construct(ReferenceFournisseur $ref, int $ordre, string $libelle, string $quantite, ?Unite $unite = null, ?string $libelleContenu = null, ?Unite $conditionnement = null)
     {
         if ($ordre <= 0 || (float) $quantite <= 0) {
             throw new \InvalidArgumentException("Conditionnement invalide.");
@@ -49,10 +53,14 @@ class ReferenceFournisseurConditionnement
         $this->referenceFournisseur = $ref;
         $this->ordre = $ordre;
         $this->libelle = $libelle;
+        $this->conditionnement = $conditionnement ?? $unite ?? throw new \InvalidArgumentException('Conditionnement obligatoire.');
         $this->quantiteContenu = $quantite;
         $this->uniteContenu = $unite;
         $this->libelleContenu = $libelleContenu;
     }
+
+    public function getConditionnement(): Unite { return $this->conditionnement; }
+    public function setConditionnement(Unite $conditionnement): self { $this->conditionnement = $conditionnement; $this->libelle = $conditionnement->getNom(); $this->touch(); return $this; }
 
     public function getReferenceFournisseur(): ReferenceFournisseur
     {

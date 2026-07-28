@@ -4,11 +4,20 @@ export default class extends Controller {
     static targets = ['group', 'date', 'menu', 'menuBlock'];
 
     connect() {
+        this.stampBrowserTime();
         const rememberedGroup = localStorage.getItem('campement.distribution.group');
         if (!this.groupTarget.value && rememberedGroup && [...this.groupTarget.options].some((o) => o.value === rememberedGroup)) {
             this.groupTarget.value = rememberedGroup;
         }
         this.refreshDates();
+    }
+
+    stampBrowserTime() {
+        const now = new Date();
+        const localTime = [now.getHours(), now.getMinutes(), now.getSeconds()].map((value) => String(value).padStart(2, '0')).join(':');
+        this.element.querySelectorAll('[data-browser-datetime]').forEach((input) => input.value = now.toISOString());
+        this.element.querySelectorAll('[data-browser-time]').forEach((input) => input.value = localTime);
+        this.element.querySelectorAll('[data-browser-offset]').forEach((input) => input.value = String(now.getTimezoneOffset()));
     }
 
     rememberGroup() {

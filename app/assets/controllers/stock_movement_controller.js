@@ -1,10 +1,15 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['type', 'food', 'origin', 'exitFields', 'entryFields', 'exitInput', 'groupField', 'group', 'unit', 'reference', 'packagings', 'noSupplier'];
+    static targets = ['type', 'food', 'origin', 'exitFields', 'entryFields', 'exitInput', 'exitUnit', 'groupField', 'group', 'unit', 'reference', 'packagings', 'noSupplier'];
 
     connect() {
+        this.stampBrowserTime();
         this.refresh();
+    }
+
+    stampBrowserTime() {
+        this.element.querySelector('[data-browser-datetime]').value = new Date().toISOString();
     }
 
     refresh() {
@@ -19,7 +24,14 @@ export default class extends Controller {
         this.groupTarget.disabled = entry || !distribution;
         this.groupTarget.required = !entry && distribution;
         this.exitInputTarget.required = !entry;
-        this.unitTarget.textContent = this.foodTarget.selectedOptions[0]?.dataset.unit || '—';
+        [...this.exitUnitTarget.options].forEach((option) => {
+            const visible = !option.value || option.dataset.food === this.foodTarget.value;
+            option.hidden = !visible;
+            option.disabled = !visible;
+        });
+        if (this.exitUnitTarget.selectedOptions[0]?.disabled) this.exitUnitTarget.value = '';
+        this.exitUnitTarget.required = !entry;
+        this.unitTarget.textContent = this.exitUnitTarget.selectedOptions[0]?.dataset.symbol || '—';
 
         [...this.referenceTarget.options].forEach((option) => {
             const visible = !option.value || option.dataset.food === this.foodTarget.value;
