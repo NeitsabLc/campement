@@ -76,6 +76,7 @@
 .sidebar__stay small, .sidebar__stay strong { display: block; }.sidebar__stay strong { margin: .1rem 0; }
 .sidebar__section { margin: .25rem 0; }.sidebar__section summary { list-style: none; }.sidebar__section summary::-webkit-details-marker { display: none; }
 .sidebar__section > div { display: grid; padding: .1rem 0 .45rem 3.15rem; }.sidebar__section a { padding: .45rem 0; color: #fff; text-decoration: none; }.sidebar__section a:hover { text-decoration: underline; }
+.sidebar__version { padding: .55rem 1rem; color: rgb(255 255 255 / 72%); font-size: .78rem; }
 .sidebar__user { display: flex; align-items: center; gap: .7rem; padding: 1rem; border-top: 1px solid rgb(255 255 255 / 16%); }.sidebar__user small, .sidebar__user strong { display: block; }.sidebar__avatar { display: grid; width: 2.4rem; height: 2.4rem; flex: 0 0 2.4rem; place-items: center; border-radius: 50%; color: var(--sgdf-blue); background: var(--sgdf-mint); font-weight: 800; }
 .sidebar__logout-form { width: 100%; margin-top: auto; }
 .sidebar__logout { display: flex; align-items: center; width: 100%; appearance: none; gap: .7rem; padding: .85rem 1rem 1.2rem; border: 0; color: #fff; background: transparent; font: inherit; text-align: left; cursor: pointer; }
