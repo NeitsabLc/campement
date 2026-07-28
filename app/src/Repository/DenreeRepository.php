@@ -31,13 +31,15 @@ final class DenreeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /** @return list<array{denree: Denree, stock: string}> */
+    /** @return list<array{denree: Denree, stockEntree: string, stockSortie: string}> */
     public function findPourGestion(Sejour $sejour, bool $actif): array
     {
         $lignes = $this->createQueryBuilder('d')
-            ->addSelect('u')
-            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'ENTREE' THEN l.quantiteUniteReference WHEN tm.code = 'SORTIE' THEN -l.quantiteUniteReference ELSE 0 END), 0) AS stock")
+            ->addSelect('u', 'ui')
+            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'ENTREE' THEN l.quantiteUniteReference ELSE 0 END), 0) AS stockEntree")
+            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'SORTIE' THEN l.quantiteUniteReference ELSE 0 END), 0) AS stockSortie")
             ->join('d.uniteReference', 'u')
+            ->join('d.uniteInventaire', 'ui')
             ->leftJoin(\App\Entity\MouvementStockLigne::class, 'l', 'WITH', 'l.denree = d')
             ->leftJoin('l.mouvementStock', 'm')
             ->leftJoin('m.typeMouvement', 'tm')
@@ -45,13 +47,14 @@ final class DenreeRepository extends ServiceEntityRepository
             ->andWhere('d.actif = :actif')
             ->setParameter('sejour', $sejour)
             ->setParameter('actif', $actif)
-            ->groupBy('d.id, u.id')
+            ->groupBy('d.id, u.id, ui.id')
             ->orderBy('d.nom', 'ASC')
             ->getQuery()->getResult();
 
         return array_map(static fn (array $ligne): array => [
             'denree' => $ligne[0],
-            'stock' => (string) $ligne['stock'],
+            'stockEntree' => (string) $ligne['stockEntree'],
+            'stockSortie' => (string) $ligne['stockSortie'],
         ], $lignes);
     }
 

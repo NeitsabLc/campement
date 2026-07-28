@@ -14,10 +14,6 @@ use Symfony\Component\Uid\UuidV7;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'menu', schema: 'campement')]
-#[ORM\UniqueConstraint(
-    name: 'uq_menu_sejour_date_type',
-    columns: ['sejour_id', 'date_menu', 'sejour_type_repas_id'],
-)]
 #[ORM\Index(name: 'idx_menu_sejour', columns: ['sejour_id'])]
 #[ORM\Index(name: 'idx_menu_date', columns: ['date_menu'])]
 #[ORM\Index(name: 'idx_menu_sejour_type_repas', columns: ['sejour_type_repas_id'])]
@@ -33,11 +29,14 @@ class Menu
     private Sejour $sejour;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(name: 'sejour_type_repas_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
-    private SejourTypeRepas $sejourTypeRepas;
+    #[ORM\JoinColumn(name: 'sejour_type_repas_id', referencedColumnName: 'id', nullable: true, onDelete: 'RESTRICT')]
+    private ?SejourTypeRepas $sejourTypeRepas = null;
 
-    #[ORM\Column(name: 'date_menu', type: Types::DATE_IMMUTABLE)]
-    private DateTimeImmutable $dateMenu;
+    #[ORM\Column(name: 'date_menu', type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?DateTimeImmutable $dateMenu = null;
+
+    #[ORM\Column(name: 'special_code', length: 20, nullable: true)]
+    private ?string $specialCode = null;
 
     #[ORM\Column(length: 150, nullable: true)]
     private ?string $nom = null;
@@ -90,7 +89,7 @@ class Menu
         return $this;
     }
 
-    public function getSejourTypeRepas(): SejourTypeRepas
+    public function getSejourTypeRepas(): ?SejourTypeRepas
     {
         return $this->sejourTypeRepas;
     }
@@ -102,7 +101,7 @@ class Menu
         return $this;
     }
 
-    public function getDateMenu(): DateTimeImmutable
+    public function getDateMenu(): ?DateTimeImmutable
     {
         return $this->dateMenu;
     }
@@ -112,6 +111,17 @@ class Menu
         $this->dateMenu = $dateMenu;
 
         return $this;
+    }
+
+    public function getSpecialCode(): ?string { return $this->specialCode; }
+    public function setSpecialCode(?string $code): self { $this->specialCode = $code; return $this; }
+    public function isSpecial(): bool { return null !== $this->specialCode; }
+    public function getLibelle(): string
+    {
+        return match ($this->specialCode) {
+            'EXPLO' => 'Explo', 'PIQUE_NIQUE_1' => 'Pique-nique 1', 'PIQUE_NIQUE_2' => 'Pique-nique 2',
+            default => $this->sejourTypeRepas?->getTypeRepas()->getLibelle() ?? '',
+        };
     }
 
     public function getNom(): ?string

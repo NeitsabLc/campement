@@ -31,6 +31,10 @@ class MouvementStockLigne
     #[ORM\JoinColumn(name: "reference_fournisseur_id",nullable: true,onDelete: "RESTRICT",),]
     private ?ReferenceFournisseur $referenceFournisseur = null;
 
+    #[ORM\ManyToOne(targetEntity: Unite::class)]
+    #[ORM\JoinColumn(name: "conditionnement_sortie_id", nullable: true, onDelete: "RESTRICT")]
+    private ?Unite $conditionnementSortie = null;
+
     #[ORM\Column(name: "quantite_unite_reference",type: "decimal",precision: 12,scale: 3,),]
     private string $quantiteUniteReference;
 
@@ -74,6 +78,19 @@ class MouvementStockLigne
         }
         $this->referenceFournisseur = $refFournisseur;
         $this->touch();
+        return $this;
+    }
+
+    public function getConditionnementSortie(): ?Unite
+    {
+        return $this->conditionnementSortie;
+    }
+
+    public function setConditionnementSortie(?Unite $conditionnementSortie): self
+    {
+        $this->conditionnementSortie = $conditionnementSortie;
+        $this->touch();
+
         return $this;
     }
 

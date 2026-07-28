@@ -34,7 +34,7 @@
                         <div class="groups-list">
                             {% for groupe in groupes %}
                                 <article class="group-row{{ groupe.actif ? '' : ' group-row--inactive' }}">
-                                    <span class="group-type group-type--{{ groupe.type }}">{{ types[groupe.type] }}</span>
+                                    <span class="group-type group-type--{{ groupe.type }}">{{ types[groupe.type]|default(groupe.type|replace({'-': ' '})|title) }}</span>
                                     <div class="group-row__identity"><h3>{{ groupe.nom }}{% if not groupe.actif %} <span class="inactive-group-badge">Inactif</span>{% endif %}</h3><span>{{ groupe.effectifJeune + groupe.effectifAdulte }} personnes au total</span></div>
                                     <dl><div><dt>Jeunes</dt><dd>{{ groupe.effectifJeune }}</dd></div><div><dt>Adultes</dt><dd>{{ groupe.effectifAdulte }}</dd></div></dl>
                                     {% if groupe.actif %}<button

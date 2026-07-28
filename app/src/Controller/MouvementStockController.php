@@ -17,6 +17,7 @@ use App\Repository\OrigineMouvementRepository;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
 use App\Service\ContexteSejour;
+use App\Service\ConversionConditionnement;
 use App\Repository\TypeMouvementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,13 +31,30 @@ use Symfony\Component\Uid\Uuid;
 final class MouvementStockController extends AbstractController
 {
     #[Route('/stocks', name: 'app_mouvements_stock', methods: ['GET'])]
-    public function liste(ContexteSejour $sejours, MouvementStockLigneRepository $lignes): Response
+    public function liste(ContexteSejour $sejours, MouvementStockLigneRepository $lignes, ConversionConditionnement $conversion): Response
     {
         $sejour = $sejours->actif();
+        $mouvements = null === $sejour ? [] : $lignes->findPourGestion($sejour);
+        $quantitesAffichees = [];
+        foreach ($mouvements as $ligne) {
+            if ('ENTREE' === $ligne->getMouvementStock()->getTypeMouvement()->getCode()) {
+                $quantitesAffichees[(string) $ligne->getId()] = [
+                    'quantite' => $conversion->quantiteInventaire($ligne->getDenree(), (float) $ligne->getQuantiteUniteReference()),
+                    'unite' => $ligne->getDenree()->getUniteInventaire(),
+                ];
+            } else {
+                $unite = $ligne->getConditionnementSortie() ?? $ligne->getDenree()->getUniteReference();
+                $quantitesAffichees[(string) $ligne->getId()] = [
+                    'quantite' => $conversion->depuisUniteReference($ligne->getDenree(), $unite, (float) $ligne->getQuantiteUniteReference()),
+                    'unite' => $unite,
+                ];
+            }
+        }
 
         return $this->render('mouvement_stock/liste.html.twig', [
             'sejour' => $sejour,
-            'lignes' => null === $sejour ? [] : $lignes->findPourGestion($sejour),
+            'lignes' => $mouvements,
+            'quantites_affichees' => $quantitesAffichees,
         ]);
     }
 
@@ -54,6 +72,7 @@ final class MouvementStockController extends AbstractController
         MouvementStockRepository $mouvements,
         MouvementStockLigneRepository $lignes,
         MouvementStockLigneConditionnementRepository $lignesConditionnements,
+        ConversionConditionnement $conversion,
         EntityManagerInterface $em,
         ?string $id = null,
     ): Response {
@@ -62,7 +81,14 @@ final class MouvementStockController extends AbstractController
         if (null !== $id && (null === $sejour || null === $mouvementExistant || $mouvementExistant->getSejour() !== $sejour)) {
             throw $this->createNotFoundException('Mouvement de stock introuvable.');
         }
-        $ligneExistante = null === $mouvementExistant ? null : $lignes->findPourMouvement($mouvementExistant);
+        $ligneDemandee = $request->query->getString('ligne');
+        $ligneExistante = null;
+        if (null !== $mouvementExistant) {
+            $ligneExistante = Uuid::isValid($ligneDemandee) ? $lignes->find($ligneDemandee) : $lignes->findPourMouvement($mouvementExistant);
+            if (null !== $ligneExistante && $ligneExistante->getMouvementStock() !== $mouvementExistant) {
+                throw $this->createNotFoundException('La ligne ne correspond pas au mouvement demandé.');
+            }
+        }
         if (null !== $mouvementExistant && null === $ligneExistante) {
             throw $this->createNotFoundException('Le mouvement ne contient aucune ligne modifiable.');
         }
@@ -71,8 +97,10 @@ final class MouvementStockController extends AbstractController
         $groupesActifs = null === $sejour ? [] : $groupes->findActifsPourSejour($sejour);
         $referencesParDenree = [];
         $conditionnementsParReference = [];
+        $conditionnementsSortieParDenree = [];
 
         foreach ($denreesActives as $denree) {
+            $conditionnementsSortieParDenree[(string) $denree->getId()] = $conversion->conditionnementsPour($denree);
             foreach ($references->findPourDenree($denree) as $reference) {
                 if (!$reference->isActif() || !$reference->getFournisseur()->isActif()) {
                     continue;
@@ -82,13 +110,17 @@ final class MouvementStockController extends AbstractController
             }
         }
 
+        $conditionnementSortieExistant = $ligneExistante?->getConditionnementSortie() ?? $ligneExistante?->getDenree()->getUniteReference();
         $valeurs = null !== $ligneExistante && !$request->isMethod('POST') ? [
             'type' => $mouvementExistant->getTypeMouvement()->getCode(),
             'denree' => (string) $ligneExistante->getDenree()->getId(),
             'origine' => (string) $mouvementExistant->getOrigineMouvement()->getId(),
             'groupe' => (string) ($mouvementExistant->getGroupe()?->getId() ?? ''),
             'reference' => (string) ($ligneExistante->getReferenceFournisseur()?->getId() ?? ''),
-            'quantite' => $ligneExistante->getQuantiteUniteReference(),
+            'conditionnement_sortie' => (string) ($conditionnementSortieExistant?->getId() ?? ''),
+            'quantite' => 'SORTIE' === $mouvementExistant->getTypeMouvement()->getCode() && null !== $conditionnementSortieExistant
+                ? number_format($conversion->depuisUniteReference($ligneExistante->getDenree(), $conditionnementSortieExistant, (float) $ligneExistante->getQuantiteUniteReference()), 3, '.', '')
+                : $ligneExistante->getQuantiteUniteReference(),
             'conditionnements' => array_reduce($lignesConditionnements->findPourLigne($ligneExistante), static function (array $resultat, MouvementStockLigneConditionnement $ligne): array {
                 $resultat[(string) $ligne->getConditionnement()->getId()] = $ligne->getQuantite();
                 return $resultat;
@@ -99,6 +131,7 @@ final class MouvementStockController extends AbstractController
             'origine' => $request->request->getString('origine'),
             'groupe' => $request->request->getString('groupe'),
             'reference' => $request->request->getString('reference'),
+            'conditionnement_sortie' => $request->request->getString('conditionnement_sortie'),
             'quantite' => $request->request->getString('quantite'),
             'conditionnements' => $request->request->all('conditionnements'),
         ];
@@ -119,12 +152,19 @@ final class MouvementStockController extends AbstractController
 
             $groupe = null;
             $reference = null;
+            $conditionnementSortie = null;
             $quantiteReference = null;
             $quantitesConditionnements = [];
 
             if ('SORTIE' === $typeCode) {
-                $quantiteReference = $this->normaliserQuantite($valeurs['quantite']);
-                if (null === $quantiteReference) $erreurs[] = 'Saisissez une quantité de référence strictement positive.';
+                $conditionnementSortie = null === $denree ? null : $this->selectionner($valeurs['conditionnement_sortie'], $conditionnementsSortieParDenree[(string) $denree->getId()] ?? []);
+                if (null === $conditionnementSortie) $erreurs[] = 'Sélectionnez un conditionnement de sortie valide.';
+                $quantiteSaisie = $this->normaliserQuantite($valeurs['quantite']);
+                if (null === $quantiteSaisie) {
+                    $erreurs[] = 'Saisissez une quantité de sortie strictement positive.';
+                } elseif (null !== $denree && null !== $conditionnementSortie) {
+                    $quantiteReference = number_format($conversion->versUniteReference($denree, $conditionnementSortie, (float) $quantiteSaisie), 3, '.', '');
+                }
                 if (null !== $origine && 'DISTRIBUTION' === $origine->getCode()) {
                     $groupe = $this->selectionner($valeurs['groupe'], $groupesActifs);
                     if (null === $groupe) $erreurs[] = 'Sélectionnez le groupe destinataire de la distribution.';
@@ -171,6 +211,9 @@ final class MouvementStockController extends AbstractController
 
                 $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
                 $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
+                if (null === $mouvementExistant) {
+                    $mouvement->setDateMouvement($this->dateNavigateur($request->request->getString('date_navigateur')) ?? new \DateTimeImmutable());
+                }
                 if (null !== $ligneExistante) {
                     foreach ($lignesConditionnements->findPourLigne($ligneExistante) as $ancienConditionnement) $em->remove($ancienConditionnement);
                     $em->remove($ligneExistante);
@@ -178,6 +221,7 @@ final class MouvementStockController extends AbstractController
                 }
                 $ligne = new MouvementStockLigne($mouvement, $denree, $quantiteReference);
                 if (null !== $reference) $ligne->setReferenceFournisseur($reference);
+                $ligne->setConditionnementSortie('SORTIE' === $typeCode ? $conditionnementSortie : null);
                 $em->persist($mouvement);
                 $em->persist($ligne);
                 if (null !== $reference) {
@@ -197,7 +241,7 @@ final class MouvementStockController extends AbstractController
 
         return $this->render('mouvement_stock/index.html.twig', compact(
             'sejour', 'denreesActives', 'originesActives', 'groupesActifs',
-            'referencesParDenree', 'conditionnementsParReference', 'valeurs', 'erreurs', 'mouvementExistant',
+            'referencesParDenree', 'conditionnementsParReference', 'conditionnementsSortieParDenree', 'valeurs', 'erreurs', 'mouvementExistant',
         ));
     }
 
@@ -207,6 +251,16 @@ final class MouvementStockController extends AbstractController
         if ('' === $brut || !is_numeric($brut) || ($zeroAutorise ? (float) $brut < 0 : (float) $brut <= 0)) return null;
 
         return number_format((float) $brut, 3, '.', '');
+    }
+
+    private function dateNavigateur(string $iso): ?\DateTimeImmutable
+    {
+        if ('' === trim($iso)) return null;
+        try {
+            return new \DateTimeImmutable($iso);
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     /** @template T of object @param list<T> $entites @return T|null */

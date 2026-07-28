@@ -7,7 +7,7 @@
     <div class="distribution-content distribution-success">
         <span class="distribution-success__icon">✓</span>
         <h1>Distribution enregistrée</h1>
-        <p><strong>{{ groupe.nom }}</strong><br>{{ menu.sejourTypeRepas.typeRepas.libelle }} · {{ menu.dateMenu|date('d/m/Y') }}</p>
+        <p><strong>{{ groupe.nom }}</strong><br>{{ menu.libelle }} · {{ menu.dateMenu ? menu.dateMenu|date('d/m/Y') : 'Aujourd’hui' }}</p>
         <a class="distribution-button" href="{{ path('app_sortie_consommation', {jeton: menu.sejour.jetonDistributionPublique}) }}">Saisir une autre distribution</a>
     </div>
 </main>

@@ -2,7 +2,7 @@
 {% block title %}Distribution | Campement{% endblock %}
 {% block body %}
 <main class="admin-page distribution-admin" data-controller="distribution-admin">
-    <header class="page-heading"><div><h1>Distribution</h1><p>Configurez les repas disponibles et partagez la page de saisie avec les unités.</p></div></header>
+    <header class="page-heading"><div><h1>Distribution</h1><p>Configurez la saisie publique et partagez son lien avec les unités.</p></div></header>
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
 
     <div class="distribution-admin__grid">
@@ -10,9 +10,7 @@
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('configurer_distribution_' ~ sejour.id) }}">
                 <label class="distribution-master"><input type="checkbox" name="distribution_publique_active"{{ sejour.distributionPubliqueActive ? ' checked' : '' }}><span><strong>Saisie publique activée</strong><small>Le lien public accepte de nouvelles distributions.</small></span></label>
-                <fieldset class="distribution-meals"><legend>Repas proposés aux unités</legend>
-                    {% for item in repas %}<label><input type="checkbox" name="repas[{{ item.type.id }}]"{{ item.selectionne ? ' checked' : '' }}><span>{{ item.type.libelle }}</span></label>{% else %}<p>Aucun type de repas n’est disponible.</p>{% endfor %}
-                </fieldset>
+                <label class="distribution-master"><input type="checkbox" name="distribuer_gouter_dejeuner"{{ sejour.distribuerGouterDejeuner ? ' checked' : '' }}><span><strong>Distribuer le goûter lors du déjeuner</strong><small>Le goûter disparaît de la page publique et ses denrées sont ajoutées au déjeuner.</small></span></label>
                 <button class="button button--primary" type="submit">Enregistrer la configuration</button>
             </form>
         </section>

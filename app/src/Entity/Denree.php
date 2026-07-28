@@ -35,6 +35,10 @@ class Denree
     #[ORM\JoinColumn(name: 'unite_reference_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
     private Unite $uniteReference;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'unite_inventaire_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
+    private Unite $uniteInventaire;
+
     #[ORM\Column(name: 'stock_min', type: Types::DECIMAL, precision: 12, scale: 3, nullable: true)]
     private ?string $stockMin = null;
 
@@ -91,9 +95,13 @@ class Denree
     public function setUniteReference(Unite $uniteReference): self
     {
         $this->uniteReference = $uniteReference;
+        if (!isset($this->uniteInventaire)) { $this->uniteInventaire = $uniteReference; }
 
         return $this;
     }
+
+    public function getUniteInventaire(): Unite { return $this->uniteInventaire; }
+    public function setUniteInventaire(Unite $uniteInventaire): self { $this->uniteInventaire = $uniteInventaire; return $this; }
 
     public function getStockMin(): ?string
     {

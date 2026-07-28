@@ -1,48 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
-
 export default class extends Controller {
-    static targets = ['catalog', 'flash', 'picker', 'rows', 'template'];
-
-    connect() {
-        this.syncOptions();
-        this.flashTargets.forEach((flash) => {
-            window.setTimeout(() => {
-                flash.classList.add('flash--leaving');
-                flash.addEventListener('transitionend', () => flash.remove(), { once: true });
-                window.setTimeout(() => flash.remove(), 300);
-            }, 3000);
-        });
-    }
-
-    add(event) {
-        if (event?.type === 'keydown') event.preventDefault();
-
-        const recherche = this.pickerTarget.value.trim().toLocaleLowerCase('fr');
-        const option = [...this.catalogTarget.options].find(
-            (candidate) => !candidate.disabled && candidate.value.toLocaleLowerCase('fr') === recherche,
-        );
-        if (!option || this.rowsTarget.querySelector(`[data-denree-id="${option.dataset.id}"]`)) return;
-
-        const html = this.templateTarget.innerHTML
-            .replaceAll('__ID__', option.dataset.id)
-            .replaceAll('__NAME__', option.value)
-            .replaceAll('__UNIT__', option.dataset.unit);
-        this.rowsTarget.insertAdjacentHTML('beforeend', html);
-        this.pickerTarget.value = '';
-        this.syncOptions();
-    }
-
-    remove(event) {
-        event.currentTarget.closest('.food-row').remove();
-        this.syncOptions();
-    }
-
-    syncOptions() {
-        const selected = new Set([...this.rowsTarget.querySelectorAll('[data-denree-id]')].map((row) => row.dataset.denreeId));
-        [...this.catalogTarget.options].forEach((option) => {
-            const isSelected = selected.has(option.dataset.id);
-            option.disabled = isSelected;
-            option.hidden = isSelected;
-        });
-    }
+ static targets=['template','catalog','recipes'];
+ connect(){this.foods=JSON.parse(this.catalogTarget.textContent);this.recipeData=JSON.parse(this.recipesTarget.textContent);this.refresh();}
+ addFood(event){const block=event.currentTarget.closest('[data-menu-block]');const select=block.querySelector('[data-food-picker]');if(select.value)this.addLine({denree:select.value,quantites:{}},block);select.value='';}
+ addRecipe(event){const block=event.currentTarget.closest('[data-menu-block]');const select=block.querySelector('[data-recipe-picker]');const r=this.recipeData[select.value];if(r)r.lignes.forEach(l=>this.addLine(l,block));select.value='';}
+ addLine(data,block){const box=document.createElement('div');box.innerHTML=this.templateTarget.innerHTML.trim();const row=box.firstElementChild;row.querySelector('[data-field="denree"]').value=data.denree;row.querySelector('[data-field="categorie"]').value=block.dataset.category||'';row.dataset.conditionnement=data.conditionnement||'';Object.entries(data.quantites||{}).forEach(([p,v])=>{const x=row.querySelector(`[data-public="${p}"]`);if(x)x.value=String(v).replace('.',',');});block.querySelector('[data-menu-rows]').append(row);this.refresh();}
+ remove(e){e.currentTarget.closest('[data-line]').remove();this.refresh();}
+ refresh(){[...this.element.querySelectorAll('[data-line]')].forEach((row,i)=>{const id=row.querySelector('[data-field="denree"]').value;const d=this.foods[id];const name=row.querySelector('[data-name]');if(name)name.textContent=d?.nom||'';const s=row.querySelector('[data-field="conditionnement"]');const selected=s.dataset.selected||row.dataset.conditionnement||s.value;s.innerHTML=(d?.conditionnements||[]).map(u=>`<option value="${u.id}" ${u.id===selected?'selected':''}>${u.nom}</option>`).join('');delete s.dataset.selected;row.querySelector('[data-field="denree"]').name=`lignes[${i}][denree]`;s.name=`lignes[${i}][conditionnement]`;const c=row.querySelector('[data-field="categorie"]');c.name=`lignes[${i}][categorie]`;row.querySelectorAll('[data-public]').forEach(x=>x.name=`lignes[${i}][quantites][${x.dataset.public}]`);});}
 }

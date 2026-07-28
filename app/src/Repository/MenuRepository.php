@@ -45,13 +45,22 @@ final class MenuRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    public function findSpecial(Sejour $sejour, string $code): ?Menu
+    {
+        return $this->createQueryBuilder('menu')->addSelect('menuDenree','denree','quantite','sejourPublicCible','publicCible','conditionnement')
+            ->leftJoin('menu.denrees','menuDenree')->leftJoin('menuDenree.denree','denree')->leftJoin('menuDenree.conditionnement','conditionnement')
+            ->leftJoin('menuDenree.quantites','quantite')->leftJoin('quantite.sejourPublicCible','sejourPublicCible')->leftJoin('sejourPublicCible.publicCible','publicCible')
+            ->andWhere('menu.sejour = :sejour')->andWhere('menu.specialCode = :code')->andWhere('menu.actif = true')
+            ->setParameter('sejour',$sejour)->setParameter('code',$code)->getQuery()->getOneOrNullResult();
+    }
+
     /** @return list<Menu> */
     public function findActifsPourSejour(Sejour $sejour): array
     {
         return $this->createQueryBuilder('menu')
             ->addSelect('repas', 'typeRepas', 'menuDenree', 'denree', 'quantite', 'sejourPublicCible', 'publicCible', 'unite')
-            ->join('menu.sejourTypeRepas', 'repas')
-            ->join('repas.typeRepas', 'typeRepas')
+            ->leftJoin('menu.sejourTypeRepas', 'repas')
+            ->leftJoin('repas.typeRepas', 'typeRepas')
             ->leftJoin('menu.denrees', 'menuDenree')
             ->leftJoin('menuDenree.denree', 'denree')
             ->leftJoin('denree.uniteReference', 'unite')
@@ -60,10 +69,10 @@ final class MenuRepository extends ServiceEntityRepository
             ->leftJoin('sejourPublicCible.publicCible', 'publicCible')
             ->andWhere('menu.sejour = :sejour')
             ->andWhere('menu.actif = true')
-            ->andWhere('repas.actif = true')
+            ->andWhere('menu.specialCode IS NOT NULL OR repas.actif = true')
             ->andWhere('sejourPublicCible.id IS NULL OR (sejourPublicCible.actif = true AND publicCible.actif = true)')
             ->setParameter('sejour', $sejour)
-            ->orderBy('menu.dateMenu', 'ASC')
+            ->orderBy('menu.specialCode', 'ASC')->addOrderBy('menu.dateMenu', 'ASC')
             ->addOrderBy('repas.ordre', 'ASC')
             ->getQuery()
             ->getResult();
