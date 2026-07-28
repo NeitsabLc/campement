@@ -28,6 +28,7 @@ final class ListeCoursesPdf
     public function __construct(
         #[Autowire('%kernel.project_dir%')]
         private string $projectDir,
+        private readonly AffichageQuantite $affichageQuantite,
     ) {
     }
 
@@ -93,7 +94,7 @@ final class ListeCoursesPdf
         foreach ($cumuls as $cumul) {
             $lignes[] = [
                 'nom' => $cumul['nom'],
-                'individuelle' => $this->nombre($cumul['individuelle']),
+                'individuelle' => $this->affichageQuantite->parPersonne($cumul['individuelle']),
                 'unite' => $cumul['unite'],
             ];
         }
@@ -135,16 +136,6 @@ final class ListeCoursesPdf
             'Thursday' => 'Jeudi', 'Friday' => 'Vendredi', 'Saturday' => 'Samedi'];
 
         return $jours[$date->format('l')].' '.$date->format('d/m').' - '.mb_strtolower($menu->getLibelle());
-    }
-
-    private function nombre(float $nombre): string
-    {
-        $arrondi = round($nombre, 3);
-        if (abs($arrondi - round($arrondi)) < 0.0005) {
-            return (string) (int) round($arrondi);
-        }
-
-        return rtrim(rtrim(number_format($arrondi, 3, ',', ''), '0'), ',');
     }
 
     /** @param list<array{titre: string, groupe: string, effectif: int, couleur: string, lignes: list<array{nom: string, individuelle: string, unite: string}>, legende: string}> $fiches */
