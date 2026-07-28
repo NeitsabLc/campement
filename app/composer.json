@@ -6,9 +6,13 @@
     "require": {
         "php": ">=8.4",
         "ext-ctype": "*",
+        "ext-dom": "*",
         "ext-iconv": "*",
+        "ext-mbstring": "*",
+        "ext-zip": "*",
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/orm": "^3.6",
+        "dompdf/dompdf": "^3.1",
         "easycorp/easyadmin-bundle": "^5.3",
         "endroid/qr-code": "^6.0",
         "phpdocumentor/reflection-docblock": "^6.0",
