@@ -10,9 +10,9 @@ export default class extends Controller {
         this.wrapper.innerHTML = `
             <button class="searchable-select__trigger" type="button" aria-haspopup="listbox" aria-expanded="false"></button>
             <div class="searchable-select__dropdown" popover="manual">
-                <input class="searchable-select__search" type="search" placeholder="Rechercher une denrée…" aria-label="Rechercher une denrée" autocomplete="off">
+                <input class="searchable-select__search" type="search" autocomplete="off">
                 <div class="searchable-select__options" role="listbox"></div>
-                <p class="searchable-select__empty" hidden>Aucune denrée trouvée</p>
+                <p class="searchable-select__empty" hidden></p>
             </div>`;
         this.select.insertAdjacentElement('afterend', this.wrapper);
 
@@ -21,6 +21,9 @@ export default class extends Controller {
         this.search = this.wrapper.querySelector('.searchable-select__search');
         this.options = this.wrapper.querySelector('.searchable-select__options');
         this.empty = this.wrapper.querySelector('.searchable-select__empty');
+        this.search.placeholder = this.select.dataset.searchPlaceholder || 'Rechercher une denrée…';
+        this.search.setAttribute('aria-label', this.select.dataset.searchLabel || 'Rechercher une denrée');
+        this.empty.textContent = this.select.dataset.emptyLabel || 'Aucune denrée trouvée';
 
         this.isOpen = false;
         this.toggle = () => this.isOpen ? this.close() : this.open();

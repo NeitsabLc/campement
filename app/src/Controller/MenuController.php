@@ -108,7 +108,15 @@ final class MenuController extends AbstractController
                 $categorie = $avecCategories && in_array($donnees['categorie'] ?? null, self::CATEGORIES, true)
                     ? $donnees['categorie']
                     : null;
-                $composition[] = [$denree, $unite, $categorie, $quantites];
+                $recetteId = (string) ($donnees['recette'] ?? '');
+                $instanceId = (string) ($donnees['recette_instance'] ?? '');
+                $recette = Uuid::isValid($recetteId) ? $recettes->find($recetteId) : null;
+                $instance = Uuid::isValid($instanceId) ? Uuid::fromString($instanceId) : null;
+                if (null === $recette || $recette->getSejour() !== $sejour || !$recette->isActif()) {
+                    $recette = null;
+                    $instance = null;
+                }
+                $composition[] = [$denree, $unite, $categorie, $quantites, $recette, $instance];
             }
 
             $menu ??= (new Menu())->setSejour($sejour);
@@ -120,11 +128,13 @@ final class MenuController extends AbstractController
             foreach ($menu->getDenrees()->toArray() as $ancienne) {
                 $menu->removeDenree($ancienne);
             }
-            foreach ($composition as $ordre => [$denree, $unite, $categorie, $quantites]) {
+            foreach ($composition as $ordre => [$denree, $unite, $categorie, $quantites, $recette, $instance]) {
                 $ligne = (new MenuDenree())
                     ->setDenree($denree)
                     ->setConditionnement($unite)
                     ->setCategorie($categorie)
+                    ->setRecette($recette)
+                    ->setRecetteInstanceId($instance)
                     ->setOrdre($ordre);
                 foreach ($publicsActifs as $public) {
                     $ligne->addQuantite((new MenuDenreeQuantite())
@@ -191,6 +201,27 @@ final class MenuController extends AbstractController
             $jours[] = $jour;
         }
 
+        $compositionMenu = [];
+        if (null !== $menu) {
+            foreach ($menu->getDenrees() as $ligne) {
+                $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
+                $instance = $ligne->getRecetteInstanceId();
+                $recette = $ligne->getRecette();
+                if (null !== $instance && null !== $recette) {
+                    $cle = (string) $instance;
+                    $compositionMenu[$categorie]['recettes'][$cle] ??= [
+                        'id' => (string) $recette->getId(),
+                        'nom' => $recette->getNom(),
+                        'instance' => $cle,
+                        'lignes' => [],
+                    ];
+                    $compositionMenu[$categorie]['recettes'][$cle]['lignes'][] = $ligne;
+                } else {
+                    $compositionMenu[$categorie]['supplementaires'][] = $ligne;
+                }
+            }
+        }
+
         return $this->render('menu/index.html.twig', [
             'sejour' => $sejour,
             'repas' => $repas,
@@ -206,6 +237,7 @@ final class MenuController extends AbstractController
             'recettes' => $recettesActives,
             'recettes_json' => $recettesJson,
             'avec_categories' => $avecCategories,
+            'composition_menu' => $compositionMenu,
         ]);
     }
 
