@@ -34,8 +34,7 @@ final class DenreeController extends AbstractController
 
         $lignes = null === $sejour ? [] : $denrees->findPourGestion($sejour, $actives);
         foreach ($lignes as &$ligne) {
-            $ligne['stockInventaire'] = $conversion->stockInventaire(
-                $ligne['denree'],
+            $ligne['stockInventaire'] = $conversion->stockDepuisQuantitesInventaire(
                 (float) $ligne['stockEntree'],
                 (float) $ligne['stockSortie'],
             );

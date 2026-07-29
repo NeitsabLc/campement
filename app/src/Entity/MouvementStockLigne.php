@@ -38,6 +38,9 @@ class MouvementStockLigne
     #[ORM\Column(name: "quantite_unite_reference",type: "decimal",precision: 12,scale: 3,),]
     private string $quantiteUniteReference;
 
+    #[ORM\Column(name: "quantite_unite_inventaire", type: "decimal", precision: 12, scale: 3)]
+    private string $quantiteUniteInventaire;
+
     public function __construct(MouvementStock $mouvementStock, Denree $denree, string $quantite)
     {
         if ((float) $quantite <= 0) {
@@ -52,6 +55,7 @@ class MouvementStockLigne
         $this->mouvementStock = $mouvementStock;
         $this->denree = $denree;
         $this->quantiteUniteReference = $quantite;
+        $this->quantiteUniteInventaire = $quantite;
     }
 
     public function getMouvementStock(): MouvementStock
@@ -106,6 +110,22 @@ class MouvementStockLigne
         }
         $this->quantiteUniteReference = $quantite;
         $this->touch();
+        return $this;
+    }
+
+    public function getQuantiteUniteInventaire(): string
+    {
+        return $this->quantiteUniteInventaire;
+    }
+
+    public function setQuantiteUniteInventaire(string $quantite): self
+    {
+        if ((float) $quantite <= 0) {
+            throw new \InvalidArgumentException("Quantité d'inventaire invalide.");
+        }
+        $this->quantiteUniteInventaire = $quantite;
+        $this->touch();
+
         return $this;
     }
 }

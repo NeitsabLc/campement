@@ -36,8 +36,8 @@ final class DenreeRepository extends ServiceEntityRepository
     {
         $lignes = $this->createQueryBuilder('d')
             ->addSelect('u', 'ui')
-            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'ENTREE' THEN l.quantiteUniteReference ELSE 0 END), 0) AS stockEntree")
-            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'SORTIE' THEN l.quantiteUniteReference ELSE 0 END), 0) AS stockSortie")
+            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'ENTREE' THEN l.quantiteUniteInventaire ELSE 0 END), 0) AS stockEntree")
+            ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'SORTIE' THEN l.quantiteUniteInventaire ELSE 0 END), 0) AS stockSortie")
             ->join('d.uniteReference', 'u')
             ->join('d.uniteInventaire', 'ui')
             ->leftJoin(\App\Entity\MouvementStockLigne::class, 'l', 'WITH', 'l.denree = d')
