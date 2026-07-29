@@ -32,7 +32,7 @@
 
                 <div class="stock-movement-grid">
                     <label>Denrée <b>*</b>
-                        <select name="denree" required data-stock-movement-target="food" data-action="change->stock-movement#refresh">
+                        <select name="denree" required data-controller="searchable-select" data-stock-movement-target="food" data-action="change->stock-movement#refresh">
                             <option value="">Sélectionner une denrée</option>
                             {% for denree in denreesActives %}<option value="{{ denree.id }}"{{ valeurs.denree == denree.id ~ '' ? ' selected' : '' }} data-unit="{{ denree.uniteReference.symbole }}">{{ denree.nom }}</option>{% endfor %}
                         </select>
