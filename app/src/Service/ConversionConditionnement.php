@@ -29,6 +29,38 @@ final class ConversionConditionnement
         return $resultat;
     }
 
+    /**
+     * Charge en une seule requête les conditionnements de plusieurs denrées.
+     *
+     * @param list<Denree> $denrees
+     *
+     * @return array<string, list<Unite>> indexé par identifiant de denrée
+     */
+    public function conditionnementsPourDenrees(array $denrees): array
+    {
+        $resultats = [];
+        foreach ($denrees as $denree) {
+            $resultats[(string) $denree->getId()] = [
+                (string) $denree->getUniteReference()->getId() => $denree->getUniteReference(),
+            ];
+        }
+
+        foreach ($this->niveaux->findActifsPourDenrees($denrees) as $niveau) {
+            $denreeId = (string) $niveau->getReferenceFournisseur()->getDenree()->getId();
+            $conditionnement = $niveau->getConditionnement();
+            $resultats[$denreeId][(string) $conditionnement->getId()] = $conditionnement;
+        }
+
+        $collator = new Collator('fr_FR');
+        foreach ($resultats as &$conditionnements) {
+            $conditionnements = array_values($conditionnements);
+            usort($conditionnements, static fn (Unite $a, Unite $b): int => $collator->compare($a->getNom(), $b->getNom()));
+        }
+        unset($conditionnements);
+
+        return $resultats;
+    }
+
     /** Plus petit contenu connu, exprimé dans l'unité physique terminale de la denrée. */
     public function facteurMinimal(Denree $denree, Unite $conditionnement): ?float
     {

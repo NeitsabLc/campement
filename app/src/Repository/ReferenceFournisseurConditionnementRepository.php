@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Denree;
 use App\Entity\ReferenceFournisseur;
 use App\Entity\ReferenceFournisseurConditionnement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
@@ -21,5 +22,29 @@ final class ReferenceFournisseurConditionnementRepository extends ServiceEntityR
     public function findPourReference(ReferenceFournisseur $reference): array
     {
         return $this->findBy(['referenceFournisseur' => $reference], ['ordre' => 'ASC']);
+    }
+
+    /**
+     * @param list<Denree> $denrees
+     *
+     * @return list<ReferenceFournisseurConditionnement>
+     */
+    public function findActifsPourDenrees(array $denrees): array
+    {
+        if ([] === $denrees) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('niveau')
+            ->addSelect('reference', 'denree', 'conditionnement')
+            ->join('niveau.referenceFournisseur', 'reference')
+            ->join('reference.denree', 'denree')
+            ->join('niveau.conditionnement', 'conditionnement')
+            ->andWhere('denree IN (:denrees)')
+            ->andWhere('reference.actif = true')
+            ->setParameter('denrees', $denrees)
+            ->orderBy('niveau.ordre', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

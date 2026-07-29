@@ -28,9 +28,10 @@ final class MenuRepository extends ServiceEntityRepository
     public function findPourRepas(Sejour $sejour, DateTimeImmutable $date, SejourTypeRepas $repas): ?Menu
     {
         return $this->createQueryBuilder('menu')
-            ->addSelect('menuDenree', 'denree', 'quantite', 'sejourPublicCible', 'publicCible')
+            ->addSelect('menuDenree', 'denree', 'conditionnement', 'quantite', 'sejourPublicCible', 'publicCible')
             ->leftJoin('menu.denrees', 'menuDenree')
             ->leftJoin('menuDenree.denree', 'denree')
+            ->leftJoin('menuDenree.conditionnement', 'conditionnement')
             ->leftJoin('menuDenree.quantites', 'quantite')
             ->leftJoin('quantite.sejourPublicCible', 'sejourPublicCible')
             ->leftJoin('sejourPublicCible.publicCible', 'publicCible')
@@ -43,6 +44,25 @@ final class MenuRepository extends ServiceEntityRepository
             ->setParameter('repas', $repas)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    /**
+     * @return list<array{specialCode: ?string, dateMenu: ?DateTimeImmutable, repasId: ?string, nombreDenrees: string|int}>
+     */
+    public function findStatutsPourSejour(Sejour $sejour): array
+    {
+        return $this->createQueryBuilder('menu')
+            ->select('menu.specialCode AS specialCode', 'menu.dateMenu AS dateMenu')
+            ->addSelect('IDENTITY(menu.sejourTypeRepas) AS repasId', 'COUNT(menuDenree.id) AS nombreDenrees')
+            ->leftJoin('menu.sejourTypeRepas', 'repas')
+            ->leftJoin('menu.denrees', 'menuDenree')
+            ->andWhere('menu.sejour = :sejour')
+            ->andWhere('menu.actif = true')
+            ->andWhere('menu.specialCode IS NOT NULL OR repas.actif = true')
+            ->setParameter('sejour', $sejour)
+            ->groupBy('menu.id', 'menu.specialCode', 'menu.dateMenu', 'menu.sejourTypeRepas')
+            ->getQuery()
+            ->getArrayResult();
     }
 
     public function findSpecial(Sejour $sejour, string $code): ?Menu
