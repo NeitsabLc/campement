@@ -209,39 +209,66 @@ final class MouvementStockController extends AbstractController
                 $utilisateur = $this->getUser();
                 if (!$utilisateur instanceof Utilisateur) throw new \LogicException('Utilisateur connecté invalide.');
 
-                $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
-                $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
-                if (null === $mouvementExistant) {
-                    $mouvement->setDateMouvement($this->dateNavigateur($request->request->getString('date_navigateur')) ?? new \DateTimeImmutable());
-                }
-                if (null !== $ligneExistante) {
-                    foreach ($lignesConditionnements->findPourLigne($ligneExistante) as $ancienConditionnement) $em->remove($ancienConditionnement);
-                    $em->remove($ligneExistante);
-                    $em->flush();
-                }
-                $ligne = new MouvementStockLigne($mouvement, $denree, $quantiteReference);
-                $quantiteInventaire = 'ENTREE' === $typeCode
-                    ? $conversion->quantiteEntreeInventaire(
-                        $denree,
-                        (float) $quantiteReference,
-                        $conditionnementsParReference[(string) $reference->getId()] ?? [],
-                        $quantitesConditionnements,
-                    )
-                    : $conversion->quantiteInventaireExacte($denree, (float) $quantiteReference);
-                $ligne->setQuantiteUniteInventaire(number_format($quantiteInventaire, 3, '.', ''));
-                if (null !== $reference) $ligne->setReferenceFournisseur($reference);
-                $ligne->setConditionnementSortie('SORTIE' === $typeCode ? $conditionnementSortie : null);
-                $em->persist($mouvement);
-                $em->persist($ligne);
-                if (null !== $reference) {
-                    foreach ($conditionnementsParReference[(string) $reference->getId()] as $conditionnement) {
-                        $id = (string) $conditionnement->getId();
-                        if (isset($quantitesConditionnements[$id])) {
-                            $em->persist(new MouvementStockLigneConditionnement($ligne, $conditionnement, $quantitesConditionnements[$id]));
+                $em->wrapInTransaction(function () use (
+                    $em,
+                    $mouvementExistant,
+                    $sejour,
+                    $utilisateur,
+                    $type,
+                    $origine,
+                    $groupe,
+                    $request,
+                    $ligneExistante,
+                    $lignesConditionnements,
+                    $denree,
+                    $quantiteReference,
+                    $reference,
+                    $typeCode,
+                    $conditionnementSortie,
+                    $conditionnementsParReference,
+                    $quantitesConditionnements,
+                    $conversion,
+                ): void {
+                    $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
+                    $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
+                    if (null === $mouvementExistant) {
+                        $mouvement->setDateMouvement($this->dateNavigateur($request->request->getString('date_navigateur')) ?? new \DateTimeImmutable());
+                    }
+                    if (null !== $ligneExistante) {
+                        foreach ($lignesConditionnements->findPourLigne($ligneExistante) as $ancienConditionnement) {
+                            $em->remove($ancienConditionnement);
+                        }
+                        $em->remove($ligneExistante);
+                        // La suppression doit précéder l'insertion à cause de la contrainte
+                        // unique (mouvement_stock_id, denree_id), tout en restant atomique.
+                        $em->flush();
+                    }
+
+                    $ligne = new MouvementStockLigne($mouvement, $denree, $quantiteReference);
+                    $quantiteInventaire = 'ENTREE' === $typeCode
+                        ? $conversion->quantiteEntreeInventaire(
+                            $denree,
+                            (float) $quantiteReference,
+                            $conditionnementsParReference[(string) $reference->getId()] ?? [],
+                            $quantitesConditionnements,
+                        )
+                        : $conversion->quantiteInventaireExacte($denree, (float) $quantiteReference);
+                    $ligne->setQuantiteUniteInventaire($conversion->formaterQuantiteInventaire($quantiteInventaire));
+                    if (null !== $reference) {
+                        $ligne->setReferenceFournisseur($reference);
+                    }
+                    $ligne->setConditionnementSortie('SORTIE' === $typeCode ? $conditionnementSortie : null);
+                    $em->persist($mouvement);
+                    $em->persist($ligne);
+                    if (null !== $reference) {
+                        foreach ($conditionnementsParReference[(string) $reference->getId()] as $conditionnement) {
+                            $id = (string) $conditionnement->getId();
+                            if (isset($quantitesConditionnements[$id])) {
+                                $em->persist(new MouvementStockLigneConditionnement($ligne, $conditionnement, $quantitesConditionnements[$id]));
+                            }
                         }
                     }
-                }
-                $em->flush();
+                });
                 $this->addFlash('success', sprintf('Mouvement de stock %s pour « %s ».', null === $mouvementExistant ? 'enregistré' : 'modifié', $denree->getNom()));
 
                 return $this->redirectToRoute('app_mouvements_stock');

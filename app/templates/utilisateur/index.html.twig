@@ -3,7 +3,7 @@
 {% block title %}Gestion des utilisateurs | Campement{% endblock %}
 
 {% block body %}
-<main class="users-page">
+<main class="users-page" data-controller="user-dialog">
     <header class="users-heading">
         <div><h1>Gestion des utilisateurs</h1></div>
         <div class="users-heading__actions">
@@ -136,73 +136,4 @@
         </section>
     </dialog>
 </main>
-<script>
-const initialiserDialogueUtilisateur = () => {
-    const selector = document.querySelector('[data-role-selector]');
-    const dialog = document.querySelector('[data-user-dialog]');
-    const groupStaySelector = document.querySelector('[data-group-stay-selector]');
-    const groupSelector = document.querySelector('[data-group-selector]');
-    const form = dialog?.querySelector('form');
-    if (!dialog || dialog.dataset.initialized) return;
-    dialog.dataset.initialized = 'true';
-    const update = () => document.querySelectorAll('[data-role-panel]').forEach(panel => {
-        panel.hidden = panel.dataset.rolePanel !== selector.value;
-    });
-    const updateGroups = () => {
-        if (!groupSelector || !groupStaySelector) return;
-        const selectedStay = groupStaySelector.value;
-        Array.from(groupSelector.options).forEach((option, index) => {
-            if (index === 0) return;
-            option.hidden = option.dataset.stayId !== selectedStay;
-            option.disabled = option.hidden;
-        });
-        const selectedOption = groupSelector.selectedOptions[0];
-        if (selectedOption?.disabled) groupSelector.value = '';
-    };
-    selector?.addEventListener('change', update); if (selector) update();
-    groupStaySelector?.addEventListener('change', updateGroups); updateGroups();
-    const prepareCreate = () => {
-        form?.reset();
-        dialog.querySelector('[data-user-id-field]').value = '';
-        dialog.querySelector('[data-user-dialog-title]').textContent = 'Ajouter un utilisateur';
-        dialog.querySelector('[data-user-dialog-intro]').textContent = 'Un accès provisoire lui sera envoyé par e-mail.';
-        dialog.querySelector('[data-user-submit]').textContent = 'Créer et envoyer l’invitation';
-        update(); updateGroups(); dialog.showModal();
-    };
-    document.querySelector('[data-user-dialog-open]')?.addEventListener('click', prepareCreate);
-    document.querySelectorAll('[data-user-edit]').forEach(button => button.addEventListener('click', () => {
-        form?.reset();
-        dialog.querySelector('[data-user-id-field]').value = button.dataset.userId;
-        form.elements.prenom.value = button.dataset.userFirstName;
-        form.elements.nom.value = button.dataset.userLastName;
-        form.elements.email.value = button.dataset.userEmail;
-        form.elements.role.value = button.dataset.userRole;
-        const managerStay = form.elements['sejours[]'];
-        if (managerStay && button.dataset.userRole === 'ROLE_GESTIONNAIRE') managerStay.value = button.dataset.userStay;
-        groupStaySelector.value = button.dataset.userRole === 'ROLE_GROUPE' ? button.dataset.userStay : '';
-        update(); updateGroups();
-        groupSelector.value = button.dataset.userGroup || '';
-        dialog.querySelector('[data-user-dialog-title]').textContent = 'Modifier l’utilisateur';
-        dialog.querySelector('[data-user-dialog-intro]').textContent = 'Modifiez ses informations et son affectation.';
-        dialog.querySelector('[data-user-submit]').textContent = 'Enregistrer les modifications';
-        dialog.showModal();
-    }));
-    document.querySelector('[data-user-dialog-close]')?.addEventListener('click', () => dialog?.close());
-    dialog?.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-    if (dialog?.hasAttribute('data-open-on-load')) dialog.showModal();
-
-    const statusDialog = document.querySelector('[data-user-status-dialog]');
-    const statusForm = statusDialog?.querySelector('[data-user-disable-form]');
-    document.querySelectorAll('[data-user-disable]').forEach(button => button.addEventListener('click', () => {
-        statusDialog.querySelector('[data-user-disable-name]').textContent = button.dataset.userName;
-        statusDialog.querySelector('[data-user-disable-token]').value = button.dataset.statusToken;
-        statusForm.action = button.dataset.statusUrl;
-        statusDialog.showModal();
-    }));
-    statusDialog?.querySelector('[data-user-disable-cancel]')?.addEventListener('click', () => statusDialog.close());
-    statusDialog?.addEventListener('click', event => { if (event.target === statusDialog) statusDialog.close(); });
-};
-document.addEventListener('DOMContentLoaded', initialiserDialogueUtilisateur);
-document.addEventListener('turbo:load', initialiserDialogueUtilisateur);
-</script>
 {% endblock %}

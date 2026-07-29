@@ -10,14 +10,14 @@
         {% endblock %}
 
         {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
+            {% block importmap %}{{ importmap('app', {nonce: app.request.attributes.get('csp_nonce')}) }}{% endblock %}
         {% endblock %}
 
         {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
+        {% if app.environment == 'dev' and frankenphp_hot_reload %}
         <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
+        <script nonce="{{ app.request.attributes.get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
+        <script nonce="{{ app.request.attributes.get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
         {% endif %}
     </head>
     <body class="{% block body_class %}{{ app.user ? 'app-shell' : 'auth-shell' }}{% endblock %}">

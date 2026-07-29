@@ -49,12 +49,6 @@ class MouvementStock
     #[ORM\Column(name: "date_mouvement",type: "datetimetz_immutable",options: ["default" => "CURRENT_TIMESTAMP"],),]
     private \DateTimeImmutable $dateMouvement;
 
-    #[ORM\Column(name: "reference_document", length: 100, nullable: true)]
-    private ?string $referenceDocument = null;
-
-    #[ORM\Column(type: "text", nullable: true)]
-    private ?string $commentaire = null;
-
     public function __construct(Sejour $sejour, Utilisateur $utilisateur, TypeMouvement $typeMouvement, OrigineMouvement $origineMouvement)
     {
         if ($origineMouvement->getSejour() !== $sejour) {
@@ -142,27 +136,4 @@ class MouvementStock
         return $this;
     }
 
-    public function getReferenceDocument(): ?string
-    {
-        return $this->referenceDocument;
-    }
-
-    public function setReferenceDocument(?string $refDocument): self
-    {
-        $this->referenceDocument = $refDocument;
-        $this->touch();
-        return $this;
-    }
-
-    public function getCommentaire(): ?string
-    {
-        return $this->commentaire;
-    }
-
-    public function setCommentaire(?string $commentaire): self
-    {
-        $this->commentaire = $commentaire;
-        $this->touch();
-        return $this;
-    }
 }

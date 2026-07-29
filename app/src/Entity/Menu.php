@@ -41,9 +41,6 @@ class Menu
     #[ORM\Column(length: 150, nullable: true)]
     private ?string $nom = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $commentaire = null;
-
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
@@ -132,18 +129,6 @@ class Menu
     public function setNom(?string $nom): self
     {
         $this->nom = $nom;
-
-        return $this;
-    }
-
-    public function getCommentaire(): ?string
-    {
-        return $this->commentaire;
-    }
-
-    public function setCommentaire(?string $commentaire): self
-    {
-        $this->commentaire = $commentaire;
 
         return $this;
     }

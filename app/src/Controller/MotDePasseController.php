@@ -123,6 +123,10 @@ final class MotDePasseController extends AbstractController
             }
             $motDePasse = $request->request->getString('mot_de_passe');
             $erreurs = $this->validerMotDePasse($motDePasse, $request->request->getString('confirmation'));
+            if (!$utilisateur->isChangementMotDePasseRequis()
+                && !$hasher->isPasswordValid($utilisateur, $request->request->getString('mot_de_passe_actuel'))) {
+                array_unshift($erreurs, 'Le mot de passe actuel est incorrect.');
+            }
             if ([] === $erreurs) {
                 $utilisateur
                     ->setPassword($hasher->hashPassword($utilisateur, $motDePasse))

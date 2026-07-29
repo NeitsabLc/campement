@@ -115,6 +115,20 @@ final class ConversionConditionnement
     }
 
     /**
+     * Formate une quantité positive selon la précision stockée en base.
+     * Une quantité réelle inférieure à 0,001 reste ainsi représentée par la
+     * plus petite valeur positive disponible, au lieu d'être arrondie à zéro.
+     */
+    public function formaterQuantiteInventaire(float $quantite): string
+    {
+        if (!is_finite($quantite) || $quantite <= 0) {
+            throw new \InvalidArgumentException("Quantité d'inventaire invalide.");
+        }
+
+        return number_format(max(0.001, $quantite), 3, '.', '');
+    }
+
+    /**
      * Affiche une entrée dans l'unité réellement saisie lorsque toutes ses lignes
      * utilisent l'unité d'inventaire. Cette quantité historique ne doit pas être
      * recalculée avec un conditionnement qui a pu être modifié depuis.

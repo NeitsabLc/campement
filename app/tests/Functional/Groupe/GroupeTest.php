@@ -43,6 +43,7 @@ final class GroupeTest extends WebTestCase
 
     public function testUnGestionnairePeutCreerUnGroupeAdulte(): void
     {
+        $nom = 'Unité adultes '.bin2hex(random_bytes(4));
         $client = static::createClient();
         $utilisateur = static::getContainer()->get(UtilisateurRepository::class)
             ->findOneBy(['email' => 'gestionnaire@campement.local']);
@@ -51,7 +52,7 @@ final class GroupeTest extends WebTestCase
 
         $crawler = $client->request('GET', '/groupes');
         $form = $crawler->selectButton('Créer l’unité')->form([
-            'nom' => 'Unité adultes',
+            'nom' => $nom,
             'type' => 'adulte',
             'effectif_jeune' => '0',
             'effectif_adulte' => '10',
@@ -60,7 +61,7 @@ final class GroupeTest extends WebTestCase
 
         self::assertResponseRedirects('/groupes');
         $client->followRedirect();
-        self::assertSelectorTextContains('.flash--success', 'L’unité « Unité adultes » a bien été créée.');
+        self::assertSelectorTextContains('.flash--success', sprintf('L’unité « %s » a bien été créée.', $nom));
         self::assertSelectorTextContains('.group-type--adulte', 'Adulte');
     }
 }

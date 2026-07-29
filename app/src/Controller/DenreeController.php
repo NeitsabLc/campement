@@ -179,9 +179,9 @@ final class DenreeController extends AbstractController
                 foreach ($fournisseursValides as [$ligne, $fournisseur, $referenceTexte, $niveaux]) {
                     $id = (string) ($ligne['id'] ?? '');
                     $referenceNormalisee = '' === $referenceTexte ? null : $referenceTexte;
-                    $reference = $existantes[$id] ?? new ReferenceFournisseur($fournisseur, $denree, $referenceNormalisee, $denree->getNom());
+                    $reference = $existantes[$id] ?? new ReferenceFournisseur($fournisseur, $denree, $referenceNormalisee);
                     unset($existantes[$id]);
-                    $reference->setFournisseur($fournisseur)->setReference($referenceNormalisee)->setDesignation($denree->getNom())->setActif(true);
+                    $reference->setFournisseur($fournisseur)->setReference($referenceNormalisee)->setActif(true);
                     $em->persist($reference);
                     $niveauxExistants = [];
                     foreach ($conditionnements->findPourReference($reference) as $niveauExistant) { $niveauxExistants[(string) $niveauExistant->getId()] = $niveauExistant; }
