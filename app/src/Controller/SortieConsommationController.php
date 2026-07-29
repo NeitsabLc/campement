@@ -11,6 +11,7 @@ use App\Repository\GroupeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\OrigineMouvementRepository;
 use App\Repository\SejourRepository;
+use App\Repository\SejourTypeRepasRepository;
 use App\Repository\TypeMouvementRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ConversionConditionnement;
@@ -41,6 +42,7 @@ final class SortieConsommationController extends AbstractController
         SejourRepository $sejours,
         GroupeRepository $groupes,
         MenuRepository $menus,
+        SejourTypeRepasRepository $typesRepas,
         TypeMouvementRepository $types,
         OrigineMouvementRepository $origines,
         UtilisateurRepository $utilisateurs,
@@ -54,6 +56,44 @@ final class SortieConsommationController extends AbstractController
 
         $groupesActifs = $groupes->findActifsPourSejour($sejour);
         $tousLesMenus = $menus->findActifsPourSejour($sejour);
+        if ($sejour->isDistribuerGouterDejeuner()) {
+            $dejeuner = null;
+            foreach ($typesRepas->findActifsPourSejour($sejour) as $typeRepas) {
+                if ('DEJEUNER' === $typeRepas->getTypeRepas()->getCode()) {
+                    $dejeuner = $typeRepas;
+                    break;
+                }
+            }
+
+            if (null !== $dejeuner) {
+                $menuAjoute = false;
+                $datesAvecDejeuner = [];
+                foreach ($tousLesMenus as $menu) {
+                    if ($this->repasEst($menu, 'DEJEUNER')) {
+                        $datesAvecDejeuner[$menu->getDateMenu()?->format('Y-m-d') ?? ''] = true;
+                    }
+                }
+                foreach ($tousLesMenus as $menu) {
+                    $date = $menu->getDateMenu();
+                    if ($this->repasEst($menu, 'GOUTER')
+                        && !$menu->getDenrees()->isEmpty()
+                        && null !== $date
+                        && !isset($datesAvecDejeuner[$date->format('Y-m-d')])) {
+                        $menuDejeuner = (new Menu())
+                            ->setSejour($sejour)
+                            ->setDateMenu($date)
+                            ->setSejourTypeRepas($dejeuner);
+                        $entityManager->persist($menuDejeuner);
+                        $tousLesMenus[] = $menuDejeuner;
+                        $datesAvecDejeuner[$date->format('Y-m-d')] = true;
+                        $menuAjoute = true;
+                    }
+                }
+                if ($menuAjoute) {
+                    $entityManager->flush();
+                }
+            }
+        }
         $menusActifs = array_values(array_filter(
             $tousLesMenus,
             static fn (Menu $menu): bool => !$menu->isSpecial() || !$menu->getDenrees()->isEmpty(),
