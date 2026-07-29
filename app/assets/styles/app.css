@@ -1109,6 +1109,7 @@ select {
 .distribution-food h3 { margin: 1.1rem 0 .55rem; font-size: 1rem; }
 .portion-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .55rem; }
 .portion-grid__item { display: flex; min-width: 0; min-height: 3.7rem; align-items: center; flex-direction: column; justify-content: center; padding: .35rem .2rem; border: 1px solid transparent; border-radius: .45rem; font-size: .88rem; text-align: center; }
+.portion-grid__item[hidden] { display: none; }
 .portion-grid strong { font-size: .95rem; }
 .portion-grid__item--louveteaux_jeannettes { border-color: #e5821f; color: #75400d; background: #fff1df; }
 .portion-grid__item--scouts_guides { border-color: #0089b7; color: #005676; background: #e4f6fc; }

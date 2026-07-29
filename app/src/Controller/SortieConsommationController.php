@@ -25,6 +25,14 @@ use Symfony\Component\Uid\Uuid;
 
 final class SortieConsommationController extends AbstractController
 {
+    private const ORDRE_PUBLICS_DISTRIBUTION = [
+        'FARFADETS' => 10,
+        'LOUVETEAUX_JEANNETTES' => 20,
+        'SCOUTS_GUIDES' => 30,
+        'PIONNIERS_CARAVELLES' => 40,
+        'ADULTE' => 100,
+    ];
+
     #[Route('/distribution/{jeton}', name: 'app_sortie_consommation', requirements: ['jeton' => '[0-9a-fA-F-]{36}'], methods: ['GET', 'POST'])]
     #[RateLimit('public_distribution', methods: ['POST'])]
     public function index(
@@ -211,12 +219,19 @@ final class SortieConsommationController extends AbstractController
                 foreach ($ligne->getQuantites() as $quantite) {
                     $publicId = (string) $quantite->getSejourPublicCible()->getId();
                     $quantites[$publicId] ??= [
+                        'code' => $quantite->getSejourPublicCible()->getPublicCible()->getCode(),
                         'libelle' => $quantite->getSejourPublicCible()->getPublicCible()->getLibelle(),
                         'quantite' => 0.0,
                     ];
                     $quantites[$publicId]['quantite'] += (float) $quantite->getQuantiteIndividuelle() * $facteur / $facteurSortie;
                 }
             }
+            uasort($quantites, static function (array $a, array $b): int {
+                $ordreA = self::ORDRE_PUBLICS_DISTRIBUTION[$a['code']] ?? 90;
+                $ordreB = self::ORDRE_PUBLICS_DISTRIBUTION[$b['code']] ?? 90;
+
+                return $ordreA <=> $ordreB ?: $a['libelle'] <=> $b['libelle'];
+            });
             $resultat[] = ['denree' => $groupe['denree'], 'unite' => $unite, 'quantites' => $quantites];
         }
 

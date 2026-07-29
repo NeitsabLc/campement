@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['group', 'date', 'menu', 'menuBlock', 'regularSelectors', 'specialMeal'];
+    static targets = ['group', 'date', 'menu', 'menuBlock', 'regularSelectors', 'specialMeal', 'portion'];
 
     connect() {
         this.stampBrowserTime();
@@ -9,6 +9,7 @@ export default class extends Controller {
         if (!this.groupTarget.value && rememberedGroup && [...this.groupTarget.options].some((o) => o.value === rememberedGroup)) {
             this.groupTarget.value = rememberedGroup;
         }
+        this.refreshPortions();
         this.refreshDates();
         this.refreshSpecialMeal();
     }
@@ -23,6 +24,17 @@ export default class extends Controller {
 
     rememberGroup() {
         localStorage.setItem('campement.distribution.group', this.groupTarget.value);
+        this.refreshPortions();
+    }
+
+    refreshPortions() {
+        const groupType = this.groupTarget.selectedOptions[0]?.dataset.groupType;
+        const publicCode = groupType?.toUpperCase().replaceAll('-', '_');
+        const visibleCodes = new Set(publicCode ? [publicCode, 'ADULTE'] : []);
+
+        this.portionTargets.forEach((portion) => {
+            portion.hidden = visibleCodes.size > 0 && !visibleCodes.has(portion.dataset.publicCode);
+        });
     }
 
     refreshDates() {
