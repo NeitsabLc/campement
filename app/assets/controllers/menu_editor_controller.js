@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
  static targets=['template','catalog','recipes'];
- connect(){this.foods=JSON.parse(this.catalogTarget.textContent);this.recipeData=JSON.parse(this.recipesTarget.textContent);this.refresh();}
+ connect(){this.element.style.setProperty('--public-count',this.element.dataset.publicCount);this.foods=JSON.parse(this.catalogTarget.textContent);this.recipeData=JSON.parse(this.recipesTarget.textContent);this.refresh();}
  addFood(event){const block=event.currentTarget.closest('[data-menu-block]');const select=block.querySelector('[data-food-picker]');if(select.value)this.addLine({denree:select.value,quantites:{}},block);select.value='';}
  addRecipe(event){const block=event.currentTarget.closest('[data-menu-block]');const select=block.querySelector('[data-recipe-picker]');const r=this.recipeData[select.value];if(r)r.lignes.forEach(l=>this.addLine(l,block));select.value='';}
  addLine(data,block){const box=document.createElement('div');box.innerHTML=this.templateTarget.innerHTML.trim();const row=box.firstElementChild;row.querySelector('[data-field="denree"]').value=data.denree;row.querySelector('[data-field="categorie"]').value=block.dataset.category||'';row.dataset.conditionnement=data.conditionnement||'';Object.entries(data.quantites||{}).forEach(([p,v])=>{const x=row.querySelector(`[data-public="${p}"]`);if(x)x.value=String(v).replace('.',',');});block.querySelector('[data-menu-rows]').append(row);this.refresh();}

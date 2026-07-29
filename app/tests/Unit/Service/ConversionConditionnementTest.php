@@ -21,6 +21,21 @@ final class ConversionConditionnementTest extends TestCase
         self::assertSame(15, $conversion->stockDepuisQuantitesInventaire(16.0, 0.2));
     }
 
+    public function testUneQuantiteInferieureALaPrecisionRestePositive(): void
+    {
+        $conversion = (new \ReflectionClass(ConversionConditionnement::class))->newInstanceWithoutConstructor();
+
+        self::assertSame('0.001', $conversion->formaterQuantiteInventaire(0.000_001));
+    }
+
+    public function testUneQuantiteInventaireInvalideEstRejetee(): void
+    {
+        $conversion = (new \ReflectionClass(ConversionConditionnement::class))->newInstanceWithoutConstructor();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $conversion->formaterQuantiteInventaire(0.0);
+    }
+
     public function testUneEntreeSaisieEnCartonsConserveSaQuantiteHistorique(): void
     {
         $carton = new Unite('carton', 'carton');

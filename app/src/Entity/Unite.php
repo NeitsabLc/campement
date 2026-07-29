@@ -25,23 +25,15 @@ class Unite
     #[ORM\Column(length: 10)]
     private string $symbole;
 
-    #[ORM\Column(name: "facteur_conversion",type: "decimal",precision: 12,scale: 6,),]
-    private string $facteurConversion;
-
     #[ORM\Column(name: "utilisable_conditionnement", options: ["default" => true])]
     private bool $utilisableConditionnement = true;
 
-    public function __construct(string $nom, string $symbole, string $facteurConversion)
+    public function __construct(string $nom, string $symbole)
     {
-        if ((float) $facteurConversion <= 0) {
-            throw new \InvalidArgumentException("Facteur invalide.");
-        }
-
         $this->initializeId();
         $this->initializeTimestamps();
         $this->nom = $nom;
         $this->symbole = $symbole;
-        $this->facteurConversion = $facteurConversion;
     }
 
     public function getNom(): string
@@ -64,22 +56,6 @@ class Unite
     public function setSymbole(string $symbole): self
     {
         $this->symbole = $symbole;
-        $this->touch();
-        return $this;
-    }
-
-    public function getFacteurConversion(): string
-    {
-        return $this->facteurConversion;
-    }
-
-    public function setFacteurConversion(string $facteurConversion): self
-    {
-        if ((float) $facteurConversion <= 0) {
-            throw new \InvalidArgumentException("Facteur invalide.");
-        }
-
-        $this->facteurConversion = $facteurConversion;
         $this->touch();
         return $this;
     }

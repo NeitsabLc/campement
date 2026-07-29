@@ -1,10 +1,4 @@
 import './stimulus_bootstrap.js';
-/*
- * Welcome to your app's main JavaScript file!
- *
- * This file will be included onto the page via the importmap() Twig function,
- * which should already be in your base.html.twig.
- */
 document.addEventListener('input', (event) => {
     const search = event.target.closest('[data-food-catalog-target="search"]');
     if (!search) {
@@ -17,8 +11,6 @@ document.addEventListener('input', (event) => {
         row.classList.toggle('foods-row--filtered', !row.dataset.name.includes(query));
     });
 });
-
-console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
 
 const programmerDisparitionMessages = () => {
     document.querySelectorAll('.flash--success, [data-auto-dismiss]').forEach((message) => {

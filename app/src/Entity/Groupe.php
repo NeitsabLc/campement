@@ -39,9 +39,6 @@ class Groupe
     #[ORM\Column(length: 30)]
     private string $type;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $commentaire = null;
-
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
@@ -125,18 +122,6 @@ class Groupe
     public function setType(string $type): self
     {
         $this->type = $type;
-
-        return $this;
-    }
-
-    public function getCommentaire(): ?string
-    {
-        return $this->commentaire;
-    }
-
-    public function setCommentaire(?string $commentaire): self
-    {
-        $this->commentaire = $commentaire;
 
         return $this;
     }
