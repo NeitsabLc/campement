@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Menu;
 use App\Entity\MenuDenree;
 use App\Entity\MenuDenreeQuantite;
+use App\Entity\Recette;
 use App\Entity\SejourTypeRepas;
 use App\Entity\Utilisateur;
 use App\Repository\DenreeRepository;
@@ -31,7 +32,7 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
 final class MenuController extends AbstractController
 {
-    private const CATEGORIES = ['ENTREE', 'PLAT', 'FROMAGE', 'DESSERT'];
+    private const CATEGORIES = Recette::CATEGORIES;
     private const REPAS_AVEC_CATEGORIES = ['DEJEUNER', 'DINER'];
     private const SPECIAUX = [
         'EXPLO' => 'Explo',
@@ -170,7 +171,11 @@ final class MenuController extends AbstractController
                     'quantites' => $quantites,
                 ];
             }
-            $recettesJson[(string) $recette->getId()] = ['nom' => $recette->getNom(), 'lignes' => $lignes];
+            $recettesJson[(string) $recette->getId()] = [
+                'nom' => $recette->getNom(),
+                'categorie' => $recette->getCategorie(),
+                'lignes' => $lignes,
+            ];
         }
 
         $menusExistants = [];

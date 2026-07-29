@@ -69,6 +69,10 @@ final class RecetteController extends AbstractController
             if ('' === $nom) {
                 $erreurs[] = 'Le nom est obligatoire.';
             }
+            $categorie = $request->request->getString('categorie');
+            if (!in_array($categorie, Recette::CATEGORIES, true)) {
+                $erreurs[] = 'La catégorie est obligatoire.';
+            }
 
             $composition = [];
             foreach (array_values($request->request->all('lignes')) as $index => $donnees) {
@@ -104,7 +108,7 @@ final class RecetteController extends AbstractController
                 $erreurs[] = 'Ajoutez au moins une denrée.';
             }
             if ([] === $erreurs) {
-                $recette->setNom($nom);
+                $recette->setNom($nom)->setCategorie($categorie);
                 foreach ($recette->getDenrees()->toArray() as $ancienne) {
                     $recette->removeDenree($ancienne);
                 }

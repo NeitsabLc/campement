@@ -14,10 +14,13 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'recette', schema: 'campement')]
 class Recette
 {
+    public const CATEGORIES = ['ENTREE', 'PLAT', 'FROMAGE', 'DESSERT'];
+
     use EntityIdTrait; use TimestampableTrait; use ActivableTrait;
     #[ORM\ManyToOne] #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Sejour $sejour;
     #[ORM\Column(length: 150)] private string $nom = '';
+    #[ORM\Column(length: 20)] private string $categorie = 'PLAT';
     /** @var Collection<int, RecetteDenree> */
     #[ORM\OneToMany(mappedBy: 'recette', targetEntity: RecetteDenree::class, cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['ordre' => 'ASC'])]
@@ -26,6 +29,8 @@ class Recette
     public function getSejour(): Sejour { return $this->sejour; }
     public function getNom(): string { return $this->nom; }
     public function setNom(string $nom): self { $this->nom = $nom; $this->touch(); return $this; }
+    public function getCategorie(): string { return $this->categorie; }
+    public function setCategorie(string $categorie): self { $this->categorie = $categorie; $this->touch(); return $this; }
     /** @return Collection<int, RecetteDenree> */ public function getDenrees(): Collection { return $this->denrees; }
     public function addDenree(RecetteDenree $ligne): self { if (!$this->denrees->contains($ligne)) { $this->denrees->add($ligne); $ligne->setRecette($this); } return $this; }
     public function removeDenree(RecetteDenree $ligne): self { $this->denrees->removeElement($ligne); return $this; }
