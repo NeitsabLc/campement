@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['group', 'date', 'menu', 'menuBlock'];
+    static targets = ['group', 'date', 'menu', 'menuBlock', 'regularSelectors', 'specialMeal'];
 
     connect() {
         this.stampBrowserTime();
@@ -10,6 +10,7 @@ export default class extends Controller {
             this.groupTarget.value = rememberedGroup;
         }
         this.refreshDates();
+        this.refreshSpecialMeal();
     }
 
     stampBrowserTime() {
@@ -45,8 +46,30 @@ export default class extends Controller {
         this.showMenu();
     }
 
-    showMenu() {
-        const selected = this.menuTarget.value;
+    selectSpecialMeal(event) {
+        if (event.currentTarget.checked) {
+            this.specialMealTargets.forEach((checkbox) => {
+                if (checkbox !== event.currentTarget) checkbox.checked = false;
+            });
+        }
+        this.refreshSpecialMeal();
+    }
+
+    refreshSpecialMeal() {
+        const selected = this.specialMealTargets.find((checkbox) => checkbox.checked);
+        this.regularSelectorsTarget.hidden = Boolean(selected);
+        this.menuTarget.disabled = Boolean(selected);
+        this.dateTarget.disabled = Boolean(selected);
+
+        if (selected) {
+            this.showMenu(selected.value);
+        } else {
+            this.showMenu();
+        }
+    }
+
+    showMenu(menuId) {
+        const selected = typeof menuId === 'string' ? menuId : this.menuTarget.value;
         this.menuBlockTargets.forEach((block) => {
             const active = block.dataset.menuId === selected;
             block.hidden = !active;

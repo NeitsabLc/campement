@@ -1093,6 +1093,12 @@ select {
 .distribution-selectors { display: grid; gap: 1rem; }
 .distribution-selectors label { font-weight: 700; }
 .distribution-selectors select { display: block; width: 100%; min-height: 3.5rem; margin-top: .35rem; padding: .7rem 2.5rem .7rem .9rem; border: 1px solid #aabac4; border-radius: .45rem; color: var(--sgdf-blue); background: white; }
+.distribution-regular-selectors { display: grid; gap: 1rem; }
+.distribution-special-meals { display: grid; gap: .35rem; }
+.distribution-special-meals > p { margin: 0; font-weight: 800; }
+.distribution-special-meals__choices { display: grid; gap: .65rem; padding-left: .1rem; }
+.distribution-special-meals label { display: flex; min-height: 1.5rem; align-items: center; gap: .75rem; cursor: pointer; }
+.distribution-special-meals input { width: 1.3rem; height: 1.3rem; margin: 0; accent-color: var(--sgdf-blue); }
 .distribution-selectors select:focus, .total-field input:focus { border-color: var(--sgdf-blue-light); outline: 0; box-shadow: 0 0 0 3px rgb(0 119 179 / 16%); }
 .distribution-count { display: flex; align-items: center; gap: .65rem; margin: 1.6rem 0 1rem; font-size: 1.05rem; }
 .distribution-count span { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; color: white; background: var(--sgdf-mint); font-weight: 800; }
