@@ -54,7 +54,10 @@ final class SortieConsommationController extends AbstractController
 
         $groupesActifs = $groupes->findActifsPourSejour($sejour);
         $tousLesMenus = $menus->findActifsPourSejour($sejour);
-        $menusActifs = $tousLesMenus;
+        $menusActifs = array_values(array_filter(
+            $tousLesMenus,
+            static fn (Menu $menu): bool => !$menu->isSpecial() || !$menu->getDenrees()->isEmpty(),
+        ));
         if ($sejour->isDistribuerGouterDejeuner()) {
             $menusActifs = array_values(array_filter(
                 $menusActifs,
