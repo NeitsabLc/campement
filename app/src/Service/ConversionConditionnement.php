@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Denree;
+use App\Entity\ReferenceFournisseurConditionnement;
 use App\Entity\Unite;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
@@ -93,13 +94,62 @@ final class ConversionConditionnement
         $entrees = $this->quantiteInventaire($denree, $entreesReference);
         $sorties = $this->quantiteInventaire($denree, $sortiesReference);
 
-        return $entrees - $sorties;
+        return $this->stockDepuisQuantitesInventaire($entrees, $sorties);
+    }
+
+    public function stockDepuisQuantitesInventaire(float $entreesInventaire, float $sortiesInventaire): int
+    {
+        return (int) ceil($entreesInventaire) - (int) ceil($sortiesInventaire);
     }
 
     public function quantiteInventaire(Denree $denree, float $quantiteReference): int
     {
+        return (int) ceil($this->quantiteInventaireExacte($denree, $quantiteReference));
+    }
+
+    public function quantiteInventaireExacte(Denree $denree, float $quantiteReference): float
+    {
         $facteur = $this->facteurMinimal($denree, $denree->getUniteInventaire()) ?? 1.0;
 
-        return (int) ceil($quantiteReference / $facteur);
+        return $quantiteReference / $facteur;
+    }
+
+    /**
+     * Affiche une entrée dans l'unité réellement saisie lorsque toutes ses lignes
+     * utilisent l'unité d'inventaire. Cette quantité historique ne doit pas être
+     * recalculée avec un conditionnement qui a pu être modifié depuis.
+     *
+     * @param list<ReferenceFournisseurConditionnement> $conditionnements
+     * @param array<string, string>                      $quantitesSaisies
+     */
+    public function quantiteEntreeInventaire(Denree $denree, float $quantiteReference, array $conditionnements, array $quantitesSaisies): float
+    {
+        $facteurs = [];
+        $facteur = 1.0;
+        $facteurInventaire = null;
+        for ($i = count($conditionnements) - 1; $i >= 0; --$i) {
+            $conditionnement = $conditionnements[$i];
+            $facteur *= (float) $conditionnement->getQuantiteContenu();
+            $facteurs[(string) $conditionnement->getId()] = $facteur;
+            if ($conditionnement->getConditionnement() === $denree->getUniteInventaire()) {
+                $facteurInventaire = $facteur;
+            }
+        }
+        if (null === $facteurInventaire) {
+            return $this->quantiteInventaireExacte($denree, $quantiteReference);
+        }
+
+        $totalSaisi = 0.0;
+        $nombreSaisi = 0;
+        foreach ($conditionnements as $conditionnement) {
+            $id = (string) $conditionnement->getId();
+            if (!isset($quantitesSaisies[$id])) {
+                continue;
+            }
+            ++$nombreSaisi;
+            $totalSaisi += (float) $quantitesSaisies[$id] * $facteurs[$id] / $facteurInventaire;
+        }
+
+        return $nombreSaisi > 0 ? $totalSaisi : $this->quantiteInventaireExacte($denree, $quantiteReference);
     }
 }

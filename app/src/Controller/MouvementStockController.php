@@ -39,7 +39,7 @@ final class MouvementStockController extends AbstractController
         foreach ($mouvements as $ligne) {
             if ('ENTREE' === $ligne->getMouvementStock()->getTypeMouvement()->getCode()) {
                 $quantitesAffichees[(string) $ligne->getId()] = [
-                    'quantite' => $conversion->quantiteInventaire($ligne->getDenree(), (float) $ligne->getQuantiteUniteReference()),
+                    'quantite' => (float) $ligne->getQuantiteUniteInventaire(),
                     'unite' => $ligne->getDenree()->getUniteInventaire(),
                 ];
             } else {
@@ -220,6 +220,15 @@ final class MouvementStockController extends AbstractController
                     $em->flush();
                 }
                 $ligne = new MouvementStockLigne($mouvement, $denree, $quantiteReference);
+                $quantiteInventaire = 'ENTREE' === $typeCode
+                    ? $conversion->quantiteEntreeInventaire(
+                        $denree,
+                        (float) $quantiteReference,
+                        $conditionnementsParReference[(string) $reference->getId()] ?? [],
+                        $quantitesConditionnements,
+                    )
+                    : $conversion->quantiteInventaireExacte($denree, (float) $quantiteReference);
+                $ligne->setQuantiteUniteInventaire(number_format($quantiteInventaire, 3, '.', ''));
                 if (null !== $reference) $ligne->setReferenceFournisseur($reference);
                 $ligne->setConditionnementSortie('SORTIE' === $typeCode ? $conditionnementSortie : null);
                 $em->persist($mouvement);
