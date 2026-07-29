@@ -12,7 +12,7 @@
     {% elseif repas is empty %}<section class="empty-state"><h2>Aucun repas disponible</h2></section>
     {% else %}
     <div class="menus-layout">
-        <aside class="meal-calendar">
+        <aside class="meal-calendar" data-turbo-prefetch="false">
             <section class="meal-day"><h2>Repas généraux</h2><div class="meal-day__items">
                 {% for code, libelle in specials %}{% set renseigne = menus_existants['special|' ~ code]|default(false) %}
                     <a class="meal-slot{{ special == code ? ' meal-slot--active' : '' }}{{ renseigne ? ' meal-slot--complete' : '' }}" href="{{ path('app_menus', {special: code}) }}">
