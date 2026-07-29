@@ -36,6 +36,13 @@ class MenuDenree
     #[ORM\JoinColumn(name: 'conditionnement_id', nullable: false, onDelete: 'RESTRICT')]
     private Unite $conditionnement;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(name: 'recette_id', nullable: true, onDelete: 'RESTRICT')]
+    private ?Recette $recette = null;
+
+    #[ORM\Column(name: 'recette_instance_id', type: 'uuid', nullable: true)]
+    private ?Uuid $recetteInstanceId = null;
+
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $categorie = null;
 
@@ -97,6 +104,10 @@ class MenuDenree
 
     public function getConditionnement(): Unite { return $this->conditionnement; }
     public function setConditionnement(Unite $conditionnement): self { $this->conditionnement = $conditionnement; return $this; }
+    public function getRecette(): ?Recette { return $this->recette; }
+    public function setRecette(?Recette $recette): self { $this->recette = $recette; return $this; }
+    public function getRecetteInstanceId(): ?Uuid { return $this->recetteInstanceId; }
+    public function setRecetteInstanceId(?Uuid $id): self { $this->recetteInstanceId = $id; return $this; }
     public function getCategorie(): ?string { return $this->categorie; }
     public function setCategorie(?string $categorie): self { $this->categorie = $categorie; return $this; }
 
