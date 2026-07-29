@@ -57,6 +57,10 @@ final class ListeCoursesPdf
         );
 
         $options = new Options();
+        $repertoireTemporaire = sys_get_temp_dir();
+        $options->setTempDir($repertoireTemporaire);
+        $options->setFontDir($repertoireTemporaire);
+        $options->setFontCache($repertoireTemporaire);
         $options->setChroot($this->projectDir);
         $options->setIsRemoteEnabled(false);
         $options->setDefaultFont('Caveat Brush');
