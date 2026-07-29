@@ -5,6 +5,7 @@ export default class extends Controller {
 
     connect() {
         this.stampBrowserTime();
+        this.defaultMealCode = this.mealCodeForCurrentTime(new Date());
         const rememberedGroup = localStorage.getItem('campement.distribution.group');
         if (!this.groupTarget.value && rememberedGroup && [...this.groupTarget.options].some((o) => o.value === rememberedGroup)) {
             this.groupTarget.value = rememberedGroup;
@@ -39,9 +40,20 @@ export default class extends Controller {
 
     refreshDates() {
         const requested = this.dateTarget.dataset.selected;
+        const now = new Date();
+        const today = [
+            now.getFullYear(),
+            String(now.getMonth() + 1).padStart(2, '0'),
+            String(now.getDate()).padStart(2, '0'),
+        ].join('-');
         [...this.dateTarget.options].forEach((option) => option.hidden = false);
-        if (requested && [...this.dateTarget.options].some((o) => o.value === requested)) this.dateTarget.value = requested;
+        if (requested && [...this.dateTarget.options].some((o) => o.value === requested)) {
+            this.dateTarget.value = requested;
+        } else if ([...this.dateTarget.options].some((o) => o.value === today)) {
+            this.dateTarget.value = today;
+        }
         this.refreshMeals();
+        this.defaultMealCode = null;
     }
 
     refreshMeals() {
@@ -54,8 +66,26 @@ export default class extends Controller {
             option.disabled = !visible;
             if (visible && option.value && !first) first = option.value;
         });
-        this.menuTarget.value = requested && [...this.menuTarget.options].some((o) => o.value === requested && !o.disabled) ? requested : first;
+        const requestedOption = [...this.menuTarget.options].find((option) => option.value === requested && !option.disabled);
+        let defaultOption = [...this.menuTarget.options].find(
+            (option) => option.dataset.mealCode === this.defaultMealCode && !option.disabled,
+        );
+        if (!defaultOption && this.defaultMealCode === 'GOUTER') {
+            defaultOption = [...this.menuTarget.options].find(
+                (option) => option.dataset.mealCode === 'DINER' && !option.disabled,
+            );
+        }
+        this.menuTarget.value = requestedOption?.value || defaultOption?.value || first;
         this.showMenu();
+    }
+
+    mealCodeForCurrentTime(now) {
+        const hour = now.getHours();
+        if (hour < 10) return 'PETIT_DEJEUNER';
+        if (hour < 13) return 'DEJEUNER';
+        if (hour < 16) return 'GOUTER';
+        if (hour < 20) return 'DINER';
+        return null;
     }
 
     selectSpecialMeal(event) {
