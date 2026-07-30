@@ -35,6 +35,12 @@ const initialiserNavigation = () => {
         localStorage.setItem('campement-sidebar', body.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded');
     }));
     document.querySelectorAll('[data-sidebar-toggle]').forEach((button) => button.addEventListener('click', () => body.classList.toggle('sidebar-open')));
+    document.querySelectorAll('[data-sidebar-section]').forEach((section) => section.addEventListener('toggle', () => {
+        if (!section.open) return;
+        document.querySelectorAll('[data-sidebar-section]').forEach((otherSection) => {
+            if (otherSection !== section) otherSection.open = false;
+        });
+    }));
     document.querySelectorAll('[data-open-dialog]').forEach((button) => button.addEventListener('click', () => document.getElementById(button.dataset.openDialog)?.showModal()));
     document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => button.closest('dialog')?.close()));
 };

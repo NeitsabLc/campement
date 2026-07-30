@@ -52,6 +52,10 @@ class Groupe
     #[ORM\OneToMany(mappedBy: 'groupe', targetEntity: Utilisateur::class)]
     private Collection $utilisateurs;
 
+    /** @var Collection<int, Participant> */
+    #[ORM\OneToMany(mappedBy: 'groupe', targetEntity: Participant::class, cascade: ['remove'])]
+    private Collection $participants;
+
     public function __construct()
     {
         $maintenant = new DateTimeImmutable();
@@ -59,6 +63,7 @@ class Groupe
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
         $this->utilisateurs = new ArrayCollection();
+        $this->participants = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -184,6 +189,12 @@ class Groupe
         }
 
         return $this;
+    }
+
+    /** @return Collection<int, Participant> */
+    public function getParticipants(): Collection
+    {
+        return $this->participants;
     }
 
 }
