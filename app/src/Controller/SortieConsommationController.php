@@ -54,7 +54,7 @@ final class SortieConsommationController extends AbstractController
             return $this->render('sortie_consommation/index.html.twig', ['sejour' => null]);
         }
 
-        $groupesActifs = $groupes->findActifsPourSejour($sejour);
+        $groupesActifs = $groupes->findActifsPresentsPourSejour($sejour, new DateTimeImmutable('today'));
         $tousLesMenus = $menus->findActifsPourSejour($sejour);
         if ($sejour->isDistribuerGouterDejeuner()) {
             $dejeuner = null;

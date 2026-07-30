@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final class ModuleSejourSubscriber
 {
     private const INTENDANCE = ['app_fournisseur', 'app_denree', 'app_menu', 'app_mouvement_stock', 'app_mouvements_stock', 'app_distribution'];
-    private const ADMINISTRATIF = ['app_participant'];
+    private const ADMINISTRATIF = ['app_participant', 'app_presence'];
     private const SEJOUR_REQUIS = ['app_groupe'];
 
     public function __construct(private readonly ContexteSejour $contexte, private readonly UrlGeneratorInterface $urls) {}
