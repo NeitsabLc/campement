@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Groupe;
 use App\Entity\Sejour;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -27,6 +28,21 @@ final class GroupeRepository extends ServiceEntityRepository
     public function findActifsPourSejour(Sejour $sejour): array
     {
         return $this->findPourSejour($sejour);
+    }
+
+    /** @return list<Groupe> */
+    public function findActifsPresentsPourSejour(Sejour $sejour, DateTimeImmutable $date): array
+    {
+        return $this->createQueryBuilder('groupe')
+            ->andWhere('groupe.sejour = :sejour')
+            ->andWhere('groupe.actif = true')
+            ->andWhere('groupe.dateDebutPresence <= :date')
+            ->andWhere('groupe.dateFinPresence >= :date')
+            ->setParameter('sejour', $sejour)
+            ->setParameter('date', $date)
+            ->orderBy('groupe.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 
     /** @return list<Groupe> */

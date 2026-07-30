@@ -39,6 +39,12 @@ class Groupe
     #[ORM\Column(length: 30)]
     private string $type;
 
+    #[ORM\Column(name: 'date_debut_presence', type: Types::DATE_IMMUTABLE)]
+    private DateTimeImmutable $dateDebutPresence;
+
+    #[ORM\Column(name: 'date_fin_presence', type: Types::DATE_IMMUTABLE)]
+    private DateTimeImmutable $dateFinPresence;
+
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
@@ -129,6 +135,35 @@ class Groupe
         $this->type = $type;
 
         return $this;
+    }
+
+    public function getDateDebutPresence(): DateTimeImmutable
+    {
+        return $this->dateDebutPresence;
+    }
+
+    public function setDateDebutPresence(DateTimeImmutable $dateDebutPresence): self
+    {
+        $this->dateDebutPresence = $dateDebutPresence;
+
+        return $this;
+    }
+
+    public function getDateFinPresence(): DateTimeImmutable
+    {
+        return $this->dateFinPresence;
+    }
+
+    public function setDateFinPresence(DateTimeImmutable $dateFinPresence): self
+    {
+        $this->dateFinPresence = $dateFinPresence;
+
+        return $this;
+    }
+
+    public function estPresentLe(DateTimeImmutable $date): bool
+    {
+        return $date >= $this->dateDebutPresence && $date <= $this->dateFinPresence;
     }
 
     public function isActif(): bool

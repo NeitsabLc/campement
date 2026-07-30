@@ -4,7 +4,7 @@
 
 {% block body %}
 <main class="participants-page" data-controller="participant-dialog" data-participant-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
-    <header class="participants-heading"><div><h1>Participants</h1></div>{% if sejour %}<a class="participants-pdf-button" href="{{ path('app_participants_pdf') }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"/></svg>Télécharger le PDF</a>{% endif %}</header>
+    <header class="foods-heading participants-heading"><div><h1>Participants</h1></div>{% if sejour %}<a class="participants-pdf-button" href="{{ path('app_participants_pdf') }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 19h14"/></svg>Télécharger le PDF</a>{% endif %}</header>
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
     {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour avant d’ajouter des participants.</p></section>
     {% elseif groupes is empty %}<section class="empty-state"><h2>Aucune unité participante</h2><p>Créez d’abord une unité participante pour ce séjour.</p></section>
