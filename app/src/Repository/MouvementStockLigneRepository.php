@@ -36,4 +36,10 @@ final class MouvementStockLigneRepository extends ServiceEntityRepository
     {
         return $this->findOneBy(['mouvementStock' => $mouvement]);
     }
+
+    /** @return list<MouvementStockLigne> */
+    public function findToutesPourMouvement(MouvementStock $mouvement): array
+    {
+        return $this->findBy(['mouvementStock' => $mouvement], ['createdAt' => 'ASC']);
+    }
 }
