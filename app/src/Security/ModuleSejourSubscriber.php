@@ -15,6 +15,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final class ModuleSejourSubscriber
 {
     private const INTENDANCE = ['app_fournisseur', 'app_denree', 'app_menu', 'app_mouvement_stock', 'app_mouvements_stock', 'app_distribution'];
+    private const ADMINISTRATIF = ['app_participant'];
     private const SEJOUR_REQUIS = ['app_groupe'];
 
     public function __construct(private readonly ContexteSejour $contexte, private readonly UrlGeneratorInterface $urls) {}
@@ -23,10 +24,14 @@ final class ModuleSejourSubscriber
     {
         $request = $event->getRequest();
         $route = (string) $request->attributes->get('_route');
-        $module = $this->correspondA($route, self::INTENDANCE) ? 'intendance' : null;
+        $module = $this->correspondA($route, self::INTENDANCE)
+            ? 'intendance'
+            : ($this->correspondA($route, self::ADMINISTRATIF) ? 'administratif' : null);
         if (null === $module && !$this->correspondA($route, self::SEJOUR_REQUIS)) { return; }
         $sejour = $this->contexte->actif();
-        if (null === $sejour || ('intendance' === $module && !$sejour->isModuleIntendanceActif())) {
+        if (null === $sejour
+            || ('intendance' === $module && !$sejour->isModuleIntendanceActif())
+            || ('administratif' === $module && !$sejour->isModuleAdministratifActif())) {
             $request->getSession()->getFlashBag()->add('error', null === $sejour ? 'Sélectionnez d’abord un séjour.' : 'Ce module n’est pas actif pour le séjour sélectionné.');
             $url = $this->urls->generate('app_tableau_de_bord');
             $event->setController(static fn () => new RedirectResponse($url));
