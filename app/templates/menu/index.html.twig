@@ -14,7 +14,7 @@
 {% block title %}Gestion des menus | Campement{% endblock %}
 {% block body %}
 <main class="menus-page{{ avec_categories|default(false) ? ' menus-page--categorized' : '' }}" data-controller="menu-editor" data-public-count="{{ publicsCibles|default([])|length }}">
-    <header class="menus-heading"><h1>Gestion des menus</h1>{% if lecture_seule|default(false) %}<span class="stay-badge"><strong>Lecture seule</strong></span>{% endif %}{% if sejour %}<span class="stay-badge"><strong>{{ sejour.nom }}</strong></span>{% endif %}</header>
+    <header class="menus-heading"><h1>Gestion des menus</h1>{% if lecture_seule|default(false) %}<span class="stay-badge"><strong>Lecture seule</strong></span>{% endif %}</header>
     {% for m in app.flashes('success') %}<div class="flash flash--success">{{ m }}</div>{% endfor %}
     {% for m in app.flashes('error') %}<div class="flash flash--error">{{ m }}</div>{% endfor %}
     {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2></section>
