@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Groupe;
 use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
+use App\Repository\ParticipantRepository;
 use App\Repository\SejourPublicCibleRepository;
 use App\Service\ContexteSejour;
 use DateTimeImmutable;
@@ -26,6 +27,7 @@ final class GroupeController extends AbstractController
         Request $request,
         ContexteSejour $sejourRepository,
         GroupeRepository $groupeRepository,
+        ParticipantRepository $participantRepository,
         SejourPublicCibleRepository $publicCibleRepository,
         EntityManagerInterface $entityManager,
     ): Response {
@@ -134,6 +136,9 @@ final class GroupeController extends AbstractController
         return $this->render('groupe/index.html.twig', [
             'sejour' => $sejour,
             'groupes' => null === $sejour ? [] : $groupeRepository->findPourSejour($sejour, $afficherInactifs),
+            'effectifs_reels' => null !== $sejour && $sejour->isModuleAdministratifActif()
+                ? $participantRepository->compterParGroupePourSejour($sejour)
+                : [],
             'afficher_inactifs' => $afficherInactifs,
             'types' => $types,
             'donnees' => $donnees,

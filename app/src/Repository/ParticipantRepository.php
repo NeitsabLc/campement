@@ -25,4 +25,30 @@ final class ParticipantRepository extends ServiceEntityRepository
             ->addOrderBy('participant.nom', 'ASC')->addOrderBy('participant.prenom', 'ASC')
             ->getQuery()->getResult();
     }
+
+    /** @return array<string, array{jeunes: int, adultes: int}> */
+    public function compterParGroupePourSejour(Sejour $sejour): array
+    {
+        $resultats = $this->createQueryBuilder('participant')
+            ->select('IDENTITY(participant.groupe) AS groupe_id')
+            ->addSelect('SUM(CASE WHEN participant.type = :jeune THEN 1 ELSE 0 END) AS jeunes')
+            ->addSelect('SUM(CASE WHEN participant.type = :adulte THEN 1 ELSE 0 END) AS adultes')
+            ->join('participant.groupe', 'groupe')
+            ->andWhere('groupe.sejour = :sejour')
+            ->setParameter('sejour', $sejour)
+            ->setParameter('jeune', Participant::TYPE_JEUNE)
+            ->setParameter('adulte', Participant::TYPE_ADULTE)
+            ->groupBy('participant.groupe')
+            ->getQuery()->getArrayResult();
+
+        $effectifs = [];
+        foreach ($resultats as $resultat) {
+            $effectifs[(string) $resultat['groupe_id']] = [
+                'jeunes' => (int) $resultat['jeunes'],
+                'adultes' => (int) $resultat['adultes'],
+            ];
+        }
+
+        return $effectifs;
+    }
 }
