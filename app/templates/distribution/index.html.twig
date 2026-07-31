@@ -2,7 +2,7 @@
 {% block title %}Distribution | Campement{% endblock %}
 {% block body %}
 <main class="admin-page distribution-admin" data-controller="distribution-admin">
-    <header class="page-heading"><div><h1>Distribution</h1><p>Configurez la saisie publique et partagez son lien avec les unités.</p></div></header>
+    <header class="page-heading"><div><h1>Distribution</h1></div></header>
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
 
     <div class="distribution-admin__grid">
