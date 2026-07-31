@@ -46,6 +46,28 @@ final class MenuRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /** @return list<Menu> */
+    public function findPourDate(Sejour $sejour, DateTimeImmutable $date): array
+    {
+        return $this->createQueryBuilder('menu')
+            ->addSelect('repas', 'typeRepas', 'menuDenree', 'denree', 'recette')
+            ->innerJoin('menu.sejourTypeRepas', 'repas')
+            ->innerJoin('repas.typeRepas', 'typeRepas')
+            ->leftJoin('menu.denrees', 'menuDenree')
+            ->leftJoin('menuDenree.denree', 'denree')
+            ->leftJoin('menuDenree.recette', 'recette')
+            ->andWhere('menu.sejour = :sejour')
+            ->andWhere('menu.dateMenu = :date')
+            ->andWhere('menu.actif = true')
+            ->andWhere('repas.actif = true')
+            ->setParameter('sejour', $sejour)
+            ->setParameter('date', $date)
+            ->orderBy('repas.ordre', 'ASC')
+            ->addOrderBy('menuDenree.ordre', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
     /**
      * @return list<array{specialCode: ?string, dateMenu: ?DateTimeImmutable, repasId: ?string, nombreDenrees: string|int}>
      */
