@@ -41,14 +41,16 @@ final class MenuTest extends WebTestCase
         self::assertNotNull($utilisateur);
         $client->loginUser($utilisateur);
 
-        $crawler = $client->request('GET', '/menus');
+        $client->request('GET', '/menus');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.menus-heading', 'Lecture seule');
-        self::assertSelectorExists('.menu-readonly-scope[disabled]');
+        self::assertSelectorTextContains('.group-menu-heading', 'Menus');
+        self::assertSelectorTextNotContains('.group-menu-heading', 'Lecture seule');
+        self::assertSelectorExists('.group-menu-date-nav');
+        self::assertSelectorExists('.group-menu-meal');
         self::assertSelectorNotExists('.save-meal-button');
 
-        $client->request('POST', '/menus', ['_token' => $crawler->filter('input[name="_token"]')->attr('value')]);
+        $client->request('POST', '/menus', ['_token' => 'lecture-seule']);
         self::assertResponseStatusCodeSame(403);
     }
 }
