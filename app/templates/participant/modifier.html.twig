@@ -5,6 +5,7 @@
     <a class="participant-back-link" href="{{ path('app_participants') }}">← Retour aux participants</a>
     <header class="participant-edit-heading"><h1>{{ participant.prenom }} {{ participant.nom }}</h1></header>
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
     {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
     <form method="post" class="participant-edit-form">
         <input type="hidden" name="_token" value="{{ csrf_token('modifier_participant_' ~ participant.id) }}">
@@ -21,5 +22,22 @@
         {% endif %}
         <footer><a href="{{ path('app_participants') }}">Annuler</a><button type="submit">Enregistrer les modifications</button></footer>
     </form>
+    <section class="participant-documents">
+        <header><h2>Documents administratifs</h2><p>Formats acceptés : PDF, JPG, JPEG et PNG — 10 Mo maximum par fichier.</p></header>
+        <div class="document-categories">
+            {% for type_document in types_documents %}
+                {% set documents = participant.documents|filter(document => document.type == type_document) %}
+                <article class="document-category">
+                    <div class="document-category__heading"><h3>{{ libelles_documents[type_document] }}</h3><span>{{ documents|length }} fichier(s)</span></div>
+                    {% if documents is empty %}<p class="document-empty">Aucun document envoyé.</p>{% else %}<ul>{% for document in documents %}<li><a href="{{ path('app_participant_document_telecharger', {id: document.id}) }}">{{ document.nomFichier }}</a><form method="post" action="{{ path('app_participant_document_supprimer', {id: document.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_document_' ~ document.id) }}"><button type="submit" aria-label="Supprimer {{ document.nomFichier }}">Supprimer</button></form></li>{% endfor %}</ul>{% endif %}
+                    <form class="document-upload" method="post" enctype="multipart/form-data" action="{{ path('app_participant_document_ajouter', {id: participant.id, type: type_document}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('ajouter_document_' ~ participant.id ~ '_' ~ type_document) }}">
+                        <label>{{ type_document == 'autorisation_depart_camp' and documents is not empty ? 'Remplacer le document' : 'Ajouter ' ~ (type_document == 'autorisation_depart_camp' ? 'un document' : 'des documents') }}<input type="file" name="documents[]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"{{ type_document != 'autorisation_depart_camp' ? ' multiple' : '' }} required></label>
+                        <button type="submit">Envoyer</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    </section>
 </main>
 {% endblock %}
