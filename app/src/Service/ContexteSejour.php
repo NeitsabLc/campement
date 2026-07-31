@@ -23,6 +23,11 @@ final class ContexteSejour
     {
         $utilisateur = $this->security->getUser();
         if (!$utilisateur instanceof Utilisateur) { return []; }
+        if ($this->security->isGranted(Utilisateur::ROLE_GROUPE)) {
+            $sejour = $utilisateur->getGroupe()?->getSejour();
+
+            return $sejour instanceof Sejour && $sejour->isActif() ? [$sejour] : [];
+        }
         return $this->sejours->findActifsPourUtilisateur($utilisateur, $this->security->isGranted(Utilisateur::ROLE_ADMIN));
     }
 
