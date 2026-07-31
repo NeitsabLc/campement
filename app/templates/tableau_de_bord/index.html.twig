@@ -3,24 +3,100 @@
 {% block title %}Accueil | Campement{% endblock %}
 
 {% block body %}
-    <main>
+    <main class="home-dashboard">
         {% for message in app.flashes('error') %}<div class="flash flash--error">{{ message }}</div>{% endfor %}
-        <header class="page-heading">
-            <h1>Accueil</h1>
-            <p>Bienvenue sur l’application Campement</p>
+        <header class="page-heading home-dashboard__heading">
+            <div><h1>Bonjour {{ app.user.prenom }}</h1><p>Bienvenue sur l’application Campement. Voici l’essentiel de {{ vue_groupe ? 'votre séjour' : 'vos séjours' }}.</p></div>
+            <time class="home-today" datetime="{{ aujourdhui|date('Y-m-d') }}">
+                <span class="home-today__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg></span>
+                <span><small>Aujourd’hui</small><strong>{{ aujourdhui|date('d/m/Y') }}</strong></span>
+            </time>
         </header>
 
-        <section class="dashboard-card stay-picker">
-            <div><h2>Mes séjours</h2><p>Sélectionnez un séjour pour accéder à ses modules.</p></div>
-            {% if sejours is empty %}<div class="empty-state"><strong>Aucun séjour disponible</strong><p>Contactez un administrateur pour être affecté à un séjour.</p></div>{% endif %}
-            <div class="stay-grid">
-                {% for sejour in sejours %}
-                    <article class="stay-card{{ sejour_selectionne == sejour ? ' stay-card--selected' : '' }}">
-                        <div><span class="stay-card__eyebrow">{{ sejour_selectionne == sejour ? 'Séjour actif' : 'Séjour' }}</span><h3>{{ sejour.nom }}</h3><p>{{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }}</p></div>
-                        <form method="post" action="{{ path('app_sejour_selectionner', {id: sejour.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('selectionner_sejour_' ~ sejour.id) }}"><button class="button button--primary" type="submit">{{ sejour_selectionne == sejour ? 'Sélectionné' : 'Sélectionner' }}</button></form>
-                    </article>
-                {% endfor %}
+        <div class="home-dashboard__layout{{ vue_groupe ? ' home-dashboard__layout--group' : '' }}">
+            {% if not vue_groupe %}
+            <aside class="home-stays" aria-labelledby="home-stays-title">
+                <header><h2 id="home-stays-title">Mes séjours</h2><span>{{ sejours|length }}</span></header>
+                {% if sejours is empty %}
+                    <div class="empty-state"><strong>Aucun séjour disponible</strong><p>Contactez un administrateur pour être affecté à un séjour.</p></div>
+                {% else %}
+                    <div class="home-stays__list">
+                        {% for sejour in sejours %}
+                            <article class="home-stay{{ sejour_selectionne == sejour ? ' home-stay--selected' : '' }}">
+                                <div class="home-stay__top">
+                                    <h3>{{ sejour.nom }}</h3>
+                                    {% if sejour_selectionne == sejour %}<span class="home-stay__tag">Sélectionné</span>{% endif %}
+                                </div>
+                                <p>{{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }}</p>
+                                {% if sejour.lieu %}<small>{{ sejour.lieu }}</small>{% endif %}
+                                {% if sejour_selectionne != sejour %}
+                                    <form method="post" action="{{ path('app_sejour_selectionner', {id: sejour.id}) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('selectionner_sejour_' ~ sejour.id) }}">
+                                        <button type="submit">Afficher ce séjour</button>
+                                    </form>
+                                {% endif %}
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </aside>
+            {% endif %}
+
+            <div class="home-dashboard__content">
+                {% if not sejour_selectionne %}
+                    <section class="home-panel home-panel--empty"><h2>Sélectionnez un séjour</h2><p>Son résumé apparaîtra ici.</p></section>
+                {% else %}
+                    <header class="home-selected-stay">
+                        <div><span>{{ sejour_en_cours ? 'Séjour en cours' : 'Séjour sélectionné' }}</span><h2>{{ sejour_selectionne.nom }}</h2></div>
+                        <p>{{ sejour_selectionne.dateDebut|date('d/m/Y') }} — {{ sejour_selectionne.dateFin|date('d/m/Y') }}</p>
+                    </header>
+
+                    <section class="home-panel" aria-labelledby="effectifs-title">
+                        <header class="home-panel__header"><div><span class="home-panel__icon">♙</span><div><h2 id="effectifs-title">Effectifs{{ vue_groupe and app.user.groupe ? ' — ' ~ app.user.groupe.nom : '' }}</h2><p>{{ resume_effectifs.mode == 'reel' ? 'Présences enregistrées aujourd’hui' : (vue_groupe ? 'Effectifs théoriques de votre unité' : 'Effectifs théoriques du séjour') }}</p></div></div>{% if not sejour_en_cours %}<span class="home-panel__badge">Hors séjour</span>{% endif %}</header>
+                        {% if resume_effectifs.mode == 'reel' or vue_groupe %}
+                            <div class="home-kpis{{ resume_effectifs.mode == 'theorique' ? ' home-kpis--theoretical' : '' }}">
+                                <div class="home-kpi home-kpi--main"><strong>{{ resume_effectifs.mode == 'reel' ? resume_effectifs.totaux.presents : resume_effectifs.totaux.total }}</strong><span>{{ resume_effectifs.mode == 'reel' ? 'présents' : 'participants prévus' }}</span></div>
+                                <div class="home-kpi"><strong>{{ resume_effectifs.totaux.jeunes }}</strong><span>jeunes</span></div>
+                                <div class="home-kpi"><strong>{{ resume_effectifs.totaux.adultes }}</strong><span>adultes</span></div>
+                                {% if resume_effectifs.mode == 'reel' %}<div class="home-kpi home-kpi--warning"><strong>{{ resume_effectifs.totaux.absents }}</strong><span>absents</span></div>{% endif %}
+                            </div>
+                        {% endif %}
+                        {% if not vue_groupe %}<div class="home-groups">
+                            {% for ligne in resume_effectifs.groupes %}
+                                <div class="home-group-row"><strong>{{ ligne.groupe.nom }}</strong><span>{{ ligne.jeunes }} J</span><span>{{ ligne.adultes }} A</span><b>{{ ligne.total }}</b></div>
+                            {% else %}<p class="home-empty-copy">Aucune unité participante.</p>{% endfor %}
+                            {% if resume_effectifs.mode == 'theorique' and resume_effectifs.groupes is not empty %}
+                                <div class="home-group-row home-group-row--total"><strong>{{ vue_groupe ? 'Total de l’unité' : 'Total général' }}</strong><span>{{ resume_effectifs.totaux.jeunes }} J</span><span>{{ resume_effectifs.totaux.adultes }} A</span><b>{{ resume_effectifs.totaux.total }}</b></div>
+                            {% endif %}
+                        </div>{% endif %}
+                    </section>
+
+                    {% if sejour_en_cours and sejour_selectionne.moduleIntendanceActif %}
+                        <section class="home-panel" aria-labelledby="menus-title">
+                            <header class="home-panel__header"><div><span class="home-panel__icon">♨</span><div><h2 id="menus-title">Au menu aujourd’hui</h2><p>{{ aujourdhui|date('d/m/Y') }}</p></div></div><a href="{{ path('app_menus') }}">Voir les menus</a></header>
+                            <div class="home-meals">
+                                {% for menu in menus_du_jour %}
+                                    <article><h3>{{ menu.libelle }}</h3>{% if menu.nom %}<strong>{{ menu.nom }}</strong>{% endif %}<p>{% for ligne in menu.denrees %}{{ ligne.recette ? ligne.recette.nom : ligne.denree.nom }}{{ not loop.last ? ' · ' : '' }}{% else %}Menu non renseigné{% endfor %}</p></article>
+                                {% else %}<p class="home-empty-copy">Aucun menu n’est encore renseigné pour aujourd’hui.</p>{% endfor %}
+                            </div>
+                        </section>
+                    {% endif %}
+
+                    {% if sejour_selectionne.moduleAdministratifActif %}
+                        <section class="home-panel" aria-labelledby="documents-title">
+                            <header class="home-panel__header"><div><span class="home-panel__icon">▤</span><div><h2 id="documents-title">Documents administratifs</h2><p>{{ vue_groupe ? 'Suivi des dossiers de votre unité' : 'Suivi des dossiers participants' }}</p></div></div><a href="{{ path('app_participants') }}">Voir les participants</a></header>
+                            {% set total = suivi_documents.total %}
+                            <div class="home-document-stats">
+                                <div><span class="home-document-dot home-document-dot--complete"></span><strong>{{ suivi_documents.complets }}</strong><span>Complets</span></div>
+                                <div><span class="home-document-dot home-document-dot--partial"></span><strong>{{ suivi_documents.incomplets }}</strong><span>Incomplets</span></div>
+                                <div><span class="home-document-dot home-document-dot--empty"></span><strong>{{ suivi_documents.aucun }}</strong><span>Aucun document</span></div>
+                            </div>
+                            <div class="home-progress" aria-label="{{ suivi_documents.complets }} dossiers complets sur {{ total }}"><span style="width: {{ total > 0 ? (suivi_documents.complets / total * 100)|round : 0 }}%"></span></div>
+                            <p class="home-progress-label">{{ total > 0 ? (suivi_documents.complets / total * 100)|round : 0 }} % des dossiers sont complets</p>
+                        </section>
+                    {% endif %}
+                {% endif %}
             </div>
-        </section>
+        </div>
     </main>
 {% endblock %}

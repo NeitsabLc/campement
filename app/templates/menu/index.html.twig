@@ -1,5 +1,5 @@
 {% extends 'base.html.twig' %}
-{% macro adders(recettes, catalogue, categorie) %}<div class="menu-adders"><label>Ajouter via une recette<select data-controller="searchable-select" data-search-placeholder="Rechercher une recette…" data-search-label="Rechercher une recette" data-empty-label="Aucune recette trouvée" data-recipe-picker><option value="">Sélectionner…</option>{% for r in recettes %}{% if not categorie or r.categorie == categorie %}<option value="{{ r.id }}">{{ r.nom }}</option>{% endif %}{% endfor %}</select></label><button type="button" class="button button--secondary" data-action="menu-editor#addRecipe">Ajouter</button><label>Ajouter une denrée<select data-controller="searchable-select" data-food-picker><option value="">Sélectionner…</option>{% for id,d in catalogue %}<option value="{{ id }}">{{ d.nom }}</option>{% endfor %}</select></label><button type="button" class="button button--secondary" data-action="menu-editor#addFood">Ajouter</button></div>{% endmacro %}
+{% macro adders(recettes, catalogue, categorie) %}<div class="menu-adders"><div class="menu-adder"><label>Ajouter via une recette<select data-controller="searchable-select" data-search-placeholder="Rechercher une recette…" data-search-label="Rechercher une recette" data-empty-label="Aucune recette trouvée" data-recipe-picker><option value="">Sélectionner…</option>{% for r in recettes %}{% if not categorie or r.categorie == categorie %}<option value="{{ r.id }}">{{ r.nom }}</option>{% endif %}{% endfor %}</select></label><button type="button" class="button button--secondary" data-action="menu-editor#addRecipe">Ajouter</button></div><div class="menu-adder"><label>Ajouter une denrée<select data-controller="searchable-select" data-food-picker><option value="">Sélectionner…</option>{% for id,d in catalogue %}<option value="{{ id }}">{{ d.nom }}</option>{% endfor %}</select></label><button type="button" class="button button--secondary" data-action="menu-editor#addFood">Ajouter</button></div></div>{% endmacro %}
 {% macro table_header(publicsCibles) %}<div class="food-row food-row--header"><span>Denrée</span><span>Conditionnement</span>{% for p in publicsCibles %}<span>{{ p.publicCible.libelle }}</span>{% endfor %}<span></span></div>{% endmacro %}
 {% macro food_line(ligne, publicsCibles, categorie, recetteId, instanceId) %}<div class="food-row" data-line><strong>{{ ligne.denree.nom }}</strong><input type="hidden" data-field="denree" value="{{ ligne.denree.id }}"><input type="hidden" data-field="categorie" value="{{ categorie }}"><input type="hidden" data-field="recette" value="{{ recetteId|default('') }}"><input type="hidden" data-field="recette_instance" value="{{ instanceId|default('') }}"><select data-field="conditionnement" data-selected="{{ ligne.conditionnement.id }}"></select>{% for p in publicsCibles %}{% set v='0' %}{% for q in ligne.quantites %}{% if q.sejourPublicCible == p %}{% set v=q.quantiteIndividuelle %}{% endif %}{% endfor %}<input data-public="{{ p.id }}" value="{{ v|replace({'.':','}) }}" required>{% endfor %}<button type="button" class="delete-food" data-action="menu-editor#remove" aria-label="Supprimer {{ ligne.denree.nom }}" title="Supprimer"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>{% endmacro %}
 {% macro composition(composition, publicsCibles, categorie) %}
@@ -14,7 +14,7 @@
 {% block title %}Gestion des menus | Campement{% endblock %}
 {% block body %}
 <main class="menus-page{{ avec_categories|default(false) ? ' menus-page--categorized' : '' }}" data-controller="menu-editor" data-public-count="{{ publicsCibles|default([])|length }}">
-    <header class="menus-heading"><h1>Gestion des menus</h1>{% if sejour %}<span class="stay-badge"><strong>{{ sejour.nom }}</strong></span>{% endif %}</header>
+    <header class="menus-heading"><h1>Gestion des menus</h1>{% if lecture_seule|default(false) %}<span class="stay-badge"><strong>Lecture seule</strong></span>{% endif %}</header>
     {% for m in app.flashes('success') %}<div class="flash flash--success">{{ m }}</div>{% endfor %}
     {% for m in app.flashes('error') %}<div class="flash flash--error">{{ m }}</div>{% endfor %}
     {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2></section>
@@ -39,7 +39,7 @@
         </aside>
         <section class="meal-editor">
             <h2>{{ special ? specials[special] : repas_selectionne.typeRepas.libelle ~ ' · ' ~ date_selectionnee|date('d/m/Y') }}</h2>
-            <form method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}">
+            <form method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}"><fieldset class="menu-readonly-scope"{{ lecture_seule|default(false) ? ' disabled' : '' }}>
                 {% if avec_categories %}
                     <div class="menu-categories">{% for code, libelle in {'ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert'} %}
                         <section class="menu-category" data-menu-block data-category="{{ code }}">
@@ -53,7 +53,8 @@
                         {{ _self.composition(composition_menu['']|default({}), publicsCibles, '') }}
                     </section>
                 {% endif %}
-                <div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button></div>
+                {% if not lecture_seule|default(false) %}<div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button></div>{% endif %}
+                </fieldset>
             </form>
         </section>
     </div>

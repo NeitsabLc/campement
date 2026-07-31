@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Participants | Administratif | Campement{% endblock %}
+
+{% block body %}
+<main class="participants-page" data-controller="participant-dialog" data-participant-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
+    <header class="foods-heading participants-heading"><div><h1>Participants</h1></div></header>
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour avant d’ajouter des participants.</p></section>
+    {% elseif groupes is empty %}<section class="empty-state"><h2>Aucune unité participante</h2><p>Créez d’abord une unité participante pour ce séjour.</p></section>
+    {% else %}
+        <div class="participant-groups">
+        {% for groupe in groupes %}{% set listes = participantsParGroupe[groupe.id ~ '']|default({}) %}
+            <article class="participant-group-card">
+                <header><div><h2>{{ groupe.nom }}</h2><span>{{ (listes.jeune|default([])|length) + (listes.adulte|default([])|length) }} participant(s)</span></div><span class="group-type group-type--{{ groupe.type }}">{{ groupe.type|replace({'-':' '})|title }}</span></header>
+                {% for type, titre in {'jeune':'Jeunes', 'adulte':'Adultes'} %}{% set personnes = attribute(listes, type)|default([]) %}
+                    <section class="participant-section"><div class="participant-section__heading"><h3>{{ titre }} <span>{{ personnes|length }}</span></h3><button type="button" data-action="participant-dialog#open" data-participant-type="{{ type }}" data-participant-group="{{ groupe.id }}">＋ Ajouter {{ type == 'jeune' ? 'un jeune' : 'un adulte' }}</button></div>
+                    {% if personnes is empty %}<p class="participant-empty">Aucun {{ type }} renseigné.</p>{% else %}
+                        <div class="participant-list">
+                            <div class="participant-row participant-row--head"><span>Participant</span><span>{{ type == 'jeune' ? 'Autorisation' : 'Formation' }}</span><span>Fiche sanitaire</span><span>Vaccins</span><span></span></div>
+                            {% for personne in personnes %}<div class="participant-row">
+                                <div class="participant-identity"><strong>{{ personne.prenom }} {{ personne.nom }}</strong><small>Présence : {{ personne.dateDebutPresence|date('d/m') }} → {{ personne.dateFinPresence|date('d/m/Y') }}</small></div>
+                                {% set premier_type = type == 'jeune' ? 'autorisation_depart_camp' : 'qualification' %}
+                                {% if type == 'adulte' and personne.qualifications is empty %}<span class="document-status document-status--na">Non concerné</span>{% else %}<span class="document-status {{ personne.hasDocumentType(premier_type) ? 'document-status--ok' : 'document-status--missing' }}">{{ personne.hasDocumentType(premier_type) ? '✓ Reçu' : 'À fournir' }}</span>{% endif %}
+                                <span class="document-status {{ personne.hasDocumentType('fiche_sanitaire') ? 'document-status--ok' : 'document-status--missing' }}">{{ personne.hasDocumentType('fiche_sanitaire') ? '✓ Reçu' : 'À fournir' }}</span>
+                                <span class="document-status {{ personne.hasDocumentType('vaccins') ? 'document-status--ok' : 'document-status--missing' }}">{{ personne.hasDocumentType('vaccins') ? '✓ Reçu' : 'À fournir' }}</span>
+                                <span class="participant-actions"><a class="edit-participant-button" href="{{ path('app_participant_modifier', {id: personne.id}) }}" aria-label="Modifier la fiche et gérer les documents de {{ personne.prenom }} {{ personne.nom }}" title="Modifier et gérer les documents"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z"/></svg></a>{% if not utilisateur_groupe|default(false) %}<button class="delete-participant-button" type="button" aria-label="Supprimer {{ personne.prenom }} {{ personne.nom }}" title="Supprimer" data-action="participant-dialog#openDelete" data-participant-name="{{ personne.prenom }} {{ personne.nom }}" data-delete-url="{{ path('app_participant_supprimer', {id: personne.id}) }}" data-delete-token="{{ csrf_token('supprimer_participant_' ~ personne.id) }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5"/></svg></button>{% endif %}</span>
+                            </div>{% endfor %}
+                        </div>
+                    {% endif %}
+                    </section>
+                {% endfor %}
+            </article>
+        {% endfor %}
+        </div>
+        <dialog class="participant-dialog" data-participant-dialog-target="dialog" data-action="click->participant-dialog#backdrop">
+            <section><header><div><h2 data-participant-dialog-target="title">Ajouter un participant</h2></div><button type="button" aria-label="Fermer" data-action="participant-dialog#close">×</button></header>
+            {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+            <form method="post" data-participant-dialog-target="form"><input type="hidden" name="_token" value="{{ csrf_token('ajouter_participant') }}"><input type="hidden" name="type" value="{{ donnees.type }}" data-participant-dialog-target="type"><input type="hidden" name="groupe_id" value="{{ donnees.groupe_id }}" data-participant-dialog-target="group">
+                <fieldset><legend>Informations</legend>
+                    <div class="participant-form-grid"><label>Nom <b>*</b><input name="nom" maxlength="150" required value="{{ donnees.nom }}"></label><label>Prénom <b>*</b><input name="prenom" maxlength="150" required value="{{ donnees.prenom }}"></label><label>Date de naissance <b>*</b><input type="date" name="date_naissance" required value="{{ donnees.date_naissance }}"></label></div>
+                    <div class="participant-form-grid participant-personal-contact" data-participant-dialog-target="adultInfo"><label>Numéro de téléphone <b>*</b><input type="tel" name="telephone" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" placeholder="06 12 34 56 78" required value="{{ donnees.telephone }}"></label><label>Adresse e-mail <b>*</b><input type="email" name="email" maxlength="254" placeholder="adulte@exemple.fr" required value="{{ donnees.email }}"></label></div>
+                    <div class="participant-form-grid participant-dates"><label>Début de présence <b>*</b><input type="date" name="date_debut_presence" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date_debut_presence }}"><small>Entre le {{ sejour.dateDebut|date('d/m/Y') }} et le {{ sejour.dateFin|date('d/m/Y') }}</small></label><label>Fin de présence <b>*</b><input type="date" name="date_fin_presence" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date_fin_presence }}"><small>Entre le {{ sejour.dateDebut|date('d/m/Y') }} et le {{ sejour.dateFin|date('d/m/Y') }}</small></label></div>
+                </fieldset>
+                <fieldset data-participant-dialog-target="young"><legend>Contact des parents</legend><div class="participant-form-grid"><label>Téléphone 1 <b>*</b><input type="tel" name="telephone_parent_1" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" placeholder="06 12 34 56 78" required value="{{ donnees.telephone_parent_1 }}"></label><label>Téléphone 2<input type="tel" name="telephone_parent_2" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" placeholder="+33 6 12 34 56 78" value="{{ donnees.telephone_parent_2 }}"></label><label>Adresse e-mail <b>*</b><input type="email" name="email_parents" maxlength="254" placeholder="parent@exemple.fr" required value="{{ donnees.email_parents }}"></label></div></fieldset>
+                <div data-participant-dialog-target="adult">
+                    <fieldset><legend>Contact d’urgence</legend><div class="participant-form-grid participant-emergency-grid"><label>Nom - Prénom <b>*</b><input name="contact_urgence_nom_prenom" maxlength="300" required value="{{ donnees.contact_urgence_nom_prenom }}"></label><label>Numéro de téléphone <b>*</b><input type="tel" name="contact_urgence_telephone" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" placeholder="06 12 34 56 78" required value="{{ donnees.contact_urgence_telephone }}"></label></div></fieldset>
+                    <fieldset><legend>Formation</legend><span class="field-label">Qualifications</span><div class="qualification-grid">{% for qualification in qualifications %}<label><input type="checkbox" name="qualifications[]" value="{{ qualification }}"{{ qualification in donnees.qualifications ? ' checked' : '' }} data-action="participant-dialog#qualification"><span>{{ qualification }}</span></label>{% endfor %}</div><label data-participant-dialog-target="other">Précision de l’autre diplôme<input name="autre_diplome" maxlength="255" value="{{ donnees.autre_diplome }}"></label><label class="trainee-check"><input type="checkbox" name="stagiaire_bafa" value="1"{{ donnees.stagiaire_bafa ? ' checked' : '' }}> Stagiaire BAFA</label></fieldset>
+                </div>
+                <footer><button type="button" class="cancel-participant" data-action="participant-dialog#close">Annuler</button><button type="submit" class="save-participant">Ajouter le participant</button></footer>
+            </form></section>
+        </dialog>
+        <dialog class="delete-participant-dialog" data-participant-dialog-target="deleteDialog" data-action="click->participant-dialog#deleteBackdrop">
+            <section><div class="delete-group-dialog__icon" aria-hidden="true">!</div><h2>Supprimer cette personne ?</h2><p>La fiche de <strong data-participant-dialog-target="deleteName"></strong> et ses documents associés seront définitivement supprimés.</p><form method="post" data-participant-dialog-target="deleteForm"><input type="hidden" name="_token" data-participant-dialog-target="deleteToken"><div class="group-dialog__actions"><button class="cancel-group-button" type="button" data-action="participant-dialog#closeDelete">Annuler</button><button class="confirm-delete-group-button" type="submit">Supprimer</button></div></form></section>
+        </dialog>
+    {% endif %}
+</main>
+{% endblock %}

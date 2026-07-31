@@ -9,6 +9,7 @@ services:
     working_dir: /var/www/app
     volumes:
       - ./app:/var/www/app
+      - documents_participants:/var/www/app/var/documents_participants
     depends_on:
       database:
         condition: service_healthy
@@ -70,6 +71,7 @@ services:
 
 volumes:
   database_data:
+  documents_participants:
 
 networks:
   campement:

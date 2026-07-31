@@ -28,6 +28,7 @@ final class SejourTest extends WebTestCase
         $nomInitial = 'Séjour test fonctionnel '.bin2hex(random_bytes(4));
 
         $crawler = $client->request('GET', '/sejours');
+        self::assertSelectorExists('.sidebar__link[href="/sejours"] + .sidebar__link[href="/utilisateurs"]');
         $formulaireCreation = $crawler->filter('#form-sejour-create')->form([
             'nom' => $nomInitial,
             'date_debut' => '2027-07-01',
@@ -45,6 +46,9 @@ final class SejourTest extends WebTestCase
         $sejour = $container->get(SejourRepository::class)->findOneBy(['nom' => $nomInitial]);
         self::assertInstanceOf(Sejour::class, $sejour);
         $crawler = $client->request('GET', '/sejours');
+        $formulaireSelection = $crawler->filter('form[action="/sejours/'.$sejour->getId().'/selection"]')->form();
+        $client->submit($formulaireSelection);
+        self::assertResponseRedirects('/sejours');
         $formulaireModification = $crawler->filter('#form-sejour-'.$sejour->getId())->form([
             'nom' => 'Séjour test fonctionnel modifié',
             'date_debut' => '2027-07-02',
@@ -66,6 +70,10 @@ final class SejourTest extends WebTestCase
 
         $client->loginUser($gestionnaire);
         $crawler = $client->request('GET', '/sejours');
+        self::assertSelectorTextSame('h1', 'Mes séjours');
+        self::assertSelectorTextContains('.sidebar__nav', 'Mes séjours');
+        self::assertSelectorTextContains('.sidebar__section--management summary', 'Gestion');
+        self::assertSelectorExists('.sidebar__section--management a[href="/utilisateurs"]');
         $formulaireGestionnaire = $crawler->filter('#form-sejour-'.$sejour->getId())->form([
             'nom' => 'Séjour modifié par le gestionnaire',
             'date_debut' => '2027-07-03',

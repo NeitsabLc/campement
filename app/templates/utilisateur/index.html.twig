@@ -14,8 +14,6 @@
                     {% for sejour in sejours %}<option value="{{ sejour.id }}"{{ sejour_selectionne and sejour.id == sejour_selectionne.id ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}
                 </select>
             </form>
-        {% elseif not est_administrateur and sejour_selectionne %}
-            <span class="stay-badge">⌁ <strong>{{ sejour_selectionne.nom }}</strong></span>
         {% endif %}
             <button class="food-primary" type="button" data-user-dialog-open>＋ Ajouter un utilisateur</button>
         </div>

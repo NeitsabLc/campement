@@ -7,8 +7,10 @@ namespace App\Controller;
 use App\Entity\Groupe;
 use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
+use App\Repository\ParticipantRepository;
 use App\Repository\SejourPublicCibleRepository;
 use App\Service\ContexteSejour;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,6 +27,7 @@ final class GroupeController extends AbstractController
         Request $request,
         ContexteSejour $sejourRepository,
         GroupeRepository $groupeRepository,
+        ParticipantRepository $participantRepository,
         SejourPublicCibleRepository $publicCibleRepository,
         EntityManagerInterface $entityManager,
     ): Response {
@@ -43,7 +46,13 @@ final class GroupeController extends AbstractController
             'effectif_jeune' => $request->request->getString('effectif_jeune'),
             'effectif_adulte' => $request->request->getString('effectif_adulte'),
             'type' => $request->request->getString('type'),
+            'date_debut_presence' => $request->request->getString('date_debut_presence'),
+            'date_fin_presence' => $request->request->getString('date_fin_presence'),
         ];
+        if (null !== $sejour) {
+            $donnees['date_debut_presence'] = $donnees['date_debut_presence'] ?: $sejour->getDateDebut()->format('Y-m-d');
+            $donnees['date_fin_presence'] = $donnees['date_fin_presence'] ?: $sejour->getDateFin()->format('Y-m-d');
+        }
         $erreurs = [];
 
         if ($request->isMethod('POST') && null !== $sejour) {
@@ -83,6 +92,22 @@ final class GroupeController extends AbstractController
                 $erreurs[] = 'Sélectionnez un type de public disponible pour ce séjour.';
             }
 
+            $dateDebutPresence = DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_debut_presence']);
+            $dateFinPresence = DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_fin_presence']);
+            if (false === $dateDebutPresence || false === $dateFinPresence
+                || $dateDebutPresence->format('Y-m-d') !== $donnees['date_debut_presence']
+                || $dateFinPresence->format('Y-m-d') !== $donnees['date_fin_presence']) {
+                $erreurs[] = 'Renseignez des dates de présence valides.';
+            } elseif ($dateDebutPresence < $sejour->getDateDebut() || $dateFinPresence > $sejour->getDateFin()) {
+                $erreurs[] = sprintf(
+                    'La présence de l’unité doit être comprise entre le %s et le %s.',
+                    $sejour->getDateDebut()->format('d/m/Y'),
+                    $sejour->getDateFin()->format('d/m/Y'),
+                );
+            } elseif ($dateFinPresence < $dateDebutPresence) {
+                $erreurs[] = 'La date de fin de présence doit être postérieure ou égale à la date de début.';
+            }
+
             if ([] === $erreurs) {
                 $creation = null === $groupe;
                 $groupe ??= (new Groupe())->setSejour($sejour);
@@ -90,7 +115,9 @@ final class GroupeController extends AbstractController
                     ->setNom($donnees['nom'])
                     ->setEffectifJeune((int) $donnees['effectif_jeune'])
                     ->setEffectifAdulte((int) $donnees['effectif_adulte'])
-                    ->setType($donnees['type']);
+                    ->setType($donnees['type'])
+                    ->setDateDebutPresence($dateDebutPresence)
+                    ->setDateFinPresence($dateFinPresence);
                 if ($creation) {
                     $entityManager->persist($groupe);
                 }
@@ -109,6 +136,9 @@ final class GroupeController extends AbstractController
         return $this->render('groupe/index.html.twig', [
             'sejour' => $sejour,
             'groupes' => null === $sejour ? [] : $groupeRepository->findPourSejour($sejour, $afficherInactifs),
+            'effectifs_reels' => null !== $sejour && $sejour->isModuleAdministratifActif()
+                ? $participantRepository->compterParGroupePourSejour($sejour)
+                : [],
             'afficher_inactifs' => $afficherInactifs,
             'types' => $types,
             'donnees' => $donnees,

@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['adult', 'deleteDialog', 'deleteForm', 'deleteName', 'deleteToken', 'dialog', 'form', 'groupId', 'message', 'name', 'submit', 'title', 'type', 'young'];
+    static targets = ['adult', 'deleteDialog', 'deleteForm', 'deleteName', 'deleteToken', 'dialog', 'endDate', 'form', 'groupId', 'message', 'name', 'startDate', 'submit', 'title', 'type', 'young'];
     static values = { open: Boolean };
 
     connect() {
@@ -24,6 +24,8 @@ export default class extends Controller {
         this.nameTarget.value = '';
         this.youngTarget.value = '';
         this.adultTarget.value = '';
+        this.startDateTarget.value = this.startDateTarget.min;
+        this.endDateTarget.value = this.endDateTarget.max;
         this.typeTargets.forEach((input) => {
             input.checked = false;
         });
@@ -38,6 +40,8 @@ export default class extends Controller {
         this.nameTarget.value = group.groupName;
         this.youngTarget.value = group.groupYoung;
         this.adultTarget.value = group.groupAdult;
+        this.startDateTarget.value = group.groupStartDate;
+        this.endDateTarget.value = group.groupEndDate;
         this.typeTargets.forEach((input) => {
             input.checked = input.value === group.groupType;
         });

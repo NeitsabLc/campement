@@ -39,6 +39,12 @@ class Groupe
     #[ORM\Column(length: 30)]
     private string $type;
 
+    #[ORM\Column(name: 'date_debut_presence', type: Types::DATE_IMMUTABLE)]
+    private DateTimeImmutable $dateDebutPresence;
+
+    #[ORM\Column(name: 'date_fin_presence', type: Types::DATE_IMMUTABLE)]
+    private DateTimeImmutable $dateFinPresence;
+
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
@@ -52,6 +58,10 @@ class Groupe
     #[ORM\OneToMany(mappedBy: 'groupe', targetEntity: Utilisateur::class)]
     private Collection $utilisateurs;
 
+    /** @var Collection<int, Participant> */
+    #[ORM\OneToMany(mappedBy: 'groupe', targetEntity: Participant::class, cascade: ['remove'])]
+    private Collection $participants;
+
     public function __construct()
     {
         $maintenant = new DateTimeImmutable();
@@ -59,6 +69,7 @@ class Groupe
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
         $this->utilisateurs = new ArrayCollection();
+        $this->participants = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -126,6 +137,35 @@ class Groupe
         return $this;
     }
 
+    public function getDateDebutPresence(): DateTimeImmutable
+    {
+        return $this->dateDebutPresence;
+    }
+
+    public function setDateDebutPresence(DateTimeImmutable $dateDebutPresence): self
+    {
+        $this->dateDebutPresence = $dateDebutPresence;
+
+        return $this;
+    }
+
+    public function getDateFinPresence(): DateTimeImmutable
+    {
+        return $this->dateFinPresence;
+    }
+
+    public function setDateFinPresence(DateTimeImmutable $dateFinPresence): self
+    {
+        $this->dateFinPresence = $dateFinPresence;
+
+        return $this;
+    }
+
+    public function estPresentLe(DateTimeImmutable $date): bool
+    {
+        return $date >= $this->dateDebutPresence && $date <= $this->dateFinPresence;
+    }
+
     public function isActif(): bool
     {
         return $this->actif;
@@ -184,6 +224,12 @@ class Groupe
         }
 
         return $this;
+    }
+
+    /** @return Collection<int, Participant> */
+    public function getParticipants(): Collection
+    {
+        return $this->participants;
     }
 
 }

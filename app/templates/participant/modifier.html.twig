@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ participant.prenom }} {{ participant.nom }} | Participants | Campement{% endblock %}
+{% block body %}
+<main class="participant-edit-page">
+    <a class="participant-back-link" href="{{ path('app_participants') }}">← Retour aux participants</a>
+    <header class="participant-edit-heading"><h1>{{ participant.prenom }} {{ participant.nom }}</h1></header>
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
+    {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    <form method="post" class="participant-edit-form">
+        <input type="hidden" name="_token" value="{{ csrf_token('modifier_participant_' ~ participant.id) }}">
+        <fieldset><legend>Informations</legend>
+            <div class="participant-form-grid"><label>Nom <b>*</b><input name="nom" maxlength="150" required value="{{ donnees.nom }}"></label><label>Prénom <b>*</b><input name="prenom" maxlength="150" required value="{{ donnees.prenom }}"></label><label>Date de naissance <b>*</b><input type="date" name="date_naissance" required value="{{ donnees.date_naissance }}"></label></div>
+            {% if participant.type == 'adulte' %}<div class="participant-form-grid participant-personal-contact"><label>Numéro de téléphone <b>*</b><input type="tel" name="telephone" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" required value="{{ donnees.telephone }}"></label><label>Adresse e-mail <b>*</b><input type="email" name="email" maxlength="254" required value="{{ donnees.email }}"></label></div>{% endif %}
+            <div class="participant-form-grid participant-dates"><label>Début de présence <b>*</b><input type="date" name="date_debut_presence" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date_debut_presence }}"><small>Entre le {{ sejour.dateDebut|date('d/m/Y') }} et le {{ sejour.dateFin|date('d/m/Y') }}</small></label><label>Fin de présence <b>*</b><input type="date" name="date_fin_presence" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date_fin_presence }}"><small>Entre le {{ sejour.dateDebut|date('d/m/Y') }} et le {{ sejour.dateFin|date('d/m/Y') }}</small></label></div>
+        </fieldset>
+        {% if participant.type == 'jeune' %}
+            <fieldset><legend>Contact des parents</legend><div class="participant-form-grid"><label>Téléphone 1 <b>*</b><input type="tel" name="telephone_parent_1" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" required value="{{ donnees.telephone_parent_1 }}"></label><label>Téléphone 2<input type="tel" name="telephone_parent_2" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" value="{{ donnees.telephone_parent_2 }}"></label><label>Adresse e-mail <b>*</b><input type="email" name="email_parents" maxlength="254" required value="{{ donnees.email_parents }}"></label></div></fieldset>
+        {% else %}
+            <fieldset><legend>Contact d’urgence</legend><div class="participant-form-grid participant-emergency-grid"><label>Nom - Prénom <b>*</b><input name="contact_urgence_nom_prenom" maxlength="300" required value="{{ donnees.contact_urgence_nom_prenom }}"></label><label>Numéro de téléphone <b>*</b><input type="tel" name="contact_urgence_telephone" maxlength="30" pattern="(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})" required value="{{ donnees.contact_urgence_telephone }}"></label></div></fieldset>
+            <fieldset><legend>Formation</legend><span class="field-label">Qualifications</span><div class="qualification-grid">{% for qualification in qualifications %}<label><input type="checkbox" name="qualifications[]" value="{{ qualification }}"{{ qualification in donnees.qualifications ? ' checked' : '' }}><span>{{ qualification }}</span></label>{% endfor %}</div><label>Précision de l’autre diplôme<input name="autre_diplome" maxlength="255" value="{{ donnees.autre_diplome }}"></label><label class="trainee-check"><input type="checkbox" name="stagiaire_bafa" value="1"{{ donnees.stagiaire_bafa ? ' checked' : '' }}> Stagiaire BAFA</label></fieldset>
+        {% endif %}
+        <footer><a href="{{ path('app_participants') }}">Annuler</a><button type="submit">Enregistrer les modifications</button></footer>
+    </form>
+    <section class="participant-documents">
+        <header><h2>Documents administratifs</h2><p>Formats acceptés : PDF, JPG, JPEG et PNG — 10 Mo maximum par fichier.</p></header>
+        <div class="document-categories">
+            {% for type_document in types_documents %}
+                {% set documents = participant.documents|filter(document => document.type == type_document) %}
+                <article class="document-category">
+                    <div class="document-category__heading"><h3>{{ libelles_documents[type_document] }}</h3><span>{{ documents|length }} fichier(s)</span></div>
+                    {% if documents is empty %}<p class="document-empty">Aucun document envoyé.</p>{% else %}<ul>{% for document in documents %}<li><a href="{{ path('app_participant_document_telecharger', {id: document.id}) }}">{{ document.nomFichier }}</a><form method="post" action="{{ path('app_participant_document_supprimer', {id: document.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_document_' ~ document.id) }}"><button type="submit" aria-label="Supprimer {{ document.nomFichier }}">Supprimer</button></form></li>{% endfor %}</ul>{% endif %}
+                    <form class="document-upload" method="post" enctype="multipart/form-data" action="{{ path('app_participant_document_ajouter', {id: participant.id, type: type_document}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('ajouter_document_' ~ participant.id ~ '_' ~ type_document) }}">
+                        <label>{{ type_document == 'autorisation_depart_camp' and documents is not empty ? 'Remplacer le document' : 'Ajouter ' ~ (type_document == 'autorisation_depart_camp' ? 'un document' : 'des documents') }}<input type="file" name="documents[]" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"{{ type_document != 'autorisation_depart_camp' ? ' multiple' : '' }} required></label>
+                        <button type="submit">Envoyer</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

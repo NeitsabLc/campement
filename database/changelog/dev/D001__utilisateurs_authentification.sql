@@ -29,8 +29,8 @@ CROSS JOIN (VALUES
 WHERE sejour.nom = 'Séjour de développement'
 ON CONFLICT (sejour_id, code) DO NOTHING;
 
-INSERT INTO campement.groupe (sejour_id, nom, effectif_jeune, effectif_adulte, type)
-SELECT id, 'Groupe de développement', 20, 4, 'scouts-guides'
+INSERT INTO campement.groupe (sejour_id, nom, effectif_jeune, effectif_adulte, type, date_debut_presence, date_fin_presence)
+SELECT id, 'Groupe de développement', 20, 4, 'scouts-guides', date_debut, date_fin
 FROM campement.sejour
 WHERE nom = 'Séjour de développement'
   AND date_debut = DATE '2026-07-01'

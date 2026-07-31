@@ -23,13 +23,14 @@ use DatePeriod;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
 
-#[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
+#[IsGranted(new Expression("is_granted('ROLE_GESTIONNAIRE') or is_granted('ROLE_GROUPE')"))]
 final class MenuController extends AbstractController
 {
     private const CATEGORIES = Recette::CATEGORIES;
@@ -54,6 +55,7 @@ final class MenuController extends AbstractController
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexte->actif();
+        $lectureSeule = $this->isGranted(Utilisateur::ROLE_GROUPE);
         if (null === $sejour) {
             return $this->render('menu/index.html.twig', ['sejour' => null]);
         }
@@ -67,6 +69,22 @@ final class MenuController extends AbstractController
         $special = array_key_exists($specialDemande, self::SPECIAUX) ? $specialDemande : null;
         $date = $this->date($request, $sejour->getDateDebut(), $sejour->getDateFin());
         $repasSelectionne = $this->repas($request->query->getString('repas'), $repas);
+
+        if ($lectureSeule) {
+            if ($request->isMethod('POST')) {
+                throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
+            }
+
+            return $this->render('menu/groupe.html.twig', [
+                'sejour' => $sejour,
+                'date_selectionnee' => $date,
+                'date_libelle' => $this->libelleDate($date),
+                'jour_precedent' => $date > $sejour->getDateDebut() ? $date->modify('-1 day') : null,
+                'jour_suivant' => $date < $sejour->getDateFin() ? $date->modify('+1 day') : null,
+                'menus_jour' => $this->menusDuJour($menus->findPourDate($sejour, $date), $repas),
+            ]);
+        }
+
         $menu = null !== $special
             ? $menus->findSpecial($sejour, $special)
             : $menus->findPourRepas($sejour, $date, $repasSelectionne);
@@ -74,6 +92,9 @@ final class MenuController extends AbstractController
         $avecCategories = null === $special && $this->avecCategories($repasSelectionne->getTypeRepas()->getCode());
 
         if ($request->isMethod('POST')) {
+            if ($lectureSeule) {
+                throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
+            }
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException();
             }
@@ -238,6 +259,7 @@ final class MenuController extends AbstractController
             'recettes_json' => $recettesJson,
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
+            'lecture_seule' => $lectureSeule,
         ]);
     }
 
@@ -263,6 +285,73 @@ final class MenuController extends AbstractController
     private function avecCategories(string $code): bool
     {
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
+    }
+
+    private function libelleDate(DateTimeImmutable $date): string
+    {
+        $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+        $mois = [1 => 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+        return ucfirst(sprintf('%s %d %s', $jours[(int) $date->format('w')], (int) $date->format('j'), $mois[(int) $date->format('n')]));
+    }
+
+    /**
+     * @param list<Menu> $menus
+     * @param list<SejourTypeRepas> $repas
+     * @return list<array{libelle: string, code: string, categories: list<array{code: string, libelle: string, recettes: list<string>, supplementaires: list<string>}>}>
+     */
+    private function menusDuJour(array $menus, array $repas): array
+    {
+        $parRepas = [];
+        foreach ($menus as $menu) {
+            $configuration = $menu->getSejourTypeRepas();
+            if (null !== $configuration) {
+                $parRepas[(string) $configuration->getId()] = $menu;
+            }
+        }
+
+        $resultat = [];
+        foreach ($repas as $configuration) {
+            $menu = $parRepas[(string) $configuration->getId()] ?? null;
+            $codeRepas = $configuration->getTypeRepas()->getCode();
+            $avecCategories = $this->avecCategories($codeRepas);
+            $categories = [];
+            $codes = $avecCategories ? self::CATEGORIES : [''];
+
+            foreach ($codes as $codeCategorie) {
+                $recettes = [];
+                $supplementaires = [];
+                if (null !== $menu) {
+                    foreach ($menu->getDenrees() as $ligne) {
+                        $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
+                        if ($categorie !== $codeCategorie) {
+                            continue;
+                        }
+                        $recette = $ligne->getRecette();
+                        if (null !== $recette) {
+                            $recettes[(string) ($ligne->getRecetteInstanceId() ?? $recette->getId())] = $recette->getNom();
+                        } else {
+                            $supplementaires[] = $ligne->getDenree()->getNom();
+                        }
+                    }
+                }
+
+                $categories[] = [
+                    'code' => $codeCategorie,
+                    'libelle' => '' === $codeCategorie ? $configuration->getTypeRepas()->getLibelle() : ucfirst(strtolower($codeCategorie)),
+                    'recettes' => array_values($recettes),
+                    'supplementaires' => $supplementaires,
+                ];
+            }
+
+            $resultat[] = [
+                'libelle' => $configuration->getTypeRepas()->getLibelle(),
+                'code' => $codeRepas,
+                'categories' => $categories,
+            ];
+        }
+
+        return $resultat;
     }
 
     private function redirectMenu(DateTimeImmutable $date, SejourTypeRepas $repas, ?string $special): Response
