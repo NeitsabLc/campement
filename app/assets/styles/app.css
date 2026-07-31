@@ -1265,6 +1265,8 @@ body.app-shell.sidebar-collapsed { padding-left: 4.75rem; }
 body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25rem, 4vw, 3.5rem); }
 @media (max-width: 760px) { body.app-shell, body.app-shell.sidebar-collapsed { padding-left: 0; } body.app-shell .page-content { padding-top: 4.5rem; } .sidebar-collapsed .sidebar__stay { display:flex; } }
 
+.presence-totals{display:flex;gap:.75rem;flex-wrap:wrap}.presence-total{display:flex;min-width:10rem;align-items:baseline;gap:.45rem;padding:.75rem 1rem;border:1px solid #b7dfd1;border-radius:.45rem;background:#effaf6}.presence-total strong{color:#087b67;font-family:var(--font-title);font-size:1.4rem}.presence-total span{font-weight:800}@media(max-width:34rem){.presence-total{width:100%}}
+
 /* Alignement définitif du module Administratif sur les pages Intendance. */
 .participants-page,
 .presence-page {

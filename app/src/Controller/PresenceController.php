@@ -50,10 +50,12 @@ final class PresenceController extends AbstractController
         $demandee=DateTimeImmutable::createFromFormat('!Y-m-d',$request->query->getString('date'));
         $aujourdhui=new DateTimeImmutable('today');
         $dateSelection=$demandee&&$demandee>=$sejour->getDateDebut()&&$demandee<=$sejour->getDateFin()?$demandee:($aujourdhui>=$sejour->getDateDebut()&&$aujourdhui<=$sejour->getDateFin()?$aujourdhui:$sejour->getDateDebut());
-        $jour=[];$key=$dateSelection->format('Y-m-d');
+        $groupesDuJour=$groupes->findActifsPresentsPourSejour($sejour,$dateSelection);$groupesAffiches=[];foreach($groupesDuJour as $groupe)$groupesAffiches[(string)$groupe->getId()]=true;
+        $jour=[];$totauxPresents=['jeunes'=>0,'adultes'=>0];$key=$dateSelection->format('Y-m-d');
         foreach($liste as $participant){$exception=$index[(string)$participant->getId()][$key]??null;$depart=null;foreach($index[(string)$participant->getId()]??[] as $candidate){if(PresenceParticipant::DEPART===$candidate->getStatut()&&$candidate->getDatePresence()<=$dateSelection){$depart=$candidate;break;}}
             $outside=$dateSelection<$participant->getDateDebutPresence()||$dateSelection>$participant->getDateFinPresence();$statut=$outside?'outside':($depart?'departed':($exception?->getStatut()===PresenceParticipant::ABSENT?'absent':'present'));
-            $jour[(string)$participant->getId()]=['statut'=>$statut,'modifiable'=>!$outside,'exception'=>$exception??$depart];}
-        return $this->render('presence/index.html.twig',['sejour'=>$sejour,'groupes'=>$groupes->findActifsPresentsPourSejour($sejour,$dateSelection),'participants'=>$liste,'dates'=>$dates,'dateSelection'=>$dateSelection,'aujourdhui'=>$aujourdhui,'aujourdhuiDansSejour'=>$aujourdhui>=$sejour->getDateDebut()&&$aujourdhui<=$sejour->getDateFin(),'jour'=>$jour,'erreurs'=>$erreurs]);
+            $jour[(string)$participant->getId()]=['statut'=>$statut,'modifiable'=>!$outside,'exception'=>$exception??$depart];
+            if('present'===$statut&&isset($groupesAffiches[(string)$participant->getGroupe()->getId()])){$cle=Participant::TYPE_JEUNE===$participant->getType()?'jeunes':'adultes';++$totauxPresents[$cle];}}
+        return $this->render('presence/index.html.twig',['sejour'=>$sejour,'groupes'=>$groupesDuJour,'participants'=>$liste,'dates'=>$dates,'dateSelection'=>$dateSelection,'aujourdhui'=>$aujourdhui,'aujourdhuiDansSejour'=>$aujourdhui>=$sejour->getDateDebut()&&$aujourdhui<=$sejour->getDateFin(),'jour'=>$jour,'totauxPresents'=>$totauxPresents,'erreurs'=>$erreurs]);
     }
 }
