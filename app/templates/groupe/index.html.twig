@@ -8,7 +8,6 @@
             <div>
                 <h1>Gestion des unités participantes</h1>
             </div>
-            {% if sejour %}<span class="stay-badge" aria-label="Séjour actif">⌁ <strong>{{ sejour.nom }}</strong></span>{% endif %}
         </header>
 
         {% for message in app.flashes('success') %}<div class="flash flash--success" role="status" data-group-dialog-target="message">{{ message }}</div>{% endfor %}
