@@ -29,13 +29,12 @@
                 <div class="suppliers-empty"><strong>Aucun fournisseur pour le moment</strong><span>Utilisez le bouton « Ajouter un fournisseur » pour commencer.</span></div>
             {% else %}
                 <div class="suppliers-list">
-                    <div class="supplier-row supplier-row--head table-list-heading" aria-hidden="true"><span>Nom</span><span>Adresse</span><span>Téléphone</span><span>E-mail</span><span>Actions</span></div>
+                    <div class="supplier-row supplier-row--head table-list-heading" aria-hidden="true"><span>Nom</span><span>Téléphone</span><span>E-mail</span><span>Actions</span></div>
                     {% for fournisseur in fournisseurs %}
                         <article class="supplier-row{{ fournisseur.actif ? '' : ' supplier-row--inactive' }}">
                             <div class="supplier-row__identity">
                                 <h3>{{ fournisseur.nom }}{% if not fournisseur.actif %} <span class="inactive-supplier-badge">Inactif</span>{% endif %}</h3>
                             </div>
-                            <div class="supplier-address">{% if fournisseur.adresse %}<span>{{ fournisseur.adresse|nl2br }}</span>{% else %}<span>Non renseignée</span>{% endif %}</div>
                             <div class="supplier-contact"><span>{{ fournisseur.telephone ?: 'Non renseigné' }}</span></div>
                             <div class="supplier-contact">{% if fournisseur.email %}<a href="mailto:{{ fournisseur.email }}">{{ fournisseur.email }}</a>{% else %}<span>Non renseigné</span>{% endif %}</div>
                             {% if fournisseur.actif %}
