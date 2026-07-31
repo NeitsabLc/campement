@@ -88,6 +88,7 @@ final class SejourController extends AbstractController
 
         return $this->render('sejour/index.html.twig', [
             'sejours' => $liste, 'publics' => $publics->findActifs(), 'erreurs' => $erreurs,
+            'sejour_selectionne' => $contexte->actif(),
             'est_administrateur' => $admin,
             'gestionnaires' => array_filter($utilisateurs->findBy(['actif' => true], ['nom' => 'ASC']), static fn (Utilisateur $u): bool => Utilisateur::ROLE_GESTIONNAIRE === $u->getRole()),
         ]);
@@ -98,7 +99,7 @@ final class SejourController extends AbstractController
     {
         if (!$this->isCsrfTokenValid('selectionner_sejour_'.$sejour->getId(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
         try { $contexte->selectionner($sejour); } catch (\InvalidArgumentException) { throw $this->createAccessDeniedException(); }
-        return $this->redirectToRoute('app_tableau_de_bord');
+        return $this->redirectToRoute('sejours' === $request->request->getString('retour') ? 'app_sejours' : 'app_tableau_de_bord');
     }
 
     #[Route('/sejours/{id}/statut', name: 'app_sejour_statut', methods: ['POST'])]
