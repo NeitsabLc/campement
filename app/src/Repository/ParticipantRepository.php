@@ -19,6 +19,7 @@ final class ParticipantRepository extends ServiceEntityRepository
     {
         return $this->createQueryBuilder('participant')
             ->join('participant.groupe', 'groupe')->addSelect('groupe')
+            ->leftJoin('participant.documents', 'document')->addSelect('document')
             ->andWhere('groupe.sejour = :sejour')->setParameter('sejour', $sejour)
             ->orderBy('groupe.nom', 'ASC')->addOrderBy('participant.type', 'ASC')
             ->addOrderBy('participant.nom', 'ASC')->addOrderBy('participant.prenom', 'ASC')

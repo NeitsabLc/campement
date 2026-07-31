@@ -12,6 +12,7 @@ parameters:
     env(MAILER_FROM_EMAIL): 'campement@neitsab.net'
     env(MAILER_FROM_NAME): 'Campement'
     env(TRUSTED_HOST_PATTERN): '^(localhost|127\.0\.0\.1)$'
+    app.document_storage_dir: '%kernel.project_dir%/var/documents_participants'
 
 services:
     # default configuration for services in *this* file
@@ -23,6 +24,10 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+
+    App\Service\StockageDocumentParticipant:
+        arguments:
+            $repertoireDocuments: '%app.document_storage_dir%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

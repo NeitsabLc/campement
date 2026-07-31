@@ -134,6 +134,10 @@ class Participant
     public function getDateFinPresence(): DateTimeImmutable { return $this->dateFinPresence; }
     public function setDateFinPresence(DateTimeImmutable $date): self { $this->dateFinPresence = $date; return $this; }
     /** @return Collection<int, DocumentParticipant> */ public function getDocuments(): Collection { return $this->documents; }
+    public function hasDocumentType(string $type): bool
+    {
+        return $this->documents->exists(static fn (int $index, DocumentParticipant $document): bool => $document->getType() === $type);
+    }
     public function getCreatedAt(): DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): DateTimeImmutable { return $this->updatedAt; }
     #[ORM\PreUpdate] public function actualiserDateModification(): void { $this->updatedAt = new DateTimeImmutable(); }

@@ -8,11 +8,13 @@ use App\Repository\GroupeRepository;
 use App\Repository\ParticipantRepository;
 use App\Entity\Sejour;
 use App\Entity\Participant;
+use App\Entity\DocumentParticipant;
 use DateTimeImmutable;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\UtilisateurRepository;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class ParticipantTest extends WebTestCase
 {
@@ -240,5 +242,56 @@ final class ParticipantTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
         $client->request('GET', '/administratif/participants/pdf');
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testUnGestionnairePeutAjouterRemplacerTelechargerEtSupprimerUneAutorisation(): void
+    {
+        $client = static::createClient();
+        $utilisateur = static::getContainer()->get(UtilisateurRepository::class)->findOneBy(['email' => 'gestionnaire@campement.local']);
+        self::assertNotNull($utilisateur);
+        $client->loginUser($utilisateur);
+        $groupe = static::getContainer()->get(GroupeRepository::class)->findActifs()[0] ?? null;
+        self::assertNotNull($groupe);
+        $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
+            ->setNom('Documents')->setPrenom('Jeune')->setDateNaissance(new DateTimeImmutable('2013-05-12'))
+            ->setTelephoneParent1('0601020304')->setEmailParents('documents@example.test')
+            ->setDateDebutPresence(new DateTimeImmutable('2026-07-10'))->setDateFinPresence(new DateTimeImmutable('2026-07-24'));
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($participant);
+        $entityManager->flush();
+
+        foreach (['premiere.pdf', 'remplacement.pdf'] as $nom) {
+            $crawler = $client->request('GET', '/administratif/participants/'.$participant->getId());
+            $action = '/administratif/participants/'.$participant->getId().'/documents/'.DocumentParticipant::AUTORISATION_DEPART_CAMP;
+            $formulaire = $crawler->filter('form[action="'.$action.'"]');
+            $temporaire = tempnam(sys_get_temp_dir(), 'document-test-');
+            self::assertNotFalse($temporaire);
+            file_put_contents($temporaire, "%PDF-1.4\n%%EOF");
+            $client->request('POST', $action, ['_token' => $formulaire->filter('input[name="_token"]')->attr('value')], [
+                'documents' => [new UploadedFile($temporaire, $nom, 'application/pdf', null, true)],
+            ]);
+            self::assertResponseRedirects('/administratif/participants/'.$participant->getId());
+        }
+
+        $entityManager->clear();
+        $participant = $entityManager->find(Participant::class, $participant->getId());
+        self::assertNotNull($participant);
+        self::assertCount(1, $participant->getDocuments());
+        $document = $participant->getDocuments()->first();
+        self::assertInstanceOf(DocumentParticipant::class, $document);
+        self::assertSame('remplacement.pdf', $document->getNomFichier());
+
+        $crawler = $client->request('GET', '/administratif/participants');
+        self::assertSelectorTextContains('.document-status--ok', 'Reçu');
+        $client->request('GET', '/administratif/documents/'.$document->getId().'/telecharger');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('remplacement.pdf', (string) $client->getResponse()->headers->get('content-disposition'));
+
+        $crawler = $client->request('GET', '/administratif/participants/'.$participant->getId());
+        $form = $crawler->filter('form[action="/administratif/documents/'.$document->getId().'/supprimer"]')->form();
+        $client->submit($form);
+        self::assertResponseRedirects('/administratif/participants/'.$participant->getId());
+        $entityManager->clear();
+        self::assertNull($entityManager->find(DocumentParticipant::class, $document->getId()));
     }
 }

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Groupe;
+use App\Entity\DocumentParticipant;
 use App\Entity\Participant;
 use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
 use App\Repository\ParticipantRepository;
 use App\Service\ContexteSejour;
 use App\Service\ListeParticipantsPdf;
+use App\Service\StockageDocumentParticipant;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -198,6 +200,13 @@ final class ParticipantController extends AbstractController
             'donnees' => $donnees,
             'erreurs' => $erreurs,
             'qualifications' => Participant::QUALIFICATIONS,
+            'types_documents' => DocumentParticipant::typesPour($participant->getType()),
+            'libelles_documents' => [
+                DocumentParticipant::AUTORISATION_DEPART_CAMP => 'Autorisation de départ',
+                DocumentParticipant::QUALIFICATION => 'Formation',
+                DocumentParticipant::FICHE_SANITAIRE => 'Fiche sanitaire',
+                DocumentParticipant::VACCINS => 'Vaccins',
+            ],
         ]);
     }
 
@@ -209,6 +218,7 @@ final class ParticipantController extends AbstractController
         ContexteSejour $contexteSejour,
         ParticipantRepository $participantRepository,
         EntityManagerInterface $entityManager,
+        StockageDocumentParticipant $stockageDocuments,
     ): Response {
         $sejour = $contexteSejour->actif();
         $participant = Uuid::isValid($id) ? $participantRepository->find($id) : null;
@@ -220,6 +230,7 @@ final class ParticipantController extends AbstractController
         }
 
         $nomComplet = $participant->getPrenom().' '.$participant->getNom();
+        foreach ($participant->getDocuments() as $document) $stockageDocuments->supprimer($document->getCheminStockage());
         $entityManager->remove($participant);
         $entityManager->flush();
         $this->addFlash('success', sprintf('La fiche de %s a bien été supprimée.', $nomComplet));
