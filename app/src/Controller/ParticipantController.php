@@ -14,15 +14,17 @@ use App\Service\ListeParticipantsPdf;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
 
-#[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
+#[IsGranted(new Expression("is_granted('ROLE_GESTIONNAIRE') or is_granted('ROLE_GROUPE')"))]
 final class ParticipantController extends AbstractController
 {
+    #[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
     #[Route('/administratif/participants/pdf', name: 'app_participants_pdf', methods: ['GET'])]
     public function pdf(
         ContexteSejour $contexteSejour,
@@ -50,6 +52,9 @@ final class ParticipantController extends AbstractController
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexteSejour->actif();
+        $utilisateurGroupe = $this->getUser() instanceof Utilisateur && $this->isGranted(Utilisateur::ROLE_GROUPE)
+            ? $this->getUser()->getGroupe()
+            : null;
         $donnees = $this->lireDonnees($request);
         $erreurs = [];
 
@@ -59,6 +64,9 @@ final class ParticipantController extends AbstractController
             }
 
             $groupe = $this->trouverGroupe($donnees['groupe_id'], $sejour, $groupeRepository);
+            if ($utilisateurGroupe instanceof Groupe && $groupe !== $utilisateurGroupe) {
+                $groupe = null;
+            }
             if (!$groupe instanceof Groupe) $erreurs[] = 'Sélectionnez une unité du séjour actif.';
             if (!in_array($donnees['type'], [Participant::TYPE_JEUNE, Participant::TYPE_ADULTE], true)) $erreurs[] = 'Le type de participant est invalide.';
             foreach (['nom' => 'Le nom', 'prenom' => 'Le prénom'] as $champ => $libelle) {
@@ -118,13 +126,21 @@ final class ParticipantController extends AbstractController
             }
         }
 
-        $groupes = null === $sejour ? [] : $groupeRepository->findActifsPourSejour($sejour);
+        $groupes = null === $sejour
+            ? []
+            : ($utilisateurGroupe instanceof Groupe
+                ? ($utilisateurGroupe->isActif() ? [$utilisateurGroupe] : [])
+                : $groupeRepository->findActifsPourSejour($sejour));
         $participantsParGroupe = [];
         if ($sejour) foreach ($participantRepository->findPourSejour($sejour) as $participant) {
+            if ($utilisateurGroupe instanceof Groupe && $participant->getGroupe() !== $utilisateurGroupe) continue;
             $participantsParGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
         }
 
-        return $this->render('participant/index.html.twig', compact('sejour', 'groupes', 'participantsParGroupe', 'donnees', 'erreurs') + ['qualifications' => Participant::QUALIFICATIONS]);
+        return $this->render('participant/index.html.twig', compact('sejour', 'groupes', 'participantsParGroupe', 'donnees', 'erreurs') + [
+            'qualifications' => Participant::QUALIFICATIONS,
+            'utilisateur_groupe' => $utilisateurGroupe instanceof Groupe,
+        ]);
     }
 
     #[Route('/administratif/participants/{id}', name: 'app_participant_modifier', methods: ['GET', 'POST'])]
@@ -139,6 +155,10 @@ final class ParticipantController extends AbstractController
         $participant = Uuid::isValid($id) ? $participantRepository->find($id) : null;
         if (!$sejour || !$participant instanceof Participant || $participant->getGroupe()->getSejour() !== $sejour) {
             throw $this->createNotFoundException('Participant introuvable pour le séjour actif.');
+        }
+        if ($this->isGranted(Utilisateur::ROLE_GROUPE)
+            && (!$this->getUser() instanceof Utilisateur || $participant->getGroupe() !== $this->getUser()->getGroupe())) {
+            throw $this->createAccessDeniedException('Ce participant n’appartient pas à votre unité.');
         }
 
         $donnees = $request->isMethod('POST') ? $this->lireDonnees($request) : $this->donneesParticipant($participant);
@@ -181,6 +201,7 @@ final class ParticipantController extends AbstractController
         ]);
     }
 
+    #[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
     #[Route('/administratif/participants/{id}/supprimer', name: 'app_participant_supprimer', methods: ['POST'])]
     public function supprimer(
         string $id,

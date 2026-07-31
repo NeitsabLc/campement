@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Participant;
 
 use App\Repository\GroupeRepository;
+use App\Repository\ParticipantRepository;
 use App\Entity\Sejour;
 use App\Entity\Participant;
 use DateTimeImmutable;
@@ -192,5 +193,52 @@ final class ParticipantTest extends WebTestCase
         self::assertResponseHeaderSame('content-type', 'application/pdf');
         self::assertStringContainsString('attachment; filename="participants-', (string) $client->getResponse()->headers->get('content-disposition'));
         self::assertStringStartsWith('%PDF-', $client->getResponse()->getContent());
+    }
+
+    public function testUnUtilisateurGroupeNeVoitQueSonUniteEtPeutYAjouterUnParticipant(): void
+    {
+        $client = static::createClient();
+        $utilisateur = static::getContainer()->get(UtilisateurRepository::class)->findOneBy(['email' => 'groupe@campement.local']);
+        self::assertNotNull($utilisateur);
+        self::assertNotNull($utilisateur->getGroupe());
+        $client->loginUser($utilisateur);
+
+        $crawler = $client->request('GET', '/administratif/participants');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(1, '.participant-group-card');
+        self::assertSelectorTextContains('.participant-group-card h2', $utilisateur->getGroupe()->getNom());
+        self::assertSelectorNotExists('.participants-pdf-button');
+        self::assertSelectorExists('.edit-participant-button');
+        self::assertSelectorNotExists('.delete-participant-button');
+
+        $form = $crawler->selectButton('Ajouter le participant')->form([
+            'type' => 'jeune', 'groupe_id' => (string) $utilisateur->getGroupe()->getId(),
+            'nom' => 'Groupe', 'prenom' => 'Ajout', 'date_naissance' => '2013-05-12',
+            'telephone_parent_1' => '0601020304', 'email_parents' => 'parents-groupe@example.test',
+            'date_debut_presence' => '2026-07-10', 'date_fin_presence' => '2026-07-24',
+        ]);
+        $client->submit($form);
+        self::assertResponseRedirects('/administratif/participants');
+    }
+
+    public function testUnUtilisateurGroupePeutModifierSonParticipantMaisPasLeSupprimer(): void
+    {
+        $client = static::createClient();
+        $utilisateur = static::getContainer()->get(UtilisateurRepository::class)->findOneBy(['email' => 'groupe@campement.local']);
+        self::assertNotNull($utilisateur);
+        $participant = static::getContainer()->get(ParticipantRepository::class)->findPourSejour($utilisateur->getGroupe()->getSejour())[0] ?? null;
+        self::assertNotNull($participant);
+        $client->loginUser($utilisateur);
+
+        $crawler = $client->request('GET', '/administratif/participants/'.$participant->getId());
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Enregistrer les modifications')->form(['nom' => 'Modifié par le groupe']);
+        $client->submit($form);
+        self::assertResponseRedirects('/administratif/participants/'.$participant->getId());
+        $client->request('POST', '/administratif/participants/'.$participant->getId().'/supprimer');
+        self::assertResponseStatusCodeSame(403);
+        $client->request('GET', '/administratif/participants/pdf');
+        self::assertResponseStatusCodeSame(403);
     }
 }

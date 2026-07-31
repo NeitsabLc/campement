@@ -23,13 +23,14 @@ use DatePeriod;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
 
-#[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
+#[IsGranted(new Expression("is_granted('ROLE_GESTIONNAIRE') or is_granted('ROLE_GROUPE')"))]
 final class MenuController extends AbstractController
 {
     private const CATEGORIES = Recette::CATEGORIES;
@@ -54,6 +55,7 @@ final class MenuController extends AbstractController
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexte->actif();
+        $lectureSeule = $this->isGranted(Utilisateur::ROLE_GROUPE);
         if (null === $sejour) {
             return $this->render('menu/index.html.twig', ['sejour' => null]);
         }
@@ -74,6 +76,9 @@ final class MenuController extends AbstractController
         $avecCategories = null === $special && $this->avecCategories($repasSelectionne->getTypeRepas()->getCode());
 
         if ($request->isMethod('POST')) {
+            if ($lectureSeule) {
+                throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
+            }
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException();
             }
@@ -238,6 +243,7 @@ final class MenuController extends AbstractController
             'recettes_json' => $recettesJson,
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
+            'lecture_seule' => $lectureSeule,
         ]);
     }
 

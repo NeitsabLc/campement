@@ -14,7 +14,7 @@
 {% block title %}Gestion des menus | Campement{% endblock %}
 {% block body %}
 <main class="menus-page{{ avec_categories|default(false) ? ' menus-page--categorized' : '' }}" data-controller="menu-editor" data-public-count="{{ publicsCibles|default([])|length }}">
-    <header class="menus-heading"><h1>Gestion des menus</h1>{% if sejour %}<span class="stay-badge"><strong>{{ sejour.nom }}</strong></span>{% endif %}</header>
+    <header class="menus-heading"><h1>Gestion des menus</h1>{% if lecture_seule|default(false) %}<span class="stay-badge"><strong>Lecture seule</strong></span>{% endif %}{% if sejour %}<span class="stay-badge"><strong>{{ sejour.nom }}</strong></span>{% endif %}</header>
     {% for m in app.flashes('success') %}<div class="flash flash--success">{{ m }}</div>{% endfor %}
     {% for m in app.flashes('error') %}<div class="flash flash--error">{{ m }}</div>{% endfor %}
     {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2></section>
@@ -39,7 +39,7 @@
         </aside>
         <section class="meal-editor">
             <h2>{{ special ? specials[special] : repas_selectionne.typeRepas.libelle ~ ' · ' ~ date_selectionnee|date('d/m/Y') }}</h2>
-            <form method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}">
+            <form method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}"><fieldset class="menu-readonly-scope"{{ lecture_seule|default(false) ? ' disabled' : '' }}>
                 {% if avec_categories %}
                     <div class="menu-categories">{% for code, libelle in {'ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert'} %}
                         <section class="menu-category" data-menu-block data-category="{{ code }}">
@@ -53,7 +53,8 @@
                         {{ _self.composition(composition_menu['']|default({}), publicsCibles, '') }}
                     </section>
                 {% endif %}
-                <div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button></div>
+                {% if not lecture_seule|default(false) %}<div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button></div>{% endif %}
+                </fieldset>
             </form>
         </section>
     </div>
