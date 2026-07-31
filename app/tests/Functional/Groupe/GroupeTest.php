@@ -43,6 +43,8 @@ final class GroupeTest extends WebTestCase
         self::assertSelectorExists('.edit-group-button[data-group-id]');
         self::assertSelectorExists('.delete-group-button[data-delete-url]');
         self::assertSelectorExists('.delete-group-dialog');
+        self::assertSelectorExists('.groups-heading .add-group-button');
+        self::assertSelectorTextContains('.group-row dl', 'réels');
     }
 
     public function testUnGestionnairePeutCreerUnGroupeAdulte(): void

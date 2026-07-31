@@ -901,9 +901,10 @@ select {
 .group-type--scouts-guides { border-color: #0089b7; color: #005676; background: #e4f6fc; }
 .group-type--pionniers-caravelles { border-color: #d7282f; color: #8f171c; background: #fdebed; }
 .group-row dl { display: flex; gap: .75rem; margin: 0; }
-.group-row dl div { min-width: 4.5rem; padding: .55rem .75rem; border-radius: .35rem; background: var(--surface-muted); text-align: center; }
+.group-row dl div { min-width: 5.25rem; padding: .55rem .75rem; border-radius: .35rem; background: var(--surface-muted); text-align: center; }
 .group-row dt { color: var(--text-muted); font-size: .75rem; }
 .group-row dd { margin: .1rem 0 0; font-family: var(--font-title); font-size: 1.15rem; font-weight: 800; }
+.group-row dd small,.group-row dd strong{display:block;font-family:var(--font-body);font-size:.7rem}.group-row dd small{color:var(--text-muted);font-weight:600}.group-row dd strong{margin-top:.2rem;color:#087b67;font-weight:800}
 .edit-group-button { display: grid; width: 2.65rem; height: 2.65rem; place-items: center; padding: 0; border: 1px solid var(--border); border-radius: .3rem; color: var(--sgdf-blue); background: white; cursor: pointer; }
 .edit-group-button:hover { border-color: var(--sgdf-blue-light); background: #f7fbfd; }
 .delete-group-button { display: grid; width: 2.65rem; height: 2.65rem; place-items: center; padding: 0; border: 1px solid #e7aaa6; border-radius: .3rem; color: var(--danger); background: white; cursor: pointer; }
