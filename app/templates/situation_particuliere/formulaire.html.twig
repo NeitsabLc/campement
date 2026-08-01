@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ situation ? 'Modifier' : 'Nouvelle' }} situation particulière | Campement{% endblock %}
+
+{% block body %}
+<main class="situation-form-page">
+    <header class="situation-edit-heading"><a class="back-link" href="{{ path('app_situations_particulieres') }}">← Retour</a><div><h1>{{ situation ? situation.libelle : 'Nouvelle situation' }}</h1>{% if situation %}<div class="heading-actions"><button class="food-primary" type="submit" form="situation-form">Enregistrer</button></div>{% endif %}</div></header>
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash" role="alert">{{ message }}</div>{% endfor %}
+    {% if erreurs %}<div class="flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    {% if situation %}<div class="situation-edit-layout"><div class="situation-edit-main">{% endif %}
+    <form method="post" class="situation-form" id="situation-form">
+        <input type="hidden" name="_token" value="{{ csrf_token(situation ? 'modifier_situation_particuliere_' ~ situation.id : 'creer_situation_particuliere') }}">
+        <section class="form-card"><h2>Informations générales</h2><div class="general-information-grid">
+            <label><span>Libellé <b>*</b></span><input name="libelle" maxlength="200" required value="{{ donnees.libelle }}"></label>
+            <label><span>Date <b>*</b></span><input type="date" name="date_situation" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date }}"></label>
+        </div></section>
+        <section class="form-card"><h2>Informations complémentaires</h2><p class="form-help">Les tâches nécessaires seront générées automatiquement.</p><div class="situation-checks">
+            {% for code, libelle in informations %}<label><input type="checkbox" name="informations[]" value="{{ code }}"{{ code in donnees.informations ? ' checked' : '' }}><span>{{ libelle }}</span></label>{% endfor %}
+        </div></section>
+        {% if sejour.moduleAdministratifActif %}<section class="form-card" data-controller="situation-people"><h2>Personnes concernées</h2>
+            {% if participants_disponibles is empty %}<p class="form-help">Aucun participant n’est enregistré pour ce séjour.</p>{% else %}
+                <div class="participant-situation-add"><label>Ajouter une personne<select data-controller="searchable-select" data-situation-people-target="select" data-search-placeholder="Rechercher une personne…" data-search-label="Rechercher une personne" data-empty-label="Aucune personne trouvée"><option value="">Sélectionner une personne</option>{% for participant in participants_disponibles %}<option value="{{ participant.id }}"{{ participant.id ~ '' in donnees.participants ? ' hidden' : '' }}>{{ participant.prenom }} {{ participant.nom }} — {{ participant.groupe.nom }}</option>{% endfor %}</select></label><button class="food-secondary" type="button" data-action="situation-people#add">＋ Ajouter</button></div>
+                <p class="participant-situation-empty" data-situation-people-target="empty">Aucune personne concernée.</p>
+                <ul class="participant-situation-list" data-situation-people-target="list">{% for participant in participants_disponibles %}{% if participant.id ~ '' in donnees.participants %}<li data-person-id="{{ participant.id }}"><span><strong>{{ participant.prenom }} {{ participant.nom }}</strong><small>{{ participant.groupe.nom }}</small></span><button type="button" data-action="situation-people#remove">Retirer</button><input type="hidden" name="participants[]" value="{{ participant.id }}"></li>{% endif %}{% endfor %}</ul>
+            {% endif %}
+        </section>{% endif %}
+        {% if not situation %}<footer class="form-actions"><a href="{{ path('app_situations_particulieres') }}">Annuler</a><button class="food-primary" type="submit">Créer la situation</button></footer>{% endif %}
+    </form>
+    {% if situation %}
+        </div><aside class="situation-edit-todo">{% include 'situation_particuliere/_taches.html.twig' %}</aside></div>
+    {% endif %}
+</main>
+{% endblock %}

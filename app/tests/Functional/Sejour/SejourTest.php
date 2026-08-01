@@ -36,6 +36,7 @@ final class SejourTest extends WebTestCase
             'publics' => [(string) $public->getId()],
             'module_intendance' => 'on',
             'module_administratif' => 'on',
+            'module_situations_particulieres' => 'on',
             'gestionnaire' => (string) $gestionnaire->getId(),
         ]);
         $client->submit($formulaireCreation);
@@ -56,6 +57,7 @@ final class SejourTest extends WebTestCase
             'publics' => [(string) $public->getId()],
             'module_intendance' => 'on',
             'module_administratif' => false,
+            'module_situations_particulieres' => 'on',
         ]);
         $client->submit($formulaireModification);
         self::assertResponseRedirects('/sejours');
@@ -67,6 +69,7 @@ final class SejourTest extends WebTestCase
         self::assertSame('Séjour test fonctionnel modifié', $sejour->getNom());
         self::assertTrue($sejour->isModuleIntendanceActif());
         self::assertFalse($sejour->isModuleAdministratifActif());
+        self::assertTrue($sejour->isModuleSituationsParticulieresActif());
 
         $client->loginUser($gestionnaire);
         $crawler = $client->request('GET', '/sejours');

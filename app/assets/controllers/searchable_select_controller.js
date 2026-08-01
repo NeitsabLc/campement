@@ -90,6 +90,15 @@ export default class extends Controller {
     }
 
     updateTrigger() {
+        if (this.select.multiple) {
+            const selected = [...this.select.selectedOptions];
+            this.trigger.textContent = selected.length === 0
+                ? (this.select.dataset.placeholder || 'Sélectionner des éléments')
+                : (selected.length === 1 ? selected[0].textContent.trim() : `${selected.length} éléments sélectionnés`);
+            this.trigger.classList.toggle('searchable-select__trigger--placeholder', selected.length === 0);
+            this.trigger.disabled = this.select.disabled;
+            return;
+        }
         const selected = this.select.selectedOptions[0];
         this.trigger.textContent = selected?.textContent.trim() || 'Sélectionner une denrée';
         this.trigger.classList.toggle('searchable-select__trigger--placeholder', !selected?.value);
@@ -112,10 +121,16 @@ export default class extends Controller {
             button.setAttribute('role', 'option');
             button.setAttribute('aria-selected', option.selected ? 'true' : 'false');
             button.addEventListener('click', () => {
-                this.select.value = option.value;
+                if (this.select.multiple) {
+                    option.selected = !option.selected;
+                } else {
+                    this.select.value = option.value;
+                }
                 this.select.dispatchEvent(new Event('change', { bubbles: true }));
-                this.close();
-                this.trigger.focus();
+                if (!this.select.multiple) {
+                    this.close();
+                    this.trigger.focus();
+                }
             });
             return button;
         }));

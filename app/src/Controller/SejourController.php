@@ -71,7 +71,10 @@ final class SejourController extends AbstractController
             }
             if ([] === $erreurs) {
                 $sejour ??= new Sejour($nom, $debut, $fin);
-                $sejour->setNom($nom)->setModuleIntendanceActif($request->request->has('module_intendance'))->setModuleAdministratifActif($request->request->has('module_administratif'));
+                $sejour->setNom($nom)
+                    ->setModuleIntendanceActif($request->request->has('module_intendance'))
+                    ->setModuleAdministratifActif($request->request->has('module_administratif'))
+                    ->setModuleSituationsParticulieresActif($request->request->has('module_situations_particulieres'));
                 if (!$creation) { $sejour->setDates($debut, $fin); }
                 foreach ($publics->findActifs() as $public) {
                     in_array((string) $public->getId(), $publicIds, true) ? $sejour->addPublicCible($public) : $sejour->removePublicCible($public);

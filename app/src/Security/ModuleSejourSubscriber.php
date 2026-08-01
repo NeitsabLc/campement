@@ -17,6 +17,7 @@ final class ModuleSejourSubscriber
     private const INTENDANCE = ['app_fournisseur', 'app_denree', 'app_menu', 'app_mouvement_stock', 'app_mouvements_stock', 'app_distribution'];
     private const ADMINISTRATIF = ['app_participant', 'app_presence'];
     private const SEJOUR_REQUIS = ['app_groupe'];
+    private const SITUATIONS_PARTICULIERES = ['app_situation_particuliere', 'app_situations_particulieres'];
 
     public function __construct(private readonly ContexteSejour $contexte, private readonly UrlGeneratorInterface $urls) {}
 
@@ -26,12 +27,15 @@ final class ModuleSejourSubscriber
         $route = (string) $request->attributes->get('_route');
         $module = $this->correspondA($route, self::INTENDANCE)
             ? 'intendance'
-            : ($this->correspondA($route, self::ADMINISTRATIF) ? 'administratif' : null);
+            : ($this->correspondA($route, self::ADMINISTRATIF)
+                ? 'administratif'
+                : ($this->correspondA($route, self::SITUATIONS_PARTICULIERES) ? 'situations_particulieres' : null));
         if (null === $module && !$this->correspondA($route, self::SEJOUR_REQUIS)) { return; }
         $sejour = $this->contexte->actif();
         if (null === $sejour
             || ('intendance' === $module && !$sejour->isModuleIntendanceActif())
-            || ('administratif' === $module && !$sejour->isModuleAdministratifActif())) {
+            || ('administratif' === $module && !$sejour->isModuleAdministratifActif())
+            || ('situations_particulieres' === $module && !$sejour->isModuleSituationsParticulieresActif())) {
             $request->getSession()->getFlashBag()->add('error', null === $sejour ? 'Sélectionnez d’abord un séjour.' : 'Ce module n’est pas actif pour le séjour sélectionné.');
             $url = $this->urls->generate('app_tableau_de_bord');
             $event->setController(static fn () => new RedirectResponse($url));

@@ -41,6 +41,9 @@ class Sejour
     #[ORM\Column(name: 'module_administratif_actif', options: ['default' => true])]
     private bool $moduleAdministratifActif = true;
 
+    #[ORM\Column(name: 'module_situations_particulieres_actif', options: ['default' => false])]
+    private bool $moduleSituationsParticulieresActif = false;
+
     #[ORM\Column(name: 'distribution_publique_active', options: ['default' => true])]
     private bool $distributionPubliqueActive = true;
 
@@ -143,6 +146,8 @@ class Sejour
     public function setModuleIntendanceActif(bool $actif): self { $this->moduleIntendanceActif = $actif; $this->touch(); return $this; }
     public function isModuleAdministratifActif(): bool { return $this->moduleAdministratifActif; }
     public function setModuleAdministratifActif(bool $actif): self { $this->moduleAdministratifActif = $actif; $this->touch(); return $this; }
+    public function isModuleSituationsParticulieresActif(): bool { return $this->moduleSituationsParticulieresActif; }
+    public function setModuleSituationsParticulieresActif(bool $actif): self { $this->moduleSituationsParticulieresActif = $actif; $this->touch(); return $this; }
     public function isDistributionPubliqueActive(): bool { return $this->distributionPubliqueActive; }
     public function setDistributionPubliqueActive(bool $actif): self { $this->distributionPubliqueActive = $actif; $this->touch(); return $this; }
     public function isDistribuerGouterDejeuner(): bool { return $this->distribuerGouterDejeuner; }
