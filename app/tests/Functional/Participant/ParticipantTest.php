@@ -40,6 +40,25 @@ final class ParticipantTest extends WebTestCase
         self::assertSelectorExists('input[name="stagiaire_bafa"]');
     }
 
+    public function testLeFormulaireDAjoutReprendLesDatesDePresenceDuGroupe(): void
+    {
+        $client = static::createClient();
+        $utilisateur = static::getContainer()->get(UtilisateurRepository::class)->findOneBy(['email' => 'gestionnaire@campement.local']);
+        self::assertNotNull($utilisateur);
+        $client->loginUser($utilisateur);
+        $groupe = static::getContainer()->get(GroupeRepository::class)->findActifs()[0] ?? null;
+        self::assertNotNull($groupe);
+
+        $crawler = $client->request('GET', '/administratif/participants');
+        $bouton = $crawler->filter(sprintf('button[data-participant-group="%s"]', $groupe->getId()))->first();
+
+        self::assertCount(1, $bouton);
+        self::assertSame($groupe->getDateDebutPresence()->format('Y-m-d'), $bouton->attr('data-participant-start-date'));
+        self::assertSame($groupe->getDateFinPresence()->format('Y-m-d'), $bouton->attr('data-participant-end-date'));
+        self::assertSelectorExists('input[name="date_debut_presence"][data-participant-dialog-target="startDate"]');
+        self::assertSelectorExists('input[name="date_fin_presence"][data-participant-dialog-target="endDate"]');
+    }
+
     public function testLeModuleDesactiveEstMasqueEtSaPageInaccessible(): void
     {
         $client = static::createClient();

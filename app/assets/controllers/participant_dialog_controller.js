@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['adult', 'adultInfo', 'deleteDialog', 'deleteForm', 'deleteName', 'deleteToken', 'dialog', 'form', 'group', 'other', 'title', 'type', 'young'];
+    static targets = ['adult', 'adultInfo', 'deleteDialog', 'deleteForm', 'deleteName', 'deleteToken', 'dialog', 'endDate', 'form', 'group', 'other', 'startDate', 'title', 'type', 'young'];
     static values = { open: Boolean };
 
     connect() { if (this.openValue) { this.update(); this.dialogTarget.showModal(); } }
@@ -29,6 +29,8 @@ export default class extends Controller {
         this.clearValidation();
         this.typeTarget.value = event.currentTarget.dataset.participantType;
         this.groupTarget.value = event.currentTarget.dataset.participantGroup;
+        this.startDateTarget.value = event.currentTarget.dataset.participantStartDate;
+        this.endDateTarget.value = event.currentTarget.dataset.participantEndDate;
         this.titleTarget.textContent = this.typeTarget.value === 'jeune' ? 'Ajouter un jeune' : 'Ajouter un adulte';
         this.update(); this.dialogTarget.showModal();
     }
