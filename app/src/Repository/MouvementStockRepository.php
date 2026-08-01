@@ -15,4 +15,18 @@ final class MouvementStockRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, MouvementStock::class);
     }
+
+    public function findPourFormulaire(string $id): ?MouvementStock
+    {
+        return $this->createQueryBuilder('m')
+            ->addSelect('s', 'tm', 'o', 'g')
+            ->join('m.sejour', 's')
+            ->join('m.typeMouvement', 'tm')
+            ->join('m.origineMouvement', 'o')
+            ->leftJoin('m.groupe', 'g')
+            ->andWhere('m.id = :id')
+            ->setParameter('id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

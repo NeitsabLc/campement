@@ -40,6 +40,18 @@ final class MouvementStockLigneRepository extends ServiceEntityRepository
     /** @return list<MouvementStockLigne> */
     public function findToutesPourMouvement(MouvementStock $mouvement): array
     {
-        return $this->findBy(['mouvementStock' => $mouvement], ['createdAt' => 'ASC']);
+        return $this->createQueryBuilder('l')
+            ->addSelect('d', 'u', 'ui', 'us', 'r', 'f')
+            ->join('l.denree', 'd')
+            ->join('d.uniteReference', 'u')
+            ->join('d.uniteInventaire', 'ui')
+            ->leftJoin('l.conditionnementSortie', 'us')
+            ->leftJoin('l.referenceFournisseur', 'r')
+            ->leftJoin('r.fournisseur', 'f')
+            ->andWhere('l.mouvementStock = :mouvement')
+            ->setParameter('mouvement', $mouvement)
+            ->orderBy('l.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
     }
 }

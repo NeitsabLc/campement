@@ -91,15 +91,26 @@ final class MouvementStockController extends AbstractController
         ?string $id = null,
     ): Response {
         $sejour = $sejours->actif();
-        $mouvementExistant = null !== $id && Uuid::isValid($id) ? $mouvements->find($id) : null;
+        $mouvementExistant = null !== $id && Uuid::isValid($id) ? $mouvements->findPourFormulaire($id) : null;
         if (null !== $id && (null === $sejour || null === $mouvementExistant || $mouvementExistant->getSejour() !== $sejour)) {
             throw $this->createNotFoundException('Mouvement de stock introuvable.');
         }
         $ligneDemandee = $request->query->getString('ligne');
         $ligneExistante = null;
+        $lignesMouvement = [];
         if (null !== $mouvementExistant) {
-            $ligneExistante = Uuid::isValid($ligneDemandee) ? $lignes->find($ligneDemandee) : $lignes->findPourMouvement($mouvementExistant);
-            if (null !== $ligneExistante && $ligneExistante->getMouvementStock() !== $mouvementExistant) {
+            $lignesMouvement = $lignes->findToutesPourMouvement($mouvementExistant);
+            if (Uuid::isValid($ligneDemandee)) {
+                foreach ($lignesMouvement as $ligneMouvement) {
+                    if ((string) $ligneMouvement->getId() === $ligneDemandee) {
+                        $ligneExistante = $ligneMouvement;
+                        break;
+                    }
+                }
+            } else {
+                $ligneExistante = $lignesMouvement[0] ?? null;
+            }
+            if (Uuid::isValid($ligneDemandee) && null === $ligneExistante) {
                 throw $this->createNotFoundException('La ligne ne correspond pas au mouvement demandé.');
             }
         }
@@ -124,24 +135,16 @@ final class MouvementStockController extends AbstractController
         }
         $conditionnementsSortieParDenree = $conversion->conditionnementsPourDenrees($denreesActives, $niveauxActifs);
         $fournisseursActifs = array_values($fournisseursParId);
+        $detailsParLigne = [];
+        foreach ($lignesConditionnements->findPourLignes($lignesMouvement) as $detail) {
+            $detailsParLigne[(string) $detail->getMouvementStockLigne()->getId()][] = $detail;
+        }
 
-        $conditionnementSortieExistant = $ligneExistante?->getConditionnementSortie() ?? $ligneExistante?->getDenree()->getUniteReference();
         $valeurs = null !== $ligneExistante && !$request->isMethod('POST') ? [
             'type' => $mouvementExistant->getTypeMouvement()->getCode(),
-            'denree' => (string) $ligneExistante->getDenree()->getId(),
             'origine' => (string) $mouvementExistant->getOrigineMouvement()->getId(),
             'groupe' => (string) ($mouvementExistant->getGroupe()?->getId() ?? ''),
             'fournisseur' => (string) ($ligneExistante->getReferenceFournisseur()?->getFournisseur()->getId() ?? ''),
-            'reference' => (string) ($ligneExistante->getReferenceFournisseur()?->getId() ?? ''),
-            'conditionnement_sortie' => (string) ($conditionnementSortieExistant?->getId() ?? ''),
-            'numero_lot' => $ligneExistante->getNumeroLot() ?? '',
-            'quantite' => 'SORTIE' === $mouvementExistant->getTypeMouvement()->getCode() && null !== $conditionnementSortieExistant
-                ? number_format($conversion->depuisUniteReference($ligneExistante->getDenree(), $conditionnementSortieExistant, (float) $ligneExistante->getQuantiteUniteReference()), 3, '.', '')
-                : $ligneExistante->getQuantiteUniteReference(),
-            'conditionnements' => array_reduce($lignesConditionnements->findPourLigne($ligneExistante), static function (array $resultat, MouvementStockLigneConditionnement $ligne): array {
-                $resultat[(string) $ligne->getConditionnement()->getId()] = $ligne->getQuantite();
-                return $resultat;
-            }, []),
         ] : [
             'type' => $request->request->getString('type', 'SORTIE'),
             'denree' => $request->request->getString('denree'),
@@ -159,7 +162,7 @@ final class MouvementStockController extends AbstractController
         if ($request->isMethod('POST') && $request->request->has('lignes')) {
             $lignesValeurs = $request->request->all('lignes');
         } elseif (null !== $mouvementExistant) {
-            foreach ($lignes->findToutesPourMouvement($mouvementExistant) as $ligneMouvement) {
+            foreach ($lignesMouvement as $ligneMouvement) {
                 $conditionnementLigne = $ligneMouvement->getConditionnementSortie() ?? $ligneMouvement->getDenree()->getUniteReference();
                 $lignesValeurs[] = [
                     'denree' => (string) $ligneMouvement->getDenree()->getId(),
@@ -168,8 +171,8 @@ final class MouvementStockController extends AbstractController
                     'numero_lot' => $ligneMouvement->getNumeroLot() ?? '',
                     'quantite' => null !== $ligneMouvement->getReferenceFournisseur()
                         ? $ligneMouvement->getQuantiteUniteReference()
-                        : number_format($conversion->depuisUniteReference($ligneMouvement->getDenree(), $conditionnementLigne, (float) $ligneMouvement->getQuantiteUniteReference()), 3, '.', ''),
-                    'conditionnements' => array_reduce($lignesConditionnements->findPourLigne($ligneMouvement), static function (array $resultat, MouvementStockLigneConditionnement $detail): array {
+                        : number_format($conversion->depuisUniteReferenceAvecNiveaux($ligneMouvement->getDenree(), $conditionnementLigne, (float) $ligneMouvement->getQuantiteUniteReference(), $niveauxActifs), 3, '.', ''),
+                    'conditionnements' => array_reduce($detailsParLigne[(string) $ligneMouvement->getId()] ?? [], static function (array $resultat, MouvementStockLigneConditionnement $detail): array {
                         $resultat[(string) $detail->getConditionnement()->getId()] = $detail->getQuantite();
                         return $resultat;
                     }, []),

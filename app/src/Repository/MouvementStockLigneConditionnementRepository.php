@@ -22,4 +22,25 @@ final class MouvementStockLigneConditionnementRepository extends ServiceEntityRe
     {
         return $this->findBy(['mouvementStockLigne' => $ligne]);
     }
+
+    /**
+     * @param list<MouvementStockLigne> $lignes
+     *
+     * @return list<MouvementStockLigneConditionnement>
+     */
+    public function findPourLignes(array $lignes): array
+    {
+        if ([] === $lignes) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('detail')
+            ->addSelect('ligne', 'conditionnement')
+            ->join('detail.mouvementStockLigne', 'ligne')
+            ->join('detail.conditionnement', 'conditionnement')
+            ->andWhere('ligne IN (:lignes)')
+            ->setParameter('lignes', $lignes)
+            ->getQuery()
+            ->getResult();
+    }
 }

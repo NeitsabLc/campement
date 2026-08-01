@@ -9,8 +9,9 @@ use App\Entity\Utilisateur;
 use App\Repository\SejourRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Contracts\Service\ResetInterface;
 
-final class ContexteSejour
+final class ContexteSejour implements ResetInterface
 {
     /** @var null|list<Sejour> */
     private ?array $sejoursAccessibles = null;
@@ -72,5 +73,10 @@ final class ContexteSejour
             $utilisateur->setDernierSejour($sejour);
             $this->entityManager->flush();
         }
+    }
+
+    public function reset(): void
+    {
+        $this->sejoursAccessibles = null;
     }
 }

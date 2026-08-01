@@ -90,6 +90,39 @@ final class ConversionConditionnement
         return $quantite / ($this->facteurMinimal($denree, $conditionnement) ?? 1.0);
     }
 
+    /**
+     * Variante sans accès à la base, destinée aux écrans ayant déjà préchargé
+     * tous les niveaux de conditionnement.
+     *
+     * @param list<ReferenceFournisseurConditionnement> $niveaux
+     */
+    public function depuisUniteReferenceAvecNiveaux(Denree $denree, Unite $conditionnement, float $quantite, array $niveaux): float
+    {
+        if ($conditionnement === $denree->getUniteReference()) {
+            return $quantite;
+        }
+
+        $parReference = [];
+        foreach ($niveaux as $niveau) {
+            if ($niveau->getReferenceFournisseur()->getDenree() === $denree) {
+                $parReference[(string) $niveau->getReferenceFournisseur()->getId()][] = $niveau;
+            }
+        }
+
+        $facteurs = [];
+        foreach ($parReference as $niveauxReference) {
+            $facteur = 1.0;
+            for ($i = count($niveauxReference) - 1; $i >= 0; --$i) {
+                $facteur *= (float) $niveauxReference[$i]->getQuantiteContenu();
+                if ($niveauxReference[$i]->getConditionnement() === $conditionnement) {
+                    $facteurs[] = $facteur;
+                }
+            }
+        }
+
+        return $quantite / ([] === $facteurs ? 1.0 : min($facteurs));
+    }
+
     public function stockInventaire(Denree $denree, float $entreesReference, float $sortiesReference): int
     {
         $entrees = $this->quantiteInventaire($denree, $entreesReference);
