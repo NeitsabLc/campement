@@ -157,7 +157,7 @@ final class SortieConsommationController extends AbstractController
                 ];
                 if ('confirmer' === $request->request->getString('action')) {
                     $type = $types->findOneBy(['code' => 'SORTIE', 'actif' => true]);
-                    $origine = $origines->findOneBy(['sejour' => $sejour, 'code' => 'DISTRIBUTION', 'actif' => true]);
+                    $origine = $origines->findOneBy(['code' => 'DISTRIBUTION', 'actif' => true]);
                     $utilisateur = $utilisateurs->loadUserByIdentifier('saisie-consommation@campement.local');
                     if (null === $type || null === $origine || null === $utilisateur) {
                         throw new \RuntimeException('Référentiel incomplet.');

@@ -51,9 +51,6 @@ class MouvementStock
 
     public function __construct(Sejour $sejour, Utilisateur $utilisateur, TypeMouvement $typeMouvement, OrigineMouvement $origineMouvement)
     {
-        if ($origineMouvement->getSejour() !== $sejour) {
-            throw new \InvalidArgumentException("L’origine du mouvement doit appartenir au séjour.");
-        }
         $this->initializeId();
         $this->initializeTimestamps();
         $this->sejour = $sejour;
@@ -116,9 +113,6 @@ class MouvementStock
 
     public function setOrigineMouvement(OrigineMouvement $origineMouvement): self
     {
-        if ($origineMouvement->getSejour() !== $this->sejour) {
-            throw new \InvalidArgumentException("L’origine du mouvement doit appartenir au séjour.");
-        }
         $this->origineMouvement = $origineMouvement;
         $this->touch();
         return $this;

@@ -15,10 +15,9 @@ CROSS JOIN campement.public_cible AS public_cible
 WHERE sejour.nom = 'Séjour de développement'
 ON CONFLICT (sejour_id, public_cible_id) DO NOTHING;
 
-INSERT INTO campement.origine_mouvement (sejour_id, code, libelle, ordre)
-SELECT sejour.id, donnees.code, donnees.libelle, donnees.ordre
-FROM campement.sejour AS sejour
-CROSS JOIN (VALUES
+INSERT INTO campement.origine_mouvement (code, libelle, ordre)
+SELECT donnees.code, donnees.libelle, donnees.ordre
+FROM (VALUES
     ('FOURNISSEUR',        'Livraison fournisseur', 1),
     ('DISTRIBUTION',       'Distribution',          2),
     ('INVENTAIRE',         'Inventaire',            3),
@@ -26,8 +25,7 @@ CROSS JOIN (VALUES
     ('RETOUR_ALIMENTAIRE', 'Retour alimentaire',    5),
     ('CORRECTION',         'Correction manuelle',   6)
 ) AS donnees(code, libelle, ordre)
-WHERE sejour.nom = 'Séjour de développement'
-ON CONFLICT (sejour_id, code) DO NOTHING;
+ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO campement.groupe (sejour_id, nom, effectif_jeune, effectif_adulte, type, date_debut_presence, date_fin_presence)
 SELECT id, 'Groupe de développement', 20, 4, 'scouts-guides', date_debut, date_fin

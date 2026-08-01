@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\OrigineMouvement;
-use App\Entity\Sejour;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -18,12 +17,10 @@ final class OrigineMouvementRepository extends ServiceEntityRepository
     }
 
     /** @return list<OrigineMouvement> */
-    public function findActifsPourSejour(Sejour $sejour): array
+    public function findActifs(): array
     {
         return $this->createQueryBuilder('e')
-            ->andWhere('e.sejour = :sejour')
             ->andWhere('e.actif = true')
-            ->setParameter('sejour', $sejour)
             ->orderBy('e.ordre', 'ASC')
             ->getQuery()
             ->getResult();

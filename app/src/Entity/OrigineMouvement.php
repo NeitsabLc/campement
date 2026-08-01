@@ -11,17 +11,12 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: OrigineMouvementRepository::class)]
 #[ORM\Table(name: "origine_mouvement", schema: "campement")]
-#[ORM\UniqueConstraint(name: "uq_origine_mouvement_code", columns: ["sejour_id", "code"])]
-#[ORM\Index(name: "idx_origine_mouvement_sejour", columns: ["sejour_id"])]
+#[ORM\UniqueConstraint(name: "uq_origine_mouvement_code", columns: ["code"])]
 class OrigineMouvement
 {
     use EntityIdTrait;
     use TimestampableTrait;
     use ActivableTrait;
-
-    #[ORM\ManyToOne(targetEntity: Sejour::class)]
-    #[ORM\JoinColumn(name: "sejour_id", nullable: false, onDelete: "CASCADE")]
-    private Sejour $sejour;
 
     #[ORM\Column(length: 50)]
     private string $code;
@@ -32,7 +27,7 @@ class OrigineMouvement
     #[ORM\Column(type: "smallint", options: ["default" => 0])]
     private int $ordre = 0;
 
-    public function __construct(Sejour $sejour, string $code, string $libelle, int $ordre = 0)
+    public function __construct(string $code, string $libelle, int $ordre = 0)
     {
         if ($ordre < 0) {
             throw new \InvalidArgumentException(
@@ -42,15 +37,9 @@ class OrigineMouvement
 
         $this->initializeId();
         $this->initializeTimestamps();
-        $this->sejour = $sejour;
         $this->code = $code;
         $this->libelle = $libelle;
         $this->ordre = $ordre;
-    }
-
-    public function getSejour(): Sejour
-    {
-        return $this->sejour;
     }
 
     public function getCode(): string

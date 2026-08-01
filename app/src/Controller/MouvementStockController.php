@@ -107,7 +107,7 @@ final class MouvementStockController extends AbstractController
             throw $this->createNotFoundException('Le mouvement ne contient aucune ligne modifiable.');
         }
         $denreesActives = null === $sejour ? [] : $denrees->findActifsPourSejour($sejour);
-        $originesActives = null === $sejour ? [] : $origines->findActifsPourSejour($sejour);
+        $originesActives = $origines->findActifs();
         $groupesActifs = null === $sejour ? [] : $groupes->findActifsPourSejour($sejour);
         $referencesParDenree = [];
         $fournisseursParId = [];
