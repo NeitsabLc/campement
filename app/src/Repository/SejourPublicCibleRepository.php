@@ -27,7 +27,7 @@ final class SejourPublicCibleRepository extends ServiceEntityRepository
             ->andWhere('configuration.actif = true')
             ->andWhere('publicCible.actif = true')
             ->setParameter('sejour', $sejour)
-            ->orderBy('configuration.ordre', 'ASC')
+            ->orderBy('publicCible.ordre', 'ASC')
             ->getQuery()
             ->getResult();
     }

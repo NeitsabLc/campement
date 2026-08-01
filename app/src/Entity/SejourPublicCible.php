@@ -31,39 +31,21 @@ class SejourPublicCible
     #[ORM\JoinColumn(name: 'public_cible_id', nullable: false, onDelete: 'RESTRICT')]
     private PublicCible $publicCible;
 
-    #[ORM\Column(type: 'smallint', options: ['default' => 0])]
-    private int $ordre = 0;
-
     /** @var Collection<int, MenuDenreeQuantite> */
     #[ORM\OneToMany(mappedBy: 'sejourPublicCible', targetEntity: MenuDenreeQuantite::class)]
     private Collection $quantitesMenu;
 
-    public function __construct(Sejour $sejour, PublicCible $publicCible, int $ordre = 0)
+    public function __construct(Sejour $sejour, PublicCible $publicCible)
     {
-        if ($ordre < 0) {
-            throw new \InvalidArgumentException('Ordre invalide.');
-        }
         $this->initializeId();
         $this->initializeTimestamps();
         $this->sejour = $sejour;
         $this->publicCible = $publicCible;
-        $this->ordre = $ordre;
         $this->quantitesMenu = new ArrayCollection();
     }
 
     public function getSejour(): Sejour { return $this->sejour; }
     public function getPublicCible(): PublicCible { return $this->publicCible; }
-    public function getOrdre(): int { return $this->ordre; }
-
-    public function setOrdre(int $ordre): self
-    {
-        if ($ordre < 0) {
-            throw new \InvalidArgumentException('Ordre invalide.');
-        }
-        $this->ordre = $ordre;
-        $this->touch();
-        return $this;
-    }
 
     /** @return Collection<int, MenuDenreeQuantite> */
     public function getQuantitesMenu(): Collection { return $this->quantitesMenu; }

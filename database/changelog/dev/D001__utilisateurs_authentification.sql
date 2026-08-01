@@ -8,8 +8,8 @@ INSERT INTO campement.sejour (nom, date_debut, date_fin, lieu)
 VALUES ('Séjour de développement', DATE '2026-07-01', DATE '2026-07-31', 'Campement local')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO campement.sejour_public_cible (sejour_id, public_cible_id, ordre)
-SELECT sejour.id, public_cible.id, public_cible.ordre
+INSERT INTO campement.sejour_public_cible (sejour_id, public_cible_id)
+SELECT sejour.id, public_cible.id
 FROM campement.sejour AS sejour
 CROSS JOIN campement.public_cible AS public_cible
 WHERE sejour.nom = 'Séjour de développement'

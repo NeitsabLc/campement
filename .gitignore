@@ -22,3 +22,6 @@ compose-production-*.patch
 # Temporary files
 *.log
 *.tmp
+
+# Local database imports
+database/import/

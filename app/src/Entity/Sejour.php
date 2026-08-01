@@ -163,7 +163,7 @@ class Sejour
         foreach ($this->publicsCibles as $association) {
             if ($association->getPublicCible() === $publicCible) { $association->setActif(true); return $this; }
         }
-        $this->publicsCibles->add(new SejourPublicCible($this, $publicCible, $this->publicsCibles->count()));
+        $this->publicsCibles->add(new SejourPublicCible($this, $publicCible));
         return $this;
     }
 
