@@ -136,6 +136,7 @@ final class MouvementStockController extends AbstractController
             'fournisseur' => (string) ($ligneExistante->getReferenceFournisseur()?->getFournisseur()->getId() ?? ''),
             'reference' => (string) ($ligneExistante->getReferenceFournisseur()?->getId() ?? ''),
             'conditionnement_sortie' => (string) ($conditionnementSortieExistant?->getId() ?? ''),
+            'numero_lot' => $ligneExistante->getNumeroLot() ?? '',
             'quantite' => 'SORTIE' === $mouvementExistant->getTypeMouvement()->getCode() && null !== $conditionnementSortieExistant
                 ? number_format($conversion->depuisUniteReference($ligneExistante->getDenree(), $conditionnementSortieExistant, (float) $ligneExistante->getQuantiteUniteReference()), 3, '.', '')
                 : $ligneExistante->getQuantiteUniteReference(),
@@ -151,6 +152,7 @@ final class MouvementStockController extends AbstractController
             'fournisseur' => $request->request->getString('fournisseur'),
             'reference' => $request->request->getString('reference'),
             'conditionnement_sortie' => $request->request->getString('conditionnement_sortie'),
+            'numero_lot' => $request->request->getString('numero_lot'),
             'quantite' => $request->request->getString('quantite'),
             'conditionnements' => $request->request->all('conditionnements'),
         ];
@@ -165,6 +167,7 @@ final class MouvementStockController extends AbstractController
                     'denree' => (string) $ligneMouvement->getDenree()->getId(),
                     'reference' => (string) ($ligneMouvement->getReferenceFournisseur()?->getId() ?? ''),
                     'conditionnement_sortie' => (string) ($conditionnementLigne?->getId() ?? ''),
+                    'numero_lot' => $ligneMouvement->getNumeroLot() ?? '',
                     'quantite' => null !== $ligneMouvement->getReferenceFournisseur()
                         ? $ligneMouvement->getQuantiteUniteReference()
                         : number_format($conversion->depuisUniteReference($ligneMouvement->getDenree(), $conditionnementLigne, (float) $ligneMouvement->getQuantiteUniteReference()), 3, '.', ''),
@@ -284,6 +287,7 @@ final class MouvementStockController extends AbstractController
                     $conditionnementsParReference,
                     $quantitesConditionnements,
                     $conversion,
+                    $valeurs,
                 ): void {
                     $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
                     $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
@@ -314,6 +318,7 @@ final class MouvementStockController extends AbstractController
                         $ligne->setReferenceFournisseur($reference);
                     }
                     $ligne->setConditionnementSortie(null === $reference ? $conditionnementSortie : null);
+                    $ligne->setNumeroLot('ENTREE' === $typeCode ? $this->normaliserNumeroLot($valeurs['numero_lot']) : null);
                     $em->persist($mouvement);
                     $em->persist($ligne);
                     if (null !== $reference) {
@@ -343,6 +348,14 @@ final class MouvementStockController extends AbstractController
         if ('' === $brut || !is_numeric($brut) || ($zeroAutorise ? (float) $brut < 0 : (float) $brut <= 0)) return null;
 
         return number_format((float) $brut, 3, '.', '');
+    }
+
+    private function normaliserNumeroLot(string $brut): ?string
+    {
+        $lot = preg_replace('/\s+/u', ' ', trim($brut));
+        if (null === $lot || '' === $lot) return null;
+
+        return mb_substr($lot, 0, 100);
     }
 
     /**
@@ -413,6 +426,7 @@ final class MouvementStockController extends AbstractController
             $conditionnementSortie = null;
             $quantitesConditionnements = [];
             $quantiteReference = null;
+            $numeroLot = 'ENTREE' === $typeCode ? $this->normaliserNumeroLot((string) ($saisie['numero_lot'] ?? '')) : null;
 
             if (in_array($typeCode, ['ENTREE', 'SORTIE'], true) && !$entreeFournisseur) {
                 $conditionnementSortie = $this->selectionner((string) ($saisie['conditionnement_sortie'] ?? ''), $conditionnementsSortieParDenree[$denreeId] ?? []);
@@ -457,7 +471,7 @@ final class MouvementStockController extends AbstractController
                 }
             }
             if (null !== $quantiteReference) {
-                $lignesValides[] = compact('denree', 'reference', 'conditionnementSortie', 'quantitesConditionnements', 'quantiteReference');
+                $lignesValides[] = compact('denree', 'reference', 'conditionnementSortie', 'quantitesConditionnements', 'quantiteReference', 'numeroLot');
             }
         }
         if ([] !== $erreurs || null === $type || null === $origine) return $erreurs;
@@ -485,6 +499,7 @@ final class MouvementStockController extends AbstractController
                 $ligne->setQuantiteUniteInventaire($conversion->formaterQuantiteInventaire($quantiteInventaire));
                 $ligne->setReferenceFournisseur($donnees['reference']);
                 $ligne->setConditionnementSortie(null === $donnees['reference'] ? $donnees['conditionnementSortie'] : null);
+                $ligne->setNumeroLot($donnees['numeroLot']);
                 $em->persist($ligne);
                 if (null !== $donnees['reference']) {
                     foreach ($conditionnementsParReference[(string) $donnees['reference']->getId()] ?? [] as $conditionnement) {

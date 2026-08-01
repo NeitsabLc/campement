@@ -44,6 +44,7 @@ final class ContentSecurityPolicySubscriber
             "object-src 'none'",
             "script-src 'self' 'nonce-{$nonce}'",
             "style-src 'self'",
+            "worker-src 'self' blob:",
         ]));
     }
 }

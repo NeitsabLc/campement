@@ -41,6 +41,9 @@ class MouvementStockLigne
     #[ORM\Column(name: "quantite_unite_inventaire", type: "decimal", precision: 12, scale: 3)]
     private string $quantiteUniteInventaire;
 
+    #[ORM\Column(name: "numero_lot", type: "string", length: 100, nullable: true, options: ['comment' => 'Numéro de lot relevé sur la denrée lors de son entrée en stock.'])]
+    private ?string $numeroLot = null;
+
     public function __construct(MouvementStock $mouvementStock, Denree $denree, string $quantite)
     {
         if ((float) $quantite <= 0) {
@@ -124,6 +127,26 @@ class MouvementStockLigne
             throw new \InvalidArgumentException("Quantité d'inventaire invalide.");
         }
         $this->quantiteUniteInventaire = $quantite;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function getNumeroLot(): ?string
+    {
+        return $this->numeroLot;
+    }
+
+    public function setNumeroLot(?string $numeroLot): self
+    {
+        $numeroLot = null === $numeroLot ? null : trim($numeroLot);
+        if ('' === $numeroLot) {
+            $numeroLot = null;
+        }
+        if (null !== $numeroLot && mb_strlen($numeroLot) > 100) {
+            throw new \InvalidArgumentException('Le numéro de lot ne peut pas dépasser 100 caractères.');
+        }
+        $this->numeroLot = $numeroLot;
         $this->touch();
 
         return $this;

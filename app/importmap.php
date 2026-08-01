@@ -27,4 +27,6 @@ return [
     '@hotwired/stimulus' => ['version' => '3.2.2'],
     '@symfony/stimulus-bundle' => ['path' => './vendor/symfony/stimulus-bundle/assets/dist/loader.js'],
     '@hotwired/turbo' => ['version' => '8.0.23'],
+    'tesseract.js' => ['version' => '7.0.0'],
+    'regenerator-runtime/runtime' => ['version' => '0.13.11'],
 ];

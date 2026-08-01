@@ -4,8 +4,13 @@ export default class extends Controller {
     static targets = ['type', 'origin', 'groupField', 'group', 'supplierField', 'supplier', 'lines', 'line', 'lineTemplate'];
 
     connect() {
+        this.ocrWorkerPromise = null;
         this.stampBrowserTime();
         this.refresh();
+    }
+
+    disconnect() {
+        this.ocrWorkerPromise?.then((worker) => worker.terminate());
     }
 
     stampBrowserTime() {
@@ -46,6 +51,7 @@ export default class extends Controller {
     updateLine(line) {
         if (!line) return;
         const supplierEntry = this.isEntry && this.originCode === 'FOURNISSEUR';
+        const entry = this.isEntry;
         let food = line.querySelector('[data-line-food]')?.value || '';
         const foodSelect = line.querySelector('[data-line-food]');
         [...foodSelect.options].forEach((option) => {
@@ -85,6 +91,114 @@ export default class extends Controller {
         });
         const hasSupplier = [...reference.options].some((option) => option.value && !option.disabled);
         line.querySelector('[data-line-no-supplier]').hidden = !supplierEntry || !foodSelect.value || hasSupplier;
+        const lot = line.querySelector('[data-line-lot]');
+        lot.hidden = !entry;
+        lot.querySelectorAll('input,button').forEach((field) => field.disabled = !entry);
+    }
+
+    scanLot(event) {
+        const line = event.currentTarget.closest('[data-stock-movement-target~="line"]');
+        line.querySelector('[data-line-lot-camera]').click();
+    }
+
+    async readLotImage(event) {
+        const file = event.currentTarget.files?.[0];
+        const line = event.currentTarget.closest('[data-stock-movement-target~="line"]');
+        const status = line.querySelector('[data-line-lot-status]');
+        const field = line.querySelector('[data-line-lot-value]');
+        if (!file) return;
+
+        status.textContent = 'Analyse du code et du texte en cours…';
+        try {
+            let barcodeLot = null;
+            if ('createImageBitmap' in window) {
+                try {
+                    const image = await createImageBitmap(file);
+                    barcodeLot = await this.readBarcodeLot(image);
+                    image.close();
+                } catch (error) {
+                    console.info('Lecture du code-barres indisponible, passage à l’OCR', error);
+                }
+            }
+            if (barcodeLot) {
+                field.value = barcodeLot;
+                status.textContent = 'Lot lu dans le code GS1. Vérifiez la valeur avant d’enregistrer.';
+                return;
+            }
+
+            status.textContent = 'Aucun lot GS1 trouvé. Reconnaissance du texte en cours…';
+            const worker = await this.ocrWorker();
+            const result = await worker.recognize(file);
+            const ocrLot = this.extractLot(result.data.text);
+            if (ocrLot) {
+                field.value = ocrLot;
+                status.textContent = 'Lot détecté par OCR. Vérifiez la valeur avant d’enregistrer.';
+            } else {
+                status.textContent = 'Numéro de lot non identifié. Vous pouvez le saisir manuellement.';
+                field.focus();
+            }
+        } catch (error) {
+            console.error('Lecture du numéro de lot impossible', error);
+            status.textContent = 'Lecture automatique impossible. Saisissez le numéro manuellement.';
+            field.focus();
+        } finally {
+            event.currentTarget.value = '';
+        }
+    }
+
+    async ocrWorker() {
+        if (!this.ocrWorkerPromise) {
+            const ocrBaseUrl = new URL('/ocr/', window.location.origin).href;
+            this.ocrWorkerPromise = import('tesseract.js')
+                .then(({ createWorker }) => createWorker('fra', 1, {
+                    workerPath: `${ocrBaseUrl}worker.min.js`,
+                    corePath: `${ocrBaseUrl}tesseract-core-simd-lstm.wasm.js`,
+                    langPath: ocrBaseUrl,
+                    workerBlobURL: false,
+                }))
+                .catch((error) => {
+                    this.ocrWorkerPromise = null;
+                    throw error;
+                });
+        }
+        return this.ocrWorkerPromise;
+    }
+
+    async readBarcodeLot(image) {
+        if (!('BarcodeDetector' in window)) return null;
+        const supported = await BarcodeDetector.getSupportedFormats();
+        const formats = ['data_matrix', 'qr_code', 'code_128', 'ean_13'].filter((format) => supported.includes(format));
+        if (!formats.length) return null;
+        const codes = await new BarcodeDetector({ formats }).detect(image);
+        for (const code of codes) {
+            const lot = this.extractGs1Lot(code.rawValue || '');
+            if (lot) return lot;
+        }
+        return null;
+    }
+
+    extractGs1Lot(raw) {
+        const value = raw.replace(/^]C1|^]d2/i, '');
+        const digitalLink = value.match(/\/10\/([^/?#]+)/i);
+        if (digitalLink) return decodeURIComponent(digitalLink[1]).slice(0, 100);
+        const parenthesized = value.match(/\(10\)([A-Z0-9!"%&'()*+,\-./:;<=>?_ ]{1,20}?)(?=\(\d{2,4}\)|$)/i);
+        if (parenthesized) return parenthesized[1].trim();
+        const element = value.match(/^(?:01.{14})?(?:1[157].{6})*10([^\x1d]{1,20})(?:\x1d|$)/i)
+            || value.match(/(?:^|\x1d)10([^\x1d]{1,20})(?:\x1d|$)/i);
+        return element ? element[1].trim() : null;
+    }
+
+    extractLot(text) {
+        const normalized = text.replace(/[|]/g, 'I');
+        const patterns = [
+            /(?:N[°º]?\s*(?:DE\s*)?LOT|LOT|BATCH)\s*[:#.-]?\s*([A-Z0-9][A-Z0-9._/-]{2,30})/i,
+            /\bL(?:OT)?\s*[:#.-]\s*([A-Z0-9][A-Z0-9._/-]{2,30})/i,
+        ];
+        for (const pattern of patterns) {
+            const match = normalized.match(pattern);
+            if (match) return match[1].replace(/[.,;:]$/, '').slice(0, 100);
+        }
+        return null;
     }
 
     filterOptions(select, food) {
