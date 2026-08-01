@@ -34,10 +34,11 @@ final class ConversionConditionnement
      * Charge en une seule requête les conditionnements de plusieurs denrées.
      *
      * @param list<Denree> $denrees
+     * @param null|list<ReferenceFournisseurConditionnement> $niveaux niveaux déjà chargés, le cas échéant
      *
      * @return array<string, list<Unite>> indexé par identifiant de denrée
      */
-    public function conditionnementsPourDenrees(array $denrees): array
+    public function conditionnementsPourDenrees(array $denrees, ?array $niveaux = null): array
     {
         $resultats = [];
         foreach ($denrees as $denree) {
@@ -46,7 +47,7 @@ final class ConversionConditionnement
             ];
         }
 
-        foreach ($this->niveaux->findActifsPourDenrees($denrees) as $niveau) {
+        foreach ($niveaux ?? $this->niveaux->findActifsPourDenrees($denrees) as $niveau) {
             $denreeId = (string) $niveau->getReferenceFournisseur()->getDenree()->getId();
             $conditionnement = $niveau->getConditionnement();
             $resultats[$denreeId][(string) $conditionnement->getId()] = $conditionnement;

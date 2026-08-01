@@ -112,19 +112,17 @@ final class MouvementStockController extends AbstractController
         $referencesParDenree = [];
         $fournisseursParId = [];
         $conditionnementsParReference = [];
-        $conditionnementsSortieParDenree = [];
 
-        foreach ($denreesActives as $denree) {
-            $conditionnementsSortieParDenree[(string) $denree->getId()] = $conversion->conditionnementsPour($denree);
-            foreach ($references->findPourDenree($denree) as $reference) {
-                if (!$reference->isActif() || !$reference->getFournisseur()->isActif()) {
-                    continue;
-                }
-                $referencesParDenree[(string) $denree->getId()][] = $reference;
-                $fournisseursParId[(string) $reference->getFournisseur()->getId()] = $reference->getFournisseur();
-                $conditionnementsParReference[(string) $reference->getId()] = $conditionnements->findPourReference($reference);
-            }
+        foreach ($references->findActifsPourDenrees($denreesActives) as $reference) {
+            $referencesParDenree[(string) $reference->getDenree()->getId()][] = $reference;
+            $fournisseursParId[(string) $reference->getFournisseur()->getId()] = $reference->getFournisseur();
+            $conditionnementsParReference[(string) $reference->getId()] = [];
         }
+        $niveauxActifs = $conditionnements->findActifsPourDenrees($denreesActives);
+        foreach ($niveauxActifs as $niveau) {
+            $conditionnementsParReference[(string) $niveau->getReferenceFournisseur()->getId()][] = $niveau;
+        }
+        $conditionnementsSortieParDenree = $conversion->conditionnementsPourDenrees($denreesActives, $niveauxActifs);
         $fournisseursActifs = array_values($fournisseursParId);
 
         $conditionnementSortieExistant = $ligneExistante?->getConditionnementSortie() ?? $ligneExistante?->getDenree()->getUniteReference();

@@ -12,6 +12,9 @@ use Symfony\Bundle\SecurityBundle\Security;
 
 final class ContexteSejour
 {
+    /** @var null|list<Sejour> */
+    private ?array $sejoursAccessibles = null;
+
     public function __construct(
         private readonly Security $security,
         private readonly SejourRepository $sejours,
@@ -21,14 +24,24 @@ final class ContexteSejour
     /** @return list<Sejour> */
     public function accessibles(): array
     {
+        if (null !== $this->sejoursAccessibles) {
+            return $this->sejoursAccessibles;
+        }
+
         $utilisateur = $this->security->getUser();
-        if (!$utilisateur instanceof Utilisateur) { return []; }
+        if (!$utilisateur instanceof Utilisateur) {
+            return $this->sejoursAccessibles = [];
+        }
         if ($this->security->isGranted(Utilisateur::ROLE_GROUPE)) {
             $sejour = $utilisateur->getGroupe()?->getSejour();
 
-            return $sejour instanceof Sejour && $sejour->isActif() ? [$sejour] : [];
+            return $this->sejoursAccessibles = $sejour instanceof Sejour && $sejour->isActif() ? [$sejour] : [];
         }
-        return $this->sejours->findActifsPourUtilisateur($utilisateur, $this->security->isGranted(Utilisateur::ROLE_ADMIN));
+
+        return $this->sejoursAccessibles = $this->sejours->findActifsPourUtilisateur(
+            $utilisateur,
+            $this->security->isGranted(Utilisateur::ROLE_ADMIN),
+        );
     }
 
     public function actif(): ?Sejour

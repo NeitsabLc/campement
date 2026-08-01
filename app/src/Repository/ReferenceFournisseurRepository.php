@@ -30,4 +30,28 @@ final class ReferenceFournisseurRepository extends ServiceEntityRepository
             ->join('r.fournisseur', 'f')->andWhere('r.denree = :denree')
             ->setParameter('denree', $denree)->orderBy('f.nom', 'ASC')->getQuery()->getResult();
     }
+
+    /**
+     * @param list<Denree> $denrees
+     *
+     * @return list<ReferenceFournisseur>
+     */
+    public function findActifsPourDenrees(array $denrees): array
+    {
+        if ([] === $denrees) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('r')
+            ->addSelect('f', 'd')
+            ->join('r.fournisseur', 'f')
+            ->join('r.denree', 'd')
+            ->andWhere('d IN (:denrees)')
+            ->andWhere('r.actif = true')
+            ->andWhere('f.actif = true')
+            ->setParameter('denrees', $denrees)
+            ->orderBy('f.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

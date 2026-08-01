@@ -36,12 +36,15 @@ final class ReferenceFournisseurConditionnementRepository extends ServiceEntityR
         }
 
         return $this->createQueryBuilder('niveau')
-            ->addSelect('reference', 'denree', 'conditionnement')
+            ->addSelect('reference', 'denree', 'conditionnement', 'uniteContenu')
             ->join('niveau.referenceFournisseur', 'reference')
             ->join('reference.denree', 'denree')
             ->join('niveau.conditionnement', 'conditionnement')
+            ->leftJoin('niveau.uniteContenu', 'uniteContenu')
             ->andWhere('denree IN (:denrees)')
             ->andWhere('reference.actif = true')
+            ->join('reference.fournisseur', 'fournisseur')
+            ->andWhere('fournisseur.actif = true')
             ->setParameter('denrees', $denrees)
             ->orderBy('niveau.ordre', 'ASC')
             ->getQuery()
