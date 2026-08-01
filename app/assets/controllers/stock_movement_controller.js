@@ -1,9 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['type', 'origin', 'groupField', 'group', 'supplierField', 'supplier', 'lines', 'line', 'lineTemplate'];
+    static targets = ['type', 'origin', 'groupField', 'group', 'supplierField', 'supplier', 'lines', 'line', 'lineTemplate', 'catalog'];
 
     connect() {
+        this.catalog = JSON.parse(this.catalogTarget.textContent);
         this.ocrWorkerPromise = null;
         this.stampBrowserTime();
         this.refresh();
@@ -50,6 +51,7 @@ export default class extends Controller {
 
     updateLine(line) {
         if (!line) return;
+        this.initializeLine(line);
         const supplierEntry = this.isEntry && this.originCode === 'FOURNISSEUR';
         const entry = this.isEntry;
         let food = line.querySelector('[data-line-food]')?.value || '';
@@ -70,30 +72,117 @@ export default class extends Controller {
         entryBlock.querySelectorAll('select,input').forEach((field) => field.disabled = !supplierEntry);
 
         const exitUnit = line.querySelector('[data-line-exit-unit]');
-        this.filterOptions(exitUnit, food);
+        this.populateExitUnits(line, exitUnit, food);
         exitUnit.required = !supplierEntry;
         line.querySelector('[data-line-quantity]').required = !supplierEntry;
         line.querySelector('[data-line-unit]').textContent = exitUnit.selectedOptions[0]?.dataset.symbol || '—';
 
         const reference = line.querySelector('[data-line-reference]');
-        [...reference.options].forEach((option) => {
-            const visible = !option.value || (option.dataset.food === foodSelect.value && option.dataset.supplier === this.supplierTarget.value);
-            option.hidden = !visible;
-            option.disabled = !visible;
-        });
-        const referenceDisponible = [...reference.options].find((option) => option.value && !option.disabled);
-        reference.value = supplierEntry && referenceDisponible ? referenceDisponible.value : '';
+        this.populateReferences(line, reference, foodSelect.value, this.supplierTarget.value, supplierEntry);
         reference.required = supplierEntry;
-        line.querySelectorAll('[data-line-packagings]').forEach((block) => {
-            const active = supplierEntry && block.dataset.reference === reference.value;
-            block.hidden = !active;
-            block.querySelectorAll('input').forEach((input) => input.disabled = !active);
-        });
+        this.populatePackagings(line, reference, supplierEntry);
         const hasSupplier = [...reference.options].some((option) => option.value && !option.disabled);
         line.querySelector('[data-line-no-supplier]').hidden = !supplierEntry || !foodSelect.value || hasSupplier;
         const lot = line.querySelector('[data-line-lot]');
         lot.hidden = !entry;
         lot.querySelectorAll('input,button').forEach((field) => field.disabled = !entry);
+    }
+
+    initializeLine(line) {
+        if (line.dataset.catalogInitialized) return;
+        const foodSelect = line.querySelector('[data-line-food]');
+        const selected = line.dataset.selectedFood || '';
+        foodSelect.replaceChildren(
+            new Option('Sélectionner une denrée', ''),
+            ...this.catalog.denrees.map((food) => {
+                const option = new Option(food.nom, food.id, false, food.id === selected);
+                option.dataset.suppliers = food.fournisseurs.join(' ');
+                return option;
+            }),
+        );
+        try {
+            line.packagingValues = JSON.parse(line.dataset.packagingValues || '{}');
+        } catch {
+            line.packagingValues = {};
+        }
+        line.dataset.catalogInitialized = 'true';
+    }
+
+    populateExitUnits(line, select, food) {
+        const key = food || '';
+        if (select.dataset.food === key) return;
+        const selected = select.dataset.initialized ? select.value : (line.dataset.selectedExitUnit || '');
+        const options = (this.catalog.sorties[food] || []).map((unit) => {
+            const option = new Option(unit.nom, unit.id, false, unit.id === selected);
+            option.dataset.symbol = unit.symbole;
+            return option;
+        });
+        select.replaceChildren(new Option('Sélectionner un conditionnement', ''), ...options);
+        select.dataset.food = key;
+        select.dataset.initialized = 'true';
+    }
+
+    populateReferences(line, select, food, supplier, active) {
+        const key = active ? `${food}:${supplier}` : '';
+        if (select.dataset.catalogKey === key) {
+            if (!active) select.value = '';
+            return;
+        }
+        const selected = select.dataset.initialized ? select.value : (line.dataset.selectedReference || '');
+        const references = active
+            ? this.catalog.references.filter((reference) => reference.denree === food && reference.fournisseur === supplier)
+            : [];
+        select.replaceChildren(
+            new Option('Aucune référence', ''),
+            ...references.map((reference) => new Option(reference.nom, reference.id, false, reference.id === selected)),
+        );
+        if (active && !select.value && references.length) select.value = references[0].id;
+        select.dataset.catalogKey = key;
+        select.dataset.initialized = 'true';
+    }
+
+    populatePackagings(line, referenceSelect, active) {
+        line.querySelectorAll('[data-packaging-id]').forEach((input) => {
+            line.packagingValues[input.dataset.packagingId] = input.value;
+        });
+        const container = line.querySelector('[data-line-packagings-container]');
+        const reference = active
+            ? this.catalog.references.find((candidate) => candidate.id === referenceSelect.value)
+            : null;
+        if (!reference?.conditionnements.length) {
+            container.replaceChildren();
+            return;
+        }
+        const block = document.createElement('div');
+        block.className = 'movement-packagings';
+        const title = document.createElement('h3');
+        title.textContent = 'Quantités reçues par conditionnement';
+        const grid = document.createElement('div');
+        grid.className = 'movement-packaging-grid';
+        const referenceSuffix = '[reference]';
+        const prefix = referenceSelect.name.endsWith(referenceSuffix)
+            ? referenceSelect.name.slice(0, -referenceSuffix.length)
+            : '';
+        grid.replaceChildren(...reference.conditionnements.map((packaging) => {
+            const label = document.createElement('label');
+            const name = document.createElement('span');
+            name.textContent = packaging.libelle;
+            const input = document.createElement('input');
+            input.name = prefix
+                ? `${prefix}[conditionnements][${packaging.id}]`
+                : `conditionnements[${packaging.id}]`;
+            input.value = line.packagingValues[packaging.id] || '';
+            input.inputMode = 'decimal';
+            input.min = '0';
+            input.placeholder = '0';
+            input.dataset.packagingId = packaging.id;
+            const help = document.createElement('small');
+            help.textContent = packaging.description;
+            label.append(name, input, help);
+            return label;
+        }));
+        block.append(title, grid);
+        container.replaceChildren(block);
     }
 
     scanLot(event) {
@@ -199,15 +288,6 @@ export default class extends Controller {
             if (match) return match[1].replace(/[.,;:]$/, '').slice(0, 100);
         }
         return null;
-    }
-
-    filterOptions(select, food) {
-        [...select.options].forEach((option) => {
-            const visible = !option.value || option.dataset.food === food;
-            option.hidden = !visible;
-            option.disabled = !visible;
-        });
-        if (select.selectedOptions[0]?.disabled) select.value = '';
     }
 
     numberLines() {

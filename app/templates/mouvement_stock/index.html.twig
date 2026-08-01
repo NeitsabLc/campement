@@ -4,6 +4,7 @@
 
 {% block body %}
 <main class="stock-movement-page" data-controller="stock-movement">
+    <script nonce="{{ app.request.attributes.get('csp_nonce') }}" type="application/json" data-stock-movement-target="catalog">{{ catalogueMouvement|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
     <header class="stock-movement-heading"><div>
         <h1>{{ mouvementExistant ? 'Modifier le mouvement' : 'Saisir un mouvement de stock' }}</h1>
         <p>{{ mouvementExistant ? 'Corrigez les informations du mouvement enregistré.' : 'Associez une ou plusieurs denrées à une même entrée ou sortie.' }}</p>

@@ -1,18 +1,22 @@
 {% set prefix = modifiable ? '' : 'lignes[' ~ index ~ ']' %}
 {% set valeurDenree = ligneValeurs.denree|default('') %}
-<div class="movement-line" data-stock-movement-target="line">
+<div class="movement-line" data-stock-movement-target="line"
+     data-selected-food="{{ valeurDenree|e('html_attr') }}"
+     data-selected-exit-unit="{{ ligneValeurs.conditionnement_sortie|default('')|e('html_attr') }}"
+     data-selected-reference="{{ ligneValeurs.reference|default('')|e('html_attr') }}"
+     data-packaging-values="{{ ligneValeurs.conditionnements|default({})|json_encode|e('html_attr') }}">
     <div class="movement-line-food">
-        <label>Denrée <b>*</b><select name="{{ prefix ? prefix ~ '[denree]' : 'denree' }}" required data-controller="searchable-select" data-line-food data-action="change->stock-movement#refreshLine"><option value="">Sélectionner une denrée</option>{% for denree in denreesActives %}<option value="{{ denree.id }}" data-suppliers="{% for reference in referencesParDenree[denree.id ~ '']|default([]) %}{{ reference.fournisseur.id }} {% endfor %}"{{ valeurDenree == denree.id ~ '' ? ' selected' : '' }}>{{ denree.nom }}</option>{% endfor %}</select></label>
+        <label>Denrée <b>*</b><select name="{{ prefix ? prefix ~ '[denree]' : 'denree' }}" required data-controller="searchable-select" data-line-food data-action="change->stock-movement#refreshLine"><option value="">Sélectionner une denrée</option></select></label>
     </div>
     <div class="movement-line-detail" data-line-exit>
         <div class="stock-movement-grid">
-            <label>Conditionnement <b>*</b><select name="{{ prefix ? prefix ~ '[conditionnement_sortie]' : 'conditionnement_sortie' }}" data-line-exit-unit data-action="change->stock-movement#refreshLine"><option value="">Sélectionner un conditionnement</option>{% for denreeId, liste in conditionnementsSortieParDenree %}{% for unite in liste %}<option value="{{ unite.id }}" data-food="{{ denreeId }}" data-symbol="{{ unite.symbole }}"{{ ligneValeurs.conditionnement_sortie|default('') == unite.id ~ '' ? ' selected' : '' }}>{{ unite.nom }}</option>{% endfor %}{% endfor %}</select></label>
+            <label>Conditionnement <b>*</b><select name="{{ prefix ? prefix ~ '[conditionnement_sortie]' : 'conditionnement_sortie' }}" data-line-exit-unit data-action="change->stock-movement#refreshLine"><option value="">Sélectionner un conditionnement</option></select></label>
             <label>Quantité <b>*</b><div class="movement-quantity"><input name="{{ prefix ? prefix ~ '[quantite]' : 'quantite' }}" value="{{ ligneValeurs.quantite|default('') }}" inputmode="decimal" placeholder="0" data-line-quantity><span data-line-unit>—</span></div></label>
         </div>
     </div>
     <div class="movement-line-detail" data-line-entry hidden>
-        <select name="{{ prefix ? prefix ~ '[reference]' : 'reference' }}" data-line-reference hidden><option value="">Aucune référence</option>{% for denreeId, liste in referencesParDenree %}{% for reference in liste %}<option value="{{ reference.id }}" data-food="{{ denreeId }}" data-supplier="{{ reference.fournisseur.id }}"{{ ligneValeurs.reference|default('') == reference.id ~ '' ? ' selected' : '' }}>{{ reference.fournisseur.nom }}</option>{% endfor %}{% endfor %}</select>
-        {% for referenceId, liste in conditionnementsParReference %}<div class="movement-packagings" data-line-packagings data-reference="{{ referenceId }}" hidden><h3>Quantités reçues par conditionnement</h3><div class="movement-packaging-grid">{% for conditionnement in liste %}<label><span>{{ conditionnement.libelle }}</span><input name="{{ prefix ? prefix ~ '[conditionnements][' ~ conditionnement.id ~ ']' : 'conditionnements[' ~ conditionnement.id ~ ']' }}" value="{{ ligneValeurs.conditionnements[conditionnement.id ~ '']|default('') }}" inputmode="decimal" min="0" placeholder="0"><small>1 {{ conditionnement.libelle }} contient {{ conditionnement.quantiteContenu|number_format(3, ',', ' ')|replace({',000': ''}) }} {{ conditionnement.libelleContenu ?: (conditionnement.uniteContenu ? conditionnement.uniteContenu.symbole : 'unité(s)') }}</small></label>{% endfor %}</div></div>{% endfor %}
+        <select name="{{ prefix ? prefix ~ '[reference]' : 'reference' }}" data-line-reference hidden><option value="">Aucune référence</option></select>
+        <div data-line-packagings-container></div>
         <p class="movement-no-supplier" data-line-no-supplier hidden>Aucun fournisseur actif n’est associé à cette denrée.</p>
     </div>
     <div class="movement-lot" data-line-lot hidden>

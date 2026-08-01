@@ -134,6 +134,47 @@ final class MouvementStockController extends AbstractController
             $conditionnementsParReference[(string) $niveau->getReferenceFournisseur()->getId()][] = $niveau;
         }
         $conditionnementsSortieParDenree = $conversion->conditionnementsPourDenrees($denreesActives, $niveauxActifs);
+        $catalogueMouvement = ['denrees' => [], 'sorties' => [], 'references' => []];
+        foreach ($denreesActives as $denree) {
+            $denreeId = (string) $denree->getId();
+            $fournisseurs = [];
+            foreach ($referencesParDenree[$denreeId] ?? [] as $reference) {
+                $fournisseur = $reference->getFournisseur();
+                $fournisseurs[(string) $fournisseur->getId()] = true;
+                $referenceId = (string) $reference->getId();
+                $catalogueMouvement['references'][] = [
+                    'id' => $referenceId,
+                    'denree' => $denreeId,
+                    'fournisseur' => (string) $fournisseur->getId(),
+                    'nom' => $fournisseur->getNom(),
+                    'conditionnements' => array_map(static function ($conditionnement): array {
+                        $quantite = number_format((float) $conditionnement->getQuantiteContenu(), 3, ',', ' ');
+                        $quantite = str_replace(',000', '', $quantite);
+
+                        return [
+                            'id' => (string) $conditionnement->getId(),
+                            'libelle' => $conditionnement->getLibelle(),
+                            'description' => sprintf(
+                                '1 %s contient %s %s',
+                                $conditionnement->getLibelle(),
+                                $quantite,
+                                $conditionnement->getLibelleContenu() ?: ($conditionnement->getUniteContenu()?->getSymbole() ?? 'unité(s)'),
+                            ),
+                        ];
+                    }, $conditionnementsParReference[$referenceId] ?? []),
+                ];
+            }
+            $catalogueMouvement['denrees'][] = [
+                'id' => $denreeId,
+                'nom' => $denree->getNom(),
+                'fournisseurs' => array_keys($fournisseurs),
+            ];
+            $catalogueMouvement['sorties'][$denreeId] = array_map(static fn ($unite): array => [
+                'id' => (string) $unite->getId(),
+                'nom' => $unite->getNom(),
+                'symbole' => $unite->getSymbole(),
+            ], $conditionnementsSortieParDenree[$denreeId] ?? []);
+        }
         $fournisseursActifs = array_values($fournisseursParId);
         $detailsParLigne = [];
         foreach ($lignesConditionnements->findPourLignes($lignesMouvement) as $detail) {
@@ -339,7 +380,8 @@ final class MouvementStockController extends AbstractController
 
         return $this->render('mouvement_stock/index.html.twig', compact(
             'sejour', 'denreesActives', 'originesActives', 'groupesActifs', 'fournisseursActifs',
-            'referencesParDenree', 'conditionnementsParReference', 'conditionnementsSortieParDenree', 'valeurs', 'lignesValeurs', 'erreurs', 'mouvementExistant',
+            'referencesParDenree', 'conditionnementsParReference', 'conditionnementsSortieParDenree', 'catalogueMouvement',
+            'valeurs', 'lignesValeurs', 'erreurs', 'mouvementExistant',
         ));
     }
 
