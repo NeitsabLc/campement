@@ -10,6 +10,7 @@ use App\Entity\Utilisateur;
 use App\Repository\PublicCibleRepository;
 use App\Repository\SejourRepository;
 use App\Repository\UtilisateurRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SejourTest extends WebTestCase
@@ -29,6 +30,7 @@ final class SejourTest extends WebTestCase
 
         $crawler = $client->request('GET', '/sejours');
         self::assertSelectorExists('.sidebar__link[href="/sejours"] + .sidebar__link[href="/utilisateurs"]');
+        self::assertSelectorNotExists('#form-sejour-create select[name="gestionnaire"]');
         $formulaireCreation = $crawler->filter('#form-sejour-create')->form([
             'nom' => $nomInitial,
             'date_debut' => '2027-07-01',
@@ -37,7 +39,6 @@ final class SejourTest extends WebTestCase
             'module_intendance' => 'on',
             'module_administratif' => 'on',
             'module_situations_particulieres' => 'on',
-            'gestionnaire' => (string) $gestionnaire->getId(),
         ]);
         $client->submit($formulaireCreation);
         self::assertResponseRedirects('/sejours');
@@ -70,6 +71,12 @@ final class SejourTest extends WebTestCase
         self::assertTrue($sejour->isModuleIntendanceActif());
         self::assertFalse($sejour->isModuleAdministratifActif());
         self::assertTrue($sejour->isModuleSituationsParticulieresActif());
+
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $gestionnaire = $entityManager->find(Utilisateur::class, $gestionnaire->getId());
+        self::assertInstanceOf(Utilisateur::class, $gestionnaire);
+        $sejour->addGestionnaire($gestionnaire);
+        $entityManager->flush();
 
         $client->loginUser($gestionnaire);
         $crawler = $client->request('GET', '/sejours');

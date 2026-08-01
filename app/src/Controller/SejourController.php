@@ -11,7 +11,6 @@ use App\Entity\Utilisateur;
 use App\Repository\PublicCibleRepository;
 use App\Repository\SejourRepository;
 use App\Repository\TypeRepasRepository;
-use App\Repository\UtilisateurRepository;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,7 +29,6 @@ final class SejourController extends AbstractController
         SejourRepository $repository,
         PublicCibleRepository $publics,
         TypeRepasRepository $typesRepas,
-        UtilisateurRepository $utilisateurs,
         ContexteSejour $contexte,
         EntityManagerInterface $entityManager,
     ): Response {
@@ -61,14 +59,6 @@ final class SejourController extends AbstractController
             if ('' === $nom || mb_strlen($nom) > 150) { $erreurs[] = 'Le nom est obligatoire et limité à 150 caractères.'; }
             if (!$debut instanceof \DateTimeImmutable || !$fin instanceof \DateTimeImmutable || $fin < $debut) { $erreurs[] = 'Les dates du séjour sont invalides.'; }
             if ([] === $publicIds) { $erreurs[] = 'Sélectionnez au moins un type de public.'; }
-            $gestionnaire = null;
-            if ($creation) {
-                $gestionnaireId = $request->request->getString('gestionnaire');
-                $gestionnaire = Uuid::isValid($gestionnaireId) ? $utilisateurs->find($gestionnaireId) : null;
-                if (!$gestionnaire instanceof Utilisateur || Utilisateur::ROLE_GESTIONNAIRE !== $gestionnaire->getRole() || !$gestionnaire->isActif()) {
-                    $erreurs[] = 'Sélectionnez un gestionnaire actif.';
-                }
-            }
             if ([] === $erreurs) {
                 $sejour ??= new Sejour($nom, $debut, $fin);
                 $sejour->setNom($nom)
@@ -79,8 +69,8 @@ final class SejourController extends AbstractController
                 foreach ($publics->findActifs() as $public) {
                     in_array((string) $public->getId(), $publicIds, true) ? $sejour->addPublicCible($public) : $sejour->removePublicCible($public);
                 }
-                if ($creation && $gestionnaire instanceof Utilisateur) {
-                    $sejour->addGestionnaire($gestionnaire); $entityManager->persist($sejour);
+                if ($creation) {
+                    $entityManager->persist($sejour);
                     foreach ($typesRepas->findActifs() as $typeRepas) $entityManager->persist(new SejourTypeRepas($sejour, $typeRepas, $typeRepas->getOrdre()));
                 }
                 $entityManager->flush();
@@ -93,7 +83,6 @@ final class SejourController extends AbstractController
             'sejours' => $liste, 'publics' => $publics->findActifs(), 'erreurs' => $erreurs,
             'sejour_selectionne' => $contexte->actif(),
             'est_administrateur' => $admin,
-            'gestionnaires' => array_filter($utilisateurs->findBy(['actif' => true], ['nom' => 'ASC']), static fn (Utilisateur $u): bool => Utilisateur::ROLE_GESTIONNAIRE === $u->getRole()),
         ]);
     }
 
