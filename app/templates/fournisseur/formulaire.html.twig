@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ donnees.fournisseur_id ? donnees.nom : 'Ajouter un fournisseur' }} | Campement{% endblock %}
+{% block body %}
+<main class="food-form-page">
+    <nav class="food-breadcrumb"><a href="{{ path('app_fournisseurs') }}">Fournisseurs</a><span>/</span><span>{{ donnees.fournisseur_id ? donnees.nom : 'Ajouter' }}</span></nav>
+    <header class="food-form-heading"><div><h1>{{ donnees.fournisseur_id ? donnees.nom : 'Ajouter un fournisseur' }}</h1></div></header>
+    {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    <form id="supplier-form" method="post"><section class="food-form-card">
+        <h2>Informations générales</h2>
+        <input type="hidden" name="_token" value="{{ csrf_token('enregistrer_fournisseur') }}"><input type="hidden" name="fournisseur_id" value="{{ donnees.fournisseur_id }}">
+        <div class="food-general-grid"><label for="supplier-name">Nom du fournisseur <b>*</b><input id="supplier-name" name="nom" maxlength="150" required autocomplete="organization" value="{{ donnees.nom }}"></label><label for="supplier-phone">Téléphone<input id="supplier-phone" name="telephone" maxlength="30" autocomplete="tel" value="{{ donnees.telephone }}"></label><label for="supplier-email">Adresse e-mail<input id="supplier-email" name="email" type="email" maxlength="150" autocomplete="email" value="{{ donnees.email }}"></label><label class="supplier-address-field" for="supplier-address">Adresse<textarea id="supplier-address" name="adresse" rows="4">{{ donnees.adresse }}</textarea></label></div>
+    </section><div class="food-form-actions"><a class="food-secondary" href="{{ path('app_fournisseurs') }}">Annuler</a><button class="food-primary" type="submit">Enregistrer le fournisseur</button></div></form>
+</main>
+{% endblock %}

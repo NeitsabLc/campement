@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des utilisateurs | Campement{% endblock %}
+{% block title %}Utilisateurs | Campement{% endblock %}
 
 {% block body %}
-<main class="users-page" data-controller="user-dialog">
-    <header class="users-heading">
-        <div><h1>Gestion des utilisateurs</h1></div>
+<main class="users-page stock-list-page entity-list-page" data-controller="user-dialog">
+    <header class="users-heading stock-list-heading entity-list-heading">
+        <div><h1>Utilisateurs</h1></div>
         <div class="users-heading__actions">
         {% if not est_administrateur and sejours|length > 1 %}
             <form method="get" class="stay-selector">
@@ -15,7 +15,7 @@
                 </select>
             </form>
         {% endif %}
-            <button class="food-primary" type="button" data-user-dialog-open>＋ Ajouter un utilisateur</button>
+            <a class="food-primary food-add-button" href="{{ path('app_utilisateur_ajouter', sejour_selectionne ? {sejour: sejour_selectionne.id} : {}) }}" aria-label="Ajouter un utilisateur"><span aria-hidden="true">＋</span><span class="food-add-button__label">Ajouter un utilisateur</span></a>
         </div>
     </header>
 
@@ -23,15 +23,11 @@
     {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
 
     <div class="users-layout users-layout--list">
-        <section class="users-card">
-            <h2>Utilisateurs</h2>
-            {% if utilisateurs is empty %}
-                <p>Aucun utilisateur.</p>
-            {% else %}
-                <div class="users-list">
-                    <div class="user-row user-row--head table-list-heading" aria-hidden="true"><span>Utilisateur</span><span>Rôle</span><span>Séjours</span><span>Groupe</span><span>Actions</span></div>
+        {% embed 'components/list_table.html.twig' with {variant: 'users', headings: ['Utilisateur', 'Rôle', 'Séjours', 'Groupe', 'Actions'], card_class: 'entity-list-card'} %}
+            {% block rows %}
+            {% if utilisateurs is empty %}<div class="shared-list-empty">Aucun utilisateur.</div>{% else %}
                     {% for utilisateur in utilisateurs|filter(utilisateur => utilisateur.role != constant('App\\Entity\\Utilisateur::ROLE_TECHNIQUE')) %}
-                    <article class="user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" role="button" tabindex="0" data-controller="clickable-row" data-click-target="[data-user-edit]" data-action="click->clickable-row#open keydown->clickable-row#open">
+                    <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_utilisateur_modifier',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_utilisateurs_statut',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_'~utilisateur.id) }}"><button type="submit">Supprimer</button></form><article class="shared-list-row user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate keydown->swipe-actions#activate">
                         <div><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
                         <span class="role-pill">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
                         <span class="user-assignment">
@@ -43,14 +39,7 @@
                         </span>
                         <span class="user-group">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
                         <div class="user-actions">
-                            <button class="edit-group-button" type="button" data-user-edit aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"
-                                data-user-id="{{ utilisateur.id }}"
-                                data-user-first-name="{{ utilisateur.prenom|e('html_attr') }}"
-                                data-user-last-name="{{ utilisateur.nom|e('html_attr') }}"
-                                data-user-email="{{ utilisateur.email|e('html_attr') }}"
-                                data-user-role="{{ utilisateur.role }}"
-                                data-user-stay="{{ utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GROUPE') and utilisateur.groupe ? utilisateur.groupe.sejour.id : (utilisateur.sejoursGeres|first ? (utilisateur.sejoursGeres|first).id : '') }}"
-                                data-user-group="{{ utilisateur.groupe ? utilisateur.groupe.id : '' }}"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></button>
+                            <a class="edit-group-button" data-user-edit href="{{ path('app_utilisateur_modifier', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}" aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                             {% if utilisateur.actif %}
                                 <button class="delete-group-button" type="button" aria-label="Désactiver {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Désactiver"
                                     data-user-disable
@@ -64,11 +53,10 @@
                                 </form>
                             {% endif %}
                         </div>
-                    </article>
+                    </article></div>
                     {% endfor %}
-                </div>
-            {% endif %}
-        </section>
+            {% endif %}{% endblock %}
+        {% endembed %}
     </div>
 
     <dialog class="user-dialog" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>

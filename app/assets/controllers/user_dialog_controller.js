@@ -9,8 +9,6 @@ export default class extends Controller {
         const groupStaySelector = this.element.querySelector('[data-group-stay-selector]');
         const groupSelector = this.element.querySelector('[data-group-selector]');
         const form = dialog?.querySelector('form');
-        if (!dialog) return;
-
         const update = () => this.element.querySelectorAll('[data-role-panel]').forEach((panel) => {
             panel.hidden = panel.dataset.rolePanel !== selector.value;
         });
@@ -24,6 +22,12 @@ export default class extends Controller {
             });
             if (groupSelector.selectedOptions[0]?.disabled) groupSelector.value = '';
         };
+        selector?.addEventListener('change', update, listenerOptions);
+        groupStaySelector?.addEventListener('change', updateGroups, listenerOptions);
+        update();
+        updateGroups();
+        if (!dialog) return;
+
         const openCreate = () => {
             form?.reset();
             dialog.querySelector('[data-user-id-field]').value = '';
@@ -35,8 +39,6 @@ export default class extends Controller {
             dialog.showModal();
         };
 
-        selector?.addEventListener('change', update, listenerOptions);
-        groupStaySelector?.addEventListener('change', updateGroups, listenerOptions);
         this.element.querySelector('[data-user-dialog-open]')?.addEventListener('click', openCreate, listenerOptions);
         this.element.querySelectorAll('[data-user-edit]').forEach((button) => button.addEventListener('click', () => {
             form?.reset();

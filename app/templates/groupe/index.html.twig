@@ -1,14 +1,14 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des unités participantes | Campement{% endblock %}
+{% block title %}Unités participantes | Campement{% endblock %}
 
 {% block body %}
-    <main class="groups-page" data-controller="group-dialog" data-group-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
-        <header class="groups-heading">
+    <main class="groups-page stock-list-page entity-list-page" data-controller="group-dialog" data-group-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
+        <header class="groups-heading stock-list-heading entity-list-heading">
             <div>
-                <h1>Gestion des unités participantes</h1>
+                <h1>Unités participantes</h1>
             </div>
-            {% if sejour %}<button class="add-group-button" type="button" data-action="group-dialog#openCreate"><span aria-hidden="true">＋</span> Ajouter une unité</button>{% endif %}
+            {% if sejour %}<a class="food-primary food-add-button" href="{{ path('app_groupe_ajouter') }}" aria-label="Ajouter une unité"><span aria-hidden="true">＋</span><span class="food-add-button__label">Ajouter une unité</span></a>{% endif %}
         </header>
 
         {% for message in app.flashes('success') %}<div class="flash flash--success" role="status" data-group-dialog-target="message">{{ message }}</div>{% endfor %}
@@ -17,9 +17,9 @@
         {% if not sejour %}
             <section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour avant de gérer ses unités participantes.</p></section>
         {% else %}
-            <section class="groups-list-card">
-                    <div class="groups-card-heading">
-                        <div><h2>Unités du séjour</h2><p>{{ groupes|length }} unité{{ groupes|length > 1 ? 's' : '' }} participante{{ groupes|length > 1 ? 's' : '' }}</p></div>
+            <section class="groups-list-card object-list-card object-detail-list-card">
+                    <div class="object-list-summary groups-card-heading">
+                        <p>{{ groupes|length }} unité{{ groupes|length > 1 ? 's' : '' }} participante{{ groupes|length > 1 ? 's' : '' }}</p>
                         <div class="groups-card-actions">
                             <form method="get" class="inactive-groups-toggle">
                                 <label><input type="checkbox" name="inactifs" value="1"{{ afficher_inactifs ? ' checked' : '' }} data-action="change->group-dialog#submitFilter"><span>Afficher les unités inactives</span></label>
@@ -32,25 +32,27 @@
                     {% else %}
                         <div class="groups-list">
                             {% for groupe in groupes %}
-                                <article class="group-row{{ groupe.actif ? ' clickable-row' : ' group-row--inactive' }}"{% if groupe.actif %} role="button" tabindex="0" data-controller="clickable-row" data-click-target=".edit-group-button" data-action="click->clickable-row#open keydown->clickable-row#open"{% endif %}>
-                                    <span class="group-type group-type--{{ groupe.type }}">{{ types[groupe.type]|default(groupe.type|replace({'-': ' '})|title) }}</span>
+                                {% set type_court = {
+                                    'adulte': 'Ad',
+                                    'louveteaux-jeannettes': 'LJ',
+                                    'scouts-guides': 'SG',
+                                    'pionniers-caravelles': 'PC',
+                                    'compagnons': 'Co',
+                                    'farfadets': 'Fa'
+                                }[groupe.type]|default(types[groupe.type]|default(groupe.type)|slice(0, 2)) %}
+                                <div class="foods-swipe-row group-swipe-row"{% if groupe.actif %} data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_groupe_modifier', {id: groupe.id}) }}"{% endif %}>
+                                {% if groupe.actif %}<form class="foods-swipe-action" method="post" action="{{ path('app_groupes_supprimer', {id: groupe.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_groupe_' ~ groupe.id) }}"><button type="submit">Supprimer</button></form>{% endif %}
+                                <article class="group-row object-detail-row{{ groupe.actif ? ' clickable-row' : ' group-row--inactive' }}"{% if groupe.actif %} role="link" tabindex="0" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate keydown->swipe-actions#activate"{% endif %}>
+                                    <span class="group-type group-type--{{ groupe.type }}" data-short-label="{{ type_court }}">{{ types[groupe.type]|default(groupe.type|replace({'-': ' '})|title) }}</span>
                                     <div class="group-row__identity"><h3>{{ groupe.nom }}{% if not groupe.actif %} <span class="inactive-group-badge">Inactif</span>{% endif %}</h3><span>{{ groupe.effectifJeune + groupe.effectifAdulte }} personnes prévues</span><small>Présence du {{ groupe.dateDebutPresence|date('d/m/Y') }} au {{ groupe.dateFinPresence|date('d/m/Y') }}</small></div>
                                     {% set reels = effectifs_reels[groupe.id ~ '']|default({jeunes: 0, adultes: 0}) %}
                                     <dl><div><dt>Jeunes</dt><dd>{{ groupe.effectifJeune }} <small>prévus</small>{% if sejour.moduleAdministratifActif %}<strong>{{ reels.jeunes }} réels</strong>{% endif %}</dd></div><div><dt>Adultes</dt><dd>{{ groupe.effectifAdulte }} <small>prévus</small>{% if sejour.moduleAdministratifActif %}<strong>{{ reels.adultes }} réels</strong>{% endif %}</dd></div></dl>
-                                    {% if groupe.actif %}<button
+                                    {% if groupe.actif %}<a
                                         class="edit-group-button"
-                                        type="button"
+                                        href="{{ path('app_groupe_modifier', {id: groupe.id}) }}"
                                         aria-label="Modifier l’unité {{ groupe.nom }}"
                                         title="Modifier l’unité {{ groupe.nom }}"
-                                        data-action="group-dialog#openEdit"
-                                        data-group-id="{{ groupe.id }}"
-                                        data-group-name="{{ groupe.nom|e('html_attr') }}"
-                                        data-group-type="{{ groupe.type }}"
-                                        data-group-young="{{ groupe.effectifJeune }}"
-                                        data-group-adult="{{ groupe.effectifAdulte }}"
-                                        data-group-start-date="{{ groupe.dateDebutPresence|date('Y-m-d') }}"
-                                        data-group-end-date="{{ groupe.dateFinPresence|date('Y-m-d') }}"
-                                    ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></button>
+                                    ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                                     <button
                                         class="delete-group-button"
                                         type="button"
@@ -62,6 +64,7 @@
                                         data-delete-token="{{ csrf_token('supprimer_groupe_' ~ groupe.id) }}"
                                     ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Désactiver</span></button>{% endif %}
                                 </article>
+                                </div>
                             {% endfor %}
                         </div>
                     {% endif %}

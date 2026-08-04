@@ -23,6 +23,8 @@ use Symfony\Component\Uid\Uuid;
 final class GroupeController extends AbstractController
 {
     #[Route('/groupes', name: 'app_groupes', methods: ['GET', 'POST'])]
+    #[Route('/groupes/ajouter', name: 'app_groupe_ajouter', methods: ['GET', 'POST'])]
+    #[Route('/groupes/{id}/modifier', name: 'app_groupe_modifier', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
         ContexteSejour $sejourRepository,
@@ -30,6 +32,7 @@ final class GroupeController extends AbstractController
         ParticipantRepository $participantRepository,
         SejourPublicCibleRepository $publicCibleRepository,
         EntityManagerInterface $entityManager,
+        ?string $id = null,
     ): Response {
         $sejour = $sejourRepository->actif();
         $types = [];
@@ -40,8 +43,12 @@ final class GroupeController extends AbstractController
             }
         }
         $afficherInactifs = $request->query->getBoolean('inactifs');
+        $groupeRoute = null !== $id && Uuid::isValid($id) ? $groupeRepository->find($id) : null;
+        if (null !== $id && (null === $sejour || null === $groupeRoute || $groupeRoute->getSejour() !== $sejour)) {
+            throw $this->createNotFoundException('Unité participante introuvable pour le séjour actif.');
+        }
         $donnees = [
-            'groupe_id' => $request->request->getString('groupe_id'),
+            'groupe_id' => $request->request->getString('groupe_id', $id ?? ''),
             'nom' => trim($request->request->getString('nom')),
             'effectif_jeune' => $request->request->getString('effectif_jeune'),
             'effectif_adulte' => $request->request->getString('effectif_adulte'),
@@ -52,6 +59,17 @@ final class GroupeController extends AbstractController
         if (null !== $sejour) {
             $donnees['date_debut_presence'] = $donnees['date_debut_presence'] ?: $sejour->getDateDebut()->format('Y-m-d');
             $donnees['date_fin_presence'] = $donnees['date_fin_presence'] ?: $sejour->getDateFin()->format('Y-m-d');
+        }
+        if (!$request->isMethod('POST') && null !== $groupeRoute) {
+            $donnees = [
+                'groupe_id' => (string) $groupeRoute->getId(),
+                'nom' => $groupeRoute->getNom(),
+                'effectif_jeune' => (string) $groupeRoute->getEffectifJeune(),
+                'effectif_adulte' => (string) $groupeRoute->getEffectifAdulte(),
+                'type' => $groupeRoute->getType(),
+                'date_debut_presence' => $groupeRoute->getDateDebutPresence()->format('Y-m-d'),
+                'date_fin_presence' => $groupeRoute->getDateFinPresence()->format('Y-m-d'),
+            ];
         }
         $erreurs = [];
 
@@ -133,7 +151,11 @@ final class GroupeController extends AbstractController
             }
         }
 
-        return $this->render('groupe/index.html.twig', [
+        $vue = 'app_groupes' === $request->attributes->get('_route') && !$request->isMethod('POST')
+            ? 'groupe/index.html.twig'
+            : 'groupe/formulaire.html.twig';
+
+        return $this->render($vue, [
             'sejour' => $sejour,
             'groupes' => null === $sejour ? [] : $groupeRepository->findPourSejour($sejour, $afficherInactifs),
             'effectifs_reels' => null !== $sejour && $sejour->isModuleAdministratifActif()

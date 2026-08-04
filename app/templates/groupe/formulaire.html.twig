@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ donnees.groupe_id ? donnees.nom : 'Ajouter une unité' }} | Campement{% endblock %}
+{% block body %}
+<main class="food-form-page">
+    <nav class="food-breadcrumb"><a href="{{ path('app_groupes') }}">Unités participantes</a><span>/</span><span>{{ donnees.groupe_id ? donnees.nom : 'Ajouter' }}</span></nav>
+    <header class="food-form-heading"><div><h1>{{ donnees.groupe_id ? donnees.nom : 'Ajouter une unité participante' }}</h1></div></header>
+    {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    <form id="group-form" method="post"><section class="food-form-card"><h2>Informations générales</h2>
+            <input type="hidden" name="_token" value="{{ csrf_token('enregistrer_groupe') }}">
+            <input type="hidden" name="groupe_id" value="{{ donnees.groupe_id }}">
+            <div class="group-form-field"><label for="nom">Nom de l’unité</label><input id="nom" name="nom" maxlength="150" required autocomplete="organization" value="{{ donnees.nom }}"></div>
+            <fieldset class="group-type-picker"><legend>Type de l’unité</legend>{% for valeur, libelle in types %}<label class="group-type-option group-type-option--{{ valeur }}"><input type="radio" name="type" value="{{ valeur }}" required{{ donnees.type == valeur ? ' checked' : '' }}><span><strong>{{ libelle }}</strong></span></label>{% endfor %}</fieldset>
+            <div class="group-counts"><div class="group-form-field"><label for="effectif_jeune">Effectif jeune</label><input id="effectif_jeune" type="number" name="effectif_jeune" min="0" step="1" required value="{{ donnees.effectif_jeune }}"></div><div class="group-form-field"><label for="effectif_adulte">Effectif adulte</label><input id="effectif_adulte" type="number" name="effectif_adulte" min="0" step="1" required value="{{ donnees.effectif_adulte }}"></div></div>
+            <div class="group-presence-dates"><div class="group-form-field"><label for="date_debut_presence">Début de présence</label><input id="date_debut_presence" type="date" name="date_debut_presence" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date_debut_presence }}"></div><div class="group-form-field"><label for="date_fin_presence">Fin de présence</label><input id="date_fin_presence" type="date" name="date_fin_presence" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required value="{{ donnees.date_fin_presence }}"></div></div>
+    </section><div class="food-form-actions"><a class="food-secondary" href="{{ path('app_groupes') }}">Annuler</a><button class="food-primary" type="submit">Enregistrer l’unité</button></div></form>
+</main>
+{% endblock %}

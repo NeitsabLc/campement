@@ -72,6 +72,30 @@ final class MouvementStockController extends AbstractController
         ]);
     }
 
+    #[Route('/stocks/mouvement/{id}/supprimer', name: 'app_mouvement_stock_supprimer', methods: ['POST'])]
+    public function supprimer(
+        string $id,
+        Request $request,
+        ContexteSejour $sejours,
+        MouvementStockRepository $mouvements,
+        EntityManagerInterface $em,
+    ): Response {
+        $sejour = $sejours->actif();
+        $mouvement = Uuid::isValid($id) ? $mouvements->findPourFormulaire($id) : null;
+        if (null === $sejour || null === $mouvement || $mouvement->getSejour() !== $sejour) {
+            throw $this->createNotFoundException('Mouvement de stock introuvable.');
+        }
+        if (!$this->isCsrfTokenValid('supprimer_mouvement_stock_'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
+
+        $em->remove($mouvement);
+        $em->flush();
+        $this->addFlash('success', 'Le mouvement de stock a bien été supprimé.');
+
+        return $this->redirectToRoute('app_mouvements_stock');
+    }
+
     #[Route('/stocks/mouvement', name: 'app_mouvement_stock', methods: ['GET', 'POST'])]
     #[Route('/stocks/mouvement/{id}', name: 'app_mouvement_stock_modifier', methods: ['GET', 'POST'])]
     public function formulaire(

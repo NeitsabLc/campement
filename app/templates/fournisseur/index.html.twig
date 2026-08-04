@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Gestion des fournisseurs | Campement{% endblock %}
+{% block title %}Fournisseurs | Campement{% endblock %}
 
 {% block body %}
-<main class="suppliers-page" data-controller="supplier-dialog" data-supplier-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
-    <header class="suppliers-heading">
-        <h1>Gestion des fournisseurs</h1>
-        {% if sejour %}<button class="add-supplier-button" type="button" data-action="supplier-dialog#openCreate"><span aria-hidden="true">＋</span> Ajouter un fournisseur</button>{% endif %}
+<main class="suppliers-page stock-list-page entity-list-page" data-controller="supplier-dialog food-catalog" data-supplier-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
+    <header class="suppliers-heading stock-list-heading entity-list-heading">
+        <h1>Fournisseurs</h1>
+        {% if sejour %}<a class="food-primary food-add-button" href="{{ path('app_fournisseur_ajouter') }}" aria-label="Ajouter un fournisseur"><span aria-hidden="true">＋</span><span class="food-add-button__label">Ajouter un fournisseur</span></a>{% endif %}
     </header>
 
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status" data-supplier-dialog-target="message">{{ message }}</div>{% endfor %}
@@ -15,23 +15,12 @@
     {% if not sejour %}
         <section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour avant de gérer ses fournisseurs.</p></section>
     {% else %}
-        <section class="suppliers-list-card">
-            <div class="suppliers-card-heading">
-                <div><h2>Fournisseurs du séjour</h2><p>{{ fournisseurs|length }} fournisseur{{ fournisseurs|length > 1 ? 's' : '' }}</p></div>
-                <div class="suppliers-card-actions">
-                    <form method="get" class="inactive-suppliers-toggle">
-                        <label><input type="checkbox" name="inactifs" value="1"{{ afficher_inactifs ? ' checked' : '' }} data-action="change->supplier-dialog#submitFilter"><span>Afficher les fournisseurs inactifs</span></label>
-                    </form>
-                </div>
-            </div>
-
-            {% if fournisseurs is empty %}
-                <div class="suppliers-empty"><strong>Aucun fournisseur pour le moment</strong><span>Utilisez le bouton « Ajouter un fournisseur » pour commencer.</span></div>
-            {% else %}
-                <div class="suppliers-list">
-                    <div class="supplier-row supplier-row--head table-list-heading" aria-hidden="true"><span>Nom</span><span>Téléphone</span><span>E-mail</span><span>Actions</span></div>
-                    {% for fournisseur in fournisseurs %}
-                        <article class="supplier-row{{ fournisseur.actif ? ' clickable-row' : ' supplier-row--inactive' }}"{% if fournisseur.actif %} role="button" tabindex="0" data-controller="clickable-row" data-click-target=".edit-supplier-button" data-action="click->clickable-row#open keydown->clickable-row#open"{% endif %}>
+        {% embed 'components/list_table.html.twig' with {variant: 'suppliers', headings: ['Nom', 'Téléphone', 'E-mail', 'Actions'], card_class: 'entity-list-card'} %}
+            {% block tools %}<div class="foods-tools supplier-list-tools"><label class="food-search"><span aria-hidden="true">⌕</span><span class="visually-hidden">Rechercher</span><input type="search" placeholder="Rechercher un fournisseur…" data-food-catalog-target="search" data-action="input->food-catalog#filter"></label><nav class="food-tabs"><a href="{{ path('app_fournisseurs') }}"{{ not afficher_inactifs ? ' aria-current="page"' : '' }}>Actifs</a><a class="food-tabs__inactive" href="{{ path('app_fournisseurs',{inactifs:1}) }}"{{ afficher_inactifs ? ' aria-current="page"' : '' }}>Désactivés</a></nav></div>{% endblock %}
+            {% block rows %}
+            {% if fournisseurs is empty %}<div class="shared-list-empty">Aucun fournisseur.</div>{% else %}
+                    {% for fournisseur in fournisseurs %}<div data-food-catalog-target="row" data-name="{{ fournisseur.nom|lower }}">
+                        <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_fournisseur_modifier',{id:fournisseur.id}) }}"><form class="foods-swipe-action{{ fournisseur.actif ? '' : ' foods-swipe-action--reactivate' }}" method="post" action="{{ fournisseur.actif ? path('app_fournisseur_desactiver',{id:fournisseur.id}) : path('app_fournisseur_reactiver',{id:fournisseur.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token((fournisseur.actif ? 'desactiver_fournisseur_' : 'reactiver_fournisseur_')~fournisseur.id) }}"><button type="submit">{{ fournisseur.actif ? 'Désactiver' : 'Réactiver' }}</button></form><article class="shared-list-row supplier-row{{ fournisseur.actif ? ' clickable-row' : ' supplier-row--inactive' }}" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate keydown->swipe-actions#activate">
                             <div class="supplier-row__identity">
                                 <h3>{{ fournisseur.nom }}{% if not fournisseur.actif %} <span class="inactive-supplier-badge">Inactif</span>{% endif %}</h3>
                             </div>
@@ -39,14 +28,7 @@
                             <div class="supplier-contact">{% if fournisseur.email %}<a href="mailto:{{ fournisseur.email }}">{{ fournisseur.email }}</a>{% else %}<span>Non renseigné</span>{% endif %}</div>
                             {% if fournisseur.actif %}
                                 <div class="supplier-actions">
-                                <button class="edit-supplier-button" type="button" aria-label="Modifier {{ fournisseur.nom }}" title="Modifier {{ fournisseur.nom }}"
-                                    data-action="supplier-dialog#openEdit"
-                                    data-supplier-id="{{ fournisseur.id }}"
-                                    data-supplier-name="{{ fournisseur.nom|e('html_attr') }}"
-                                    data-supplier-phone="{{ fournisseur.telephone|default('')|e('html_attr') }}"
-                                    data-supplier-email="{{ fournisseur.email|default('')|e('html_attr') }}"
-                                    data-supplier-address="{{ fournisseur.adresse|default('')|e('html_attr') }}"
-                                ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></button>
+                                <a class="edit-supplier-button" href="{{ path('app_fournisseur_modifier', {id: fournisseur.id}) }}" aria-label="Modifier {{ fournisseur.nom }}" title="Modifier {{ fournisseur.nom }}"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                                 <button class="delete-supplier-button" type="button" aria-label="Désactiver {{ fournisseur.nom }}" title="Désactiver {{ fournisseur.nom }}"
                                     data-action="supplier-dialog#openDelete"
                                     data-supplier-name="{{ fournisseur.nom|e('html_attr') }}"
@@ -63,11 +45,10 @@
                                     </button>
                                 </form>
                             {% endif %}
-                        </article>
+                        </article></div></div>
                     {% endfor %}
-                </div>
-            {% endif %}
-        </section>
+            {% endif %}{% endblock %}
+        {% endembed %}
 
         <dialog class="supplier-dialog" data-supplier-dialog-target="dialog" data-action="click->supplier-dialog#closeOnBackdrop">
             <section class="supplier-dialog__content" aria-labelledby="supplier-dialog-title">

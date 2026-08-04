@@ -38,8 +38,8 @@ export default class extends Controller {
 
     addLine() {
         const index = this.nextIndex();
-        this.linesTarget.insertAdjacentHTML('beforeend', this.lineTemplateTarget.innerHTML.replaceAll('__INDEX__', String(index)));
-        this.updateLine(this.lineTargets.at(-1));
+        this.linesTarget.insertAdjacentHTML('afterbegin', this.lineTemplateTarget.innerHTML.replaceAll('__INDEX__', String(index)));
+        this.updateLine(this.lineTargets[0]);
         this.numberLines();
     }
 
@@ -84,8 +84,9 @@ export default class extends Controller {
         const hasSupplier = [...reference.options].some((option) => option.value && !option.disabled);
         line.querySelector('[data-line-no-supplier]').hidden = !supplierEntry || !foodSelect.value || hasSupplier;
         const lot = line.querySelector('[data-line-lot]');
-        lot.hidden = !entry;
-        lot.querySelectorAll('input,button').forEach((field) => field.disabled = !entry);
+        const lotAvailable = entry && Boolean(food);
+        lot.hidden = !lotAvailable;
+        lot.querySelectorAll('input,button').forEach((field) => field.disabled = !lotAvailable);
     }
 
     initializeLine(line) {

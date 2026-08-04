@@ -3,21 +3,21 @@
 {% block title %}Mouvement de stock | Campement{% endblock %}
 
 {% block body %}
-<main class="stock-movement-page" data-controller="stock-movement">
+<main class="stock-movement-page food-form-page" data-controller="stock-movement">
     <script nonce="{{ app.request.attributes.get('csp_nonce') }}" type="application/json" data-stock-movement-target="catalog">{{ catalogueMouvement|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
-    <header class="stock-movement-heading"><div>
-        <h1>{{ mouvementExistant ? 'Modifier le mouvement' : 'Saisir un mouvement de stock' }}</h1>
-        <p>{{ mouvementExistant ? 'Corrigez les informations du mouvement enregistré.' : 'Associez une ou plusieurs denrées à une même entrée ou sortie.' }}</p>
+    <nav class="food-breadcrumb"><a href="{{ path('app_mouvements_stock') }}">Mouvements de stock</a><span>/</span><span>{{ mouvementExistant ? mouvementExistant.dateMouvement|date('d/m/Y H:i') : 'Ajouter' }}</span></nav>
+    <header class="stock-movement-heading food-form-heading"><div>
+        <h1>{{ mouvementExistant ? 'Mouvement du ' ~ mouvementExistant.dateMouvement|date('d/m/Y H:i') : 'Ajouter un mouvement de stock' }}</h1>
     </div></header>
 
     {% if not sejour %}
         <section class="stock-movement-card stock-movement-empty"><h2>Saisie indisponible</h2><p>Aucun séjour actif n’est configuré.</p></section>
     {% else %}
         {% if erreurs %}<div class="stock-movement-errors" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
-        <form method="post" novalidate data-turbo="false" data-action="submit->stock-movement#stampBrowserTime">
+        <form id="movement-form" method="post" novalidate data-turbo="false" data-action="submit->stock-movement#stampBrowserTime">
             <input type="hidden" name="_token" value="{{ csrf_token('mouvement_stock') }}">
             <input type="hidden" name="date_navigateur" data-browser-datetime>
-            <section class="stock-movement-card">
+            <section class="stock-movement-card food-form-card">
                 <h2>Nature du mouvement</h2>
                 <div class="movement-type-switch">
                     {% for code, libelle in {'SORTIE':'Sortie','ENTREE':'Entrée'} %}
@@ -31,8 +31,9 @@
                 </div>
             </section>
 
-            <section class="stock-movement-card movement-lines-card">
+            <section class="stock-movement-card food-form-card movement-lines-card">
                 <div class="movement-lines-heading"><h2>Denrées</h2></div>
+                <div class="movement-lines-add"><button class="food-secondary" type="button" data-action="stock-movement#addLine">+ Ajouter une denrée</button></div>
                 <div class="movement-lines-table">
                     <div class="movement-lines-header"><span>Denrée</span><span>Conditionnement et quantité</span><span></span></div>
                     <div data-stock-movement-target="lines">
@@ -41,7 +42,6 @@
                         {% endfor %}
                     </div>
                 </div>
-                <div class="movement-lines-add"><button class="food-secondary" type="button" data-action="stock-movement#addLine">+ Ajouter une denrée</button></div>
             </section>
 
             <template data-stock-movement-target="lineTemplate">{% include 'mouvement_stock/_ligne.html.twig' with {index: '__INDEX__', ligneValeurs: {}, modifiable: false} %}</template>

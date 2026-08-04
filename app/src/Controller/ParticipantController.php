@@ -46,6 +46,7 @@ final class ParticipantController extends AbstractController
     }
 
     #[Route('/administratif/participants', name: 'app_participants', methods: ['GET', 'POST'])]
+    #[Route('/administratif/participants/ajouter', name: 'app_participant_ajouter', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
         ContexteSejour $contexteSejour,
@@ -59,6 +60,18 @@ final class ParticipantController extends AbstractController
             : null;
         $donnees = $this->lireDonnees($request);
         $erreurs = [];
+
+        if (!$request->isMethod('POST') && 'app_participant_ajouter' === $request->attributes->get('_route')) {
+            $donnees['groupe_id'] = $utilisateurGroupe instanceof Groupe
+                ? (string) $utilisateurGroupe->getId()
+                : $request->query->getString('groupe');
+            $donnees['type'] = $request->query->getString('type');
+            $groupeInitial = $this->trouverGroupe($donnees['groupe_id'], $sejour, $groupeRepository);
+            if ($groupeInitial) {
+                $donnees['date_debut_presence'] = $groupeInitial->getDateDebutPresence()->format('Y-m-d');
+                $donnees['date_fin_presence'] = $groupeInitial->getDateFinPresence()->format('Y-m-d');
+            }
+        }
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('ajouter_participant', $request->request->getString('_token'))) {
@@ -139,7 +152,11 @@ final class ParticipantController extends AbstractController
             $participantsParGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
         }
 
-        return $this->render('participant/index.html.twig', compact('sejour', 'groupes', 'participantsParGroupe', 'donnees', 'erreurs') + [
+        $template = 'app_participants' === $request->attributes->get('_route') && !$request->isMethod('POST')
+            ? 'participant/index.html.twig'
+            : 'participant/ajouter.html.twig';
+
+        return $this->render($template, compact('sejour', 'groupes', 'participantsParGroupe', 'donnees', 'erreurs') + [
             'qualifications' => Participant::QUALIFICATIONS,
             'utilisateur_groupe' => $utilisateurGroupe instanceof Groupe,
         ]);

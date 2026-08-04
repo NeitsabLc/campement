@@ -26,14 +26,30 @@ use Symfony\Component\Uid\Uuid;
 final class RecetteController extends AbstractController
 {
     #[Route('/recettes', name: 'app_recettes', methods: ['GET'])]
-    public function index(ContexteSejour $contexte, RecetteRepository $recettes): Response
+    public function index(Request $request, ContexteSejour $contexte, RecetteRepository $recettes): Response
     {
         $sejour = $contexte->actif();
+        $actives = !$request->query->getBoolean('desactivees');
 
         return $this->render('recette/index.html.twig', [
             'sejour' => $sejour,
-            'recettes' => null === $sejour ? [] : $recettes->findActivesPourSejour($sejour),
+            'actives' => $actives,
+            'recettes' => null === $sejour ? [] : $recettes->findPourGestion($sejour, $actives),
         ]);
+    }
+
+    #[Route('/recettes/{id}/supprimer', name: 'app_recette_supprimer', methods: ['POST'])]
+    public function supprimer(string $id, Request $request, ContexteSejour $contexte, RecetteRepository $recettes, EntityManagerInterface $entityManager): Response
+    {
+        $sejour = $contexte->actif();
+        $recette = Uuid::isValid($id) ? $recettes->find($id) : null;
+        if (null === $sejour || null === $recette || $recette->getSejour() !== $sejour) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('supprimer_recette_'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
+        // Les menus existants conservent ainsi leur référence vers la recette.
+        $recette->setActif(!$recette->isActif());
+        $entityManager->flush();
+        $this->addFlash('success', sprintf('La recette « %s » a été %s.', $recette->getNom(), $recette->isActif() ? 'réactivée' : 'désactivée'));
+        return $this->redirectToRoute('app_recettes', $recette->isActif() ? [] : ['desactivees' => 1]);
     }
 
     #[Route('/recettes/ajouter', name: 'app_recette_ajouter', methods: ['GET', 'POST'])]

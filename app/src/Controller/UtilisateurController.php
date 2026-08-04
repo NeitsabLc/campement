@@ -41,6 +41,8 @@ final class UtilisateurController extends AbstractController
     }
 
     #[Route('/utilisateurs', name: 'app_utilisateurs', methods: ['GET', 'POST'])]
+    #[Route('/utilisateurs/ajouter', name: 'app_utilisateur_ajouter', methods: ['GET', 'POST'])]
+    #[Route('/utilisateurs/{id}/modifier', name: 'app_utilisateur_modifier', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
         UtilisateurRepository $utilisateurs,
@@ -49,6 +51,7 @@ final class UtilisateurController extends AbstractController
         UserPasswordHasherInterface $hasher,
         MailerInterface $mailer,
         EntityManagerInterface $entityManager,
+        ?string $id = null,
     ): Response {
         $connecte = $this->getUser();
         if (!$connecte instanceof Utilisateur) {
@@ -63,8 +66,13 @@ final class UtilisateurController extends AbstractController
             ? self::ROLES
             : array_intersect_key(self::ROLES, array_flip([Utilisateur::ROLE_GESTIONNAIRE, Utilisateur::ROLE_GROUPE]));
 
+        $utilisateurRoute = null !== $id && Uuid::isValid($id) ? $utilisateurs->find($id) : null;
+        if (null !== $id && (!$utilisateurRoute instanceof Utilisateur
+            || !$this->utilisateurEstVisible($utilisateurRoute, $sejourSelectionne, $estAdministrateur))) {
+            throw $this->createNotFoundException('Utilisateur introuvable dans votre périmètre.');
+        }
         $donnees = [
-            'utilisateur_id' => $request->request->getString('utilisateur_id'),
+            'utilisateur_id' => $request->request->getString('utilisateur_id', $id ?? ''),
             'prenom' => trim($request->request->getString('prenom')),
             'nom' => trim($request->request->getString('nom')),
             'email' => mb_strtolower(trim($request->request->getString('email'))),
@@ -73,6 +81,18 @@ final class UtilisateurController extends AbstractController
             'sejour_groupe' => $request->request->getString('sejour_groupe'),
             'groupe' => $request->request->getString('groupe'),
         ];
+        if (!$request->isMethod('POST') && $utilisateurRoute instanceof Utilisateur) {
+            $donnees = [
+                'utilisateur_id' => (string) $utilisateurRoute->getId(),
+                'prenom' => $utilisateurRoute->getPrenom(),
+                'nom' => $utilisateurRoute->getNom(),
+                'email' => $utilisateurRoute->getEmail(),
+                'role' => $utilisateurRoute->getRole(),
+                'sejours' => array_map(static fn (Sejour $sejour): string => (string) $sejour->getId(), $utilisateurRoute->getSejoursGeres()->toArray()),
+                'sejour_groupe' => (string) ($utilisateurRoute->getGroupe()?->getSejour()->getId() ?? ''),
+                'groupe' => (string) ($utilisateurRoute->getGroupe()?->getId() ?? ''),
+            ];
+        }
         $erreurs = [];
 
         if ($request->isMethod('POST')) {
@@ -207,7 +227,11 @@ final class UtilisateurController extends AbstractController
             ? $groupes->findBy(['actif' => true], ['nom' => 'ASC'])
             : (null === $sejourSelectionne ? [] : $groupes->findPourSejour($sejourSelectionne));
 
-        return $this->render('utilisateur/index.html.twig', [
+        $vue = 'app_utilisateurs' === $request->attributes->get('_route') && !$request->isMethod('POST')
+            ? 'utilisateur/index.html.twig'
+            : 'utilisateur/formulaire.html.twig';
+
+        return $this->render($vue, [
             'utilisateurs' => $utilisateursVisibles,
             'sejours' => $sejoursAccessibles,
             'sejour_selectionne' => $sejourSelectionne,

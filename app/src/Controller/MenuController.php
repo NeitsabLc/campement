@@ -260,6 +260,10 @@ final class MenuController extends AbstractController
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
             'lecture_seule' => $lectureSeule,
+            'date_libelle' => $this->libelleDate($date),
+            'jour_precedent' => $date > $sejour->getDateDebut() ? $date->modify('-1 day') : null,
+            'jour_suivant' => $date < $sejour->getDateFin() ? $date->modify('+1 day') : null,
+            'menus_jour' => $this->menusDuJour($menus->findPourDate($sejour, $date), $repas),
         ]);
     }
 

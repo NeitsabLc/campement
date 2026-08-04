@@ -6,5 +6,24 @@ use App\Entity\Recette; use App\Entity\Sejour; use Doctrine\Bundle\DoctrineBundl
 final class RecetteRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $r) { parent::__construct($r, Recette::class); }
-    /** @return list<Recette> */ public function findActivesPourSejour(Sejour $s): array { return $this->createQueryBuilder('r')->addSelect('l','d','u','q','p')->leftJoin('r.denrees','l')->leftJoin('l.denree','d')->leftJoin('l.conditionnement','u')->leftJoin('l.quantites','q')->leftJoin('q.sejourPublicCible','p')->andWhere('r.sejour = :s')->andWhere('r.actif = true')->setParameter('s',$s)->orderBy('r.nom','ASC')->getQuery()->getResult(); }
+    /** @return list<Recette> */ public function findActivesPourSejour(Sejour $s): array { return $this->findPourGestion($s, true); }
+
+    /** @return list<Recette> */
+    public function findPourGestion(Sejour $sejour, bool $actif): array
+    {
+        return $this->createQueryBuilder('r')
+            ->addSelect('l', 'd', 'u', 'q', 'p')
+            ->leftJoin('r.denrees', 'l')
+            ->leftJoin('l.denree', 'd')
+            ->leftJoin('l.conditionnement', 'u')
+            ->leftJoin('l.quantites', 'q')
+            ->leftJoin('q.sejourPublicCible', 'p')
+            ->andWhere('r.sejour = :sejour')
+            ->andWhere('r.actif = :actif')
+            ->setParameter('sejour', $sejour)
+            ->setParameter('actif', $actif)
+            ->orderBy('r.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

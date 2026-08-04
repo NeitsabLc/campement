@@ -22,10 +22,11 @@ use Symfony\Component\Uid\Uuid;
 final class PresenceController extends AbstractController
 {
     #[Route('/administratif/registre-presence', name:'app_presence', methods:['GET','POST'])]
+    #[Route('/administratif/registre-presence/{participantId}/{date}/modifier', name:'app_presence_modifier', methods:['GET','POST'])]
     public function index(Request $request, ContexteSejour $contexte, GroupeRepository $groupes, ParticipantRepository $participants, EntityManagerInterface $em):Response
     {
         $sejour=$contexte->actif(); if(!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
-        $erreurs=[];
+        $erreurs=[];$routeEdition='app_presence_modifier'===$request->attributes->get('_route');
         if($request->isMethod('POST')){
             if(!$this->isCsrfTokenValid('modifier_presence',$request->request->getString('_token'))) throw $this->createAccessDeniedException();
             $id=$request->request->getString('participant_id'); $date=DateTimeImmutable::createFromFormat('!Y-m-d',$request->request->getString('date'));
@@ -43,6 +44,12 @@ final class PresenceController extends AbstractController
                 if(PresenceParticipant::DEPART===$statut){foreach($repo->createQueryBuilder('p')->where('p.participant=:participant')->andWhere('p.id<>:courant')->andWhere('(p.statut=:depart OR p.datePresence>:date)')->setParameter('participant',$participant)->setParameter('courant',$presence->getId())->setParameter('depart',PresenceParticipant::DEPART)->setParameter('date',$date)->getQuery()->getResult() as $autre)$em->remove($autre);}
                 $em->flush(); $this->addFlash('success','Le registre de présence a été mis à jour.'); return $this->redirectToRoute('app_presence',['date'=>$date->format('Y-m-d')]);
             }
+        }
+        if($routeEdition){
+            $id=$request->isMethod('POST')?$request->request->getString('participant_id'):(string)$request->attributes->get('participantId');$dateTexte=$request->isMethod('POST')?$request->request->getString('date'):(string)$request->attributes->get('date');$participant=Uuid::isValid($id)?$participants->find($id):null;$date=DateTimeImmutable::createFromFormat('!Y-m-d',$dateTexte);
+            if(!$participant instanceof Participant||$participant->getGroupe()->getSejour()!==$sejour||!$date||$date<$participant->getDateDebutPresence()||$date>$participant->getDateFinPresence())throw $this->createNotFoundException('Présence introuvable.');
+            $presence=$em->getRepository(PresenceParticipant::class)->findOneBy(['participant'=>$participant,'datePresence'=>$date]);$statut=$request->isMethod('POST')?$request->request->getString('statut'):($presence?->getStatut()??'present');$commentaire=$request->isMethod('POST')?$request->request->getString('commentaire'):($presence?->getCommentaire()??'');
+            return $this->render('presence/modifier.html.twig',compact('participant','date','statut','commentaire','erreurs'));
         }
         $liste=$participants->findPourSejour($sejour); $presences=$em->getRepository(PresenceParticipant::class)->createQueryBuilder('p')->join('p.participant','participant')->join('participant.groupe','groupe')->where('groupe.sejour=:sejour')->setParameter('sejour',$sejour)->getQuery()->getResult();
         $index=[]; foreach($presences as $p)$index[(string)$p->getParticipant()->getId()][$p->getDatePresence()->format('Y-m-d')]=$p;

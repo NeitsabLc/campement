@@ -4,45 +4,6 @@
 <main class="group-menu-page">
     <header class="group-menu-heading"><h1>Menus</h1></header>
 
-    <nav class="group-menu-date-nav" aria-label="Navigation entre les jours">
-        {% if jour_precedent %}<a class="group-menu-date-arrow" href="{{ path('app_menus', {date: jour_precedent|date('Y-m-d')}) }}" aria-label="Jour précédent">‹</a>{% else %}<span class="group-menu-date-arrow group-menu-date-arrow--disabled" aria-hidden="true">‹</span>{% endif %}
-        <div><strong>{{ date_libelle }}</strong><small>{{ date_selectionnee|date('Y') }}</small></div>
-        {% if jour_suivant %}<a class="group-menu-date-arrow" href="{{ path('app_menus', {date: jour_suivant|date('Y-m-d')}) }}" aria-label="Jour suivant">›</a>{% else %}<span class="group-menu-date-arrow group-menu-date-arrow--disabled" aria-hidden="true">›</span>{% endif %}
-    </nav>
-
-    <div class="group-menu-meals">
-        {% for repas in menus_jour %}
-            <section class="group-menu-meal">
-                <header><span class="group-menu-meal__icon" aria-hidden="true">
-                    {% if repas.code == 'PETIT_DEJEUNER' %}
-                        <svg viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5H9a4 4 0 0 1-4-4V9Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16M8 5c0 1 1 1 1 2m3-2c0 1 1 1 1 2"/></svg>
-                    {% elseif repas.code == 'DEJEUNER' %}
-                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
-                    {% elseif repas.code == 'GOUTER' %}
-                        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-8-8 3 3 0 0 0 4 4 3 3 0 0 0 4 4Z"/><circle cx="8.5" cy="13.5" r=".7"/><circle cx="11" cy="17" r=".7"/><circle cx="7.5" cy="9" r=".7"/></svg>
-                    {% elseif repas.code == 'DINER' %}
-                        <svg viewBox="0 0 24 24"><path d="M20 15.5A8 8 0 0 1 8.5 4 8 8 0 1 0 20 15.5Z"/></svg>
-                    {% else %}
-                        <svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg>
-                    {% endif %}
-                </span><h2>{{ repas.libelle }}</h2></header>
-                <div class="group-menu-categories">
-                    {% for categorie in repas.categories %}
-                        <section class="group-menu-category">
-                            <span class="group-menu-category__number">{{ loop.index }}</span>
-                            <div><h3>{{ categorie.libelle }}</h3>
-                                {% if categorie.recettes is empty and categorie.supplementaires is empty %}
-                                    <p class="group-menu-empty">Non renseigné</p>
-                                {% else %}
-                                    {% for recette in categorie.recettes %}<strong class="group-menu-recipe">{{ recette }}</strong>{% endfor %}
-                                    {% if categorie.supplementaires is not empty %}<p class="group-menu-extras"><b>En supplément</b> · {{ categorie.supplementaires|join(' · ') }}</p>{% endif %}
-                                {% endif %}
-                            </div>
-                        </section>
-                    {% endfor %}
-                </div>
-            </section>
-        {% endfor %}
-    </div>
+    {{ include('menu/_consultation.html.twig') }}
 </main>
 {% endblock %}

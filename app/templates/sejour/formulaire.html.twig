@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ sejour_formulaire ? sejour_formulaire.nom : 'Ajouter un séjour' }} | Campement{% endblock %}
+{% block body %}
+<main class="food-form-page">
+    <nav class="food-breadcrumb"><a href="{{ path('app_sejours') }}">Séjours</a><span>/</span><span>{{ sejour_formulaire ? sejour_formulaire.nom : 'Ajouter' }}</span></nav>
+    <header class="food-form-heading"><div><h1>{{ sejour_formulaire ? sejour_formulaire.nom : 'Ajouter un séjour' }}</h1></div></header>
+    {% for erreur in erreurs %}<div class="flash flash--error" role="alert">{{ erreur }}</div>{% endfor %}
+    <form id="stay-form" method="post" class="stay-form"><section class="food-form-card"><h2>Informations générales</h2>
+        <input type="hidden" name="_token" value="{{ csrf_token('enregistrer_sejour') }}">{% if sejour_formulaire %}<input type="hidden" name="sejour_id" value="{{ sejour_formulaire.id }}">{% endif %}
+        {{ include('sejour/_fields.html.twig', {sejour: sejour_formulaire, creation: not sejour_formulaire}) }}
+    </section><div class="food-form-actions"><a class="food-secondary" href="{{ path('app_sejours') }}">Annuler</a><button class="food-primary" type="submit">Enregistrer le séjour</button></div></form>
+</main>
+{% endblock %}

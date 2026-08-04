@@ -24,6 +24,8 @@ use Symfony\Component\Uid\Uuid;
 final class SejourController extends AbstractController
 {
     #[Route('/sejours', name: 'app_sejours', methods: ['GET', 'POST'])]
+    #[Route('/sejours/ajouter', name: 'app_sejour_ajouter', methods: ['GET', 'POST'])]
+    #[Route('/sejours/{id}/modifier', name: 'app_sejour_modifier', methods: ['GET', 'POST'])]
     public function index(
         Request $request,
         SejourRepository $repository,
@@ -31,14 +33,21 @@ final class SejourController extends AbstractController
         TypeRepasRepository $typesRepas,
         ContexteSejour $contexte,
         EntityManagerInterface $entityManager,
+        ?string $id = null,
     ): Response {
         $admin = $this->isGranted(Utilisateur::ROLE_ADMIN);
         $connecte = $this->getUser();
         if (!$connecte instanceof Utilisateur) { throw $this->createAccessDeniedException(); }
+        if ('app_sejour_ajouter' === $request->attributes->get('_route') && !$admin) {
+            throw $this->createAccessDeniedException('Seul un administrateur peut créer un séjour.');
+        }
         $liste = $admin ? $repository->findBy([], ['dateDebut' => 'DESC']) : $contexte->accessibles();
         $erreurs = [];
-        $id = $request->request->getString('sejour_id');
-        $sejour = '' !== $id && Uuid::isValid($id) ? $repository->find($id) : null;
+        $idFormulaire = $request->request->getString('sejour_id', $id ?? '');
+        $sejour = '' !== $idFormulaire && Uuid::isValid($idFormulaire) ? $repository->find($idFormulaire) : null;
+        if (null !== $id && (!$sejour instanceof Sejour || (!$admin && !$connecte->getSejoursGeres()->contains($sejour)))) {
+            throw $this->createNotFoundException('Séjour introuvable.');
+        }
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('enregistrer_sejour', $request->request->getString('_token'))) {
@@ -79,10 +88,15 @@ final class SejourController extends AbstractController
             }
         }
 
-        return $this->render('sejour/index.html.twig', [
+        $vue = 'app_sejours' === $request->attributes->get('_route') && !$request->isMethod('POST')
+            ? 'sejour/index.html.twig'
+            : 'sejour/formulaire.html.twig';
+
+        return $this->render($vue, [
             'sejours' => $liste, 'publics' => $publics->findActifs(), 'erreurs' => $erreurs,
             'sejour_selectionne' => $contexte->actif(),
             'est_administrateur' => $admin,
+            'sejour_formulaire' => $sejour,
         ]);
     }
 

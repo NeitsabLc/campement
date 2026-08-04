@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ donnees.utilisateur_id ? donnees.prenom ~ ' ' ~ donnees.nom : 'Ajouter un utilisateur' }} | Campement{% endblock %}
+{% block body %}
+<main class="food-form-page" data-controller="user-dialog">
+    <nav class="food-breadcrumb"><a href="{{ path('app_utilisateurs', sejour_selectionne ? {sejour: sejour_selectionne.id} : {}) }}">Utilisateurs</a><span>/</span><span>{{ donnees.utilisateur_id ? donnees.prenom ~ ' ' ~ donnees.nom : 'Ajouter' }}</span></nav>
+    <header class="food-form-heading"><div><h1>{{ donnees.utilisateur_id ? donnees.prenom ~ ' ' ~ donnees.nom : 'Ajouter un utilisateur' }}</h1></div></header>
+    {% if erreurs %}<div class="flash flash--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    <form id="user-form" method="post"><section class="food-form-card"><h2>Informations générales</h2>
+        <input type="hidden" name="_token" value="{{ csrf_token('creer_utilisateur') }}"><input type="hidden" name="utilisateur_id" value="{{ donnees.utilisateur_id }}">
+        <div class="user-form-grid"><label>Prénom<input name="prenom" maxlength="100" required value="{{ donnees.prenom }}"></label><label>Nom<input name="nom" maxlength="100" required value="{{ donnees.nom }}"></label></div>
+        <label class="user-field">Adresse électronique<input type="email" name="email" maxlength="180" required autocomplete="email" value="{{ donnees.email }}"></label>
+        <label class="user-field">Rôle<select name="role" required data-role-selector><option value="">Sélectionner</option>{% for valeur, libelle in roles %}<option value="{{ valeur }}"{{ donnees.role == valeur ? ' selected' : '' }}>{{ libelle }}</option>{% endfor %}</select></label>
+        {% if est_administrateur %}<label class="user-field assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Séjour géré<select name="sejours[]"><option value="">Sélectionner</option>{% for sejour in sejours %}<option value="{{ sejour.id }}"{{ sejour.id in donnees.sejours ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}</select></label>{% else %}<div class="assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Le nouveau gestionnaire sera associé au séjour <strong>{{ sejour_selectionne ? sejour_selectionne.nom : 'indisponible' }}</strong>.</div>{% endif %}
+        <div class="assignment-panel" data-role-panel="ROLE_GROUPE"><label class="user-field">Séjour<select name="sejour_groupe" data-group-stay-selector><option value="">Sélectionner un séjour</option>{% for sejour in sejours %}<option value="{{ sejour.id }}"{{ donnees.sejour_groupe == sejour.id ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}</select></label><label class="user-field">Groupe<select name="groupe" data-group-selector data-selected-group="{{ donnees.groupe }}"><option value="">Sélectionner un groupe</option>{% for groupe in groupes %}<option value="{{ groupe.id }}" data-stay-id="{{ groupe.sejour.id }}"{{ donnees.groupe == groupe.id ? ' selected' : '' }}>{{ groupe.nom }}</option>{% endfor %}</select></label></div>
+        <p class="users-help">Un mot de passe provisoire sera envoyé par e-mail et devra être remplacé à la première connexion.</p>
+    </section><div class="food-form-actions"><a class="food-secondary" href="{{ path('app_utilisateurs', sejour_selectionne ? {sejour: sejour_selectionne.id} : {}) }}">Annuler</a><button class="food-primary" type="submit">Enregistrer l’utilisateur</button></div></form>
+</main>
+{% endblock %}

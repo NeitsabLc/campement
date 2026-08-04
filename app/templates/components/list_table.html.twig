@@ -1,0 +1,9 @@
+<section class="shared-list-card foods-card {{ card_class|default('') }}">
+    {% block tools %}{% endblock %}
+    <div class="shared-list-table shared-list-table--{{ variant }}" role="table">
+        <div class="shared-list-row shared-list-row--head" role="row">
+            {% for heading in headings %}<span role="columnheader">{{ heading }}</span>{% endfor %}
+        </div>
+        <div class="shared-list-body">{% block rows %}{% endblock %}</div>
+    </div>
+</section>
