@@ -1011,6 +1011,20 @@ select {
     display: none !important;
 }
 
+.clickable-row {
+    cursor: pointer;
+}
+
+.clickable-row:hover,
+.clickable-row:focus-visible {
+    background: #f5fafb;
+}
+
+.clickable-row:focus-visible {
+    outline: 2px solid var(--sgdf-blue);
+    outline-offset: -2px;
+}
+
 .food-actions .reactivate-food {
     border-color: #70c39e;
     color: #187249;

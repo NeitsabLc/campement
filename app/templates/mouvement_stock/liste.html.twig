@@ -9,12 +9,12 @@
         {% elseif mouvements is empty %}<div class="stocks-empty"><strong>Aucun mouvement enregistré</strong><p>Commencez par saisir une entrée ou une sortie de stock.</p><a class="food-primary" href="{{ path('app_mouvement_stock') }}">Ajouter un mouvement</a></div>
         {% else %}<div class="stock-list-table">
             <div class="stock-list-row stock-list-row--head"><span>Date</span><span>Type</span><span>Denrées</span><span>Origine</span><span>Fournisseur / groupe</span><span></span></div>
-            {% for groupeMouvement in mouvements %}{% set mouvement = groupeMouvement.mouvement %}<article class="stock-list-row">
+            {% for groupeMouvement in mouvements %}{% set mouvement = groupeMouvement.mouvement %}{% set premiereLigne = groupeMouvement.lignes|first %}<article class="stock-list-row clickable-row" role="link" tabindex="0" data-controller="clickable-row" data-url="{{ path('app_mouvement_stock_modifier', {id: mouvement.id, ligne: premiereLigne.id}) }}" data-action="click->clickable-row#open keydown->clickable-row#open">
                 <time datetime="{{ mouvement.dateMouvement|date('c') }}">{{ mouvement.dateMouvement|date('d/m/Y H:i') }}</time>
                 <span><span class="movement-badge movement-badge--{{ mouvement.typeMouvement.code|lower }}">{{ mouvement.typeMouvement.libelle }}</span></span>
                 <strong>{{ groupeMouvement.lignes|length }} {{ groupeMouvement.lignes|length > 1 ? 'denrées' : 'denrée' }}</strong>
                 <span>{{ mouvement.origineMouvement.libelle }}</span>
-                {% set premiereLigne = groupeMouvement.lignes|first %}<span>{{ groupeMouvement.intervenant }}</span>
+                <span>{{ groupeMouvement.intervenant }}</span>
                 <a class="stock-edit-button" href="{{ path('app_mouvement_stock_modifier', {id: mouvement.id, ligne: premiereLigne.id}) }}" aria-label="Modifier le mouvement du {{ mouvement.dateMouvement|date('d/m/Y') }}" title="Modifier le mouvement"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier le mouvement</span></a>
             </article>{% endfor %}
         </div>{% endif %}

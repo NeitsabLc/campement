@@ -18,7 +18,7 @@
     } %}
     <section class="foods-card situations-card"><div class="foods-table" role="table">
         <div class="foods-row situations-row situations-row--head" role="row"><span>Date</span><span>Situation</span><span>Personnes</span><span>Tâches prédéfinies</span><span>Actions</span></div>
-        {% for situation in situations %}<div class="foods-row situations-row" role="row">
+        {% for situation in situations %}<div class="foods-row situations-row clickable-row" role="link" tabindex="0" data-controller="clickable-row" data-url="{{ path('app_situation_particuliere_modifier', {id: situation.id}) }}" data-action="click->clickable-row#open keydown->clickable-row#open">
                 <time datetime="{{ situation.dateSituation|date('Y-m-d') }}">{{ situation.dateSituation|date('d/m/Y') }}</time>
                 <a class="situation-name" href="{{ path('app_situation_particuliere_modifier', {id: situation.id}) }}"><strong>{{ situation.libelle }}</strong></a>
                 <span class="situation-people">{{ situation.participants|length ?: '—' }}</span>

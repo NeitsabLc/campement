@@ -31,7 +31,7 @@
                 <div class="suppliers-list">
                     <div class="supplier-row supplier-row--head table-list-heading" aria-hidden="true"><span>Nom</span><span>Téléphone</span><span>E-mail</span><span>Actions</span></div>
                     {% for fournisseur in fournisseurs %}
-                        <article class="supplier-row{{ fournisseur.actif ? '' : ' supplier-row--inactive' }}">
+                        <article class="supplier-row{{ fournisseur.actif ? ' clickable-row' : ' supplier-row--inactive' }}"{% if fournisseur.actif %} role="button" tabindex="0" data-controller="clickable-row" data-click-target=".edit-supplier-button" data-action="click->clickable-row#open keydown->clickable-row#open"{% endif %}>
                             <div class="supplier-row__identity">
                                 <h3>{{ fournisseur.nom }}{% if not fournisseur.actif %} <span class="inactive-supplier-badge">Inactif</span>{% endif %}</h3>
                             </div>

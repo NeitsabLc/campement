@@ -18,7 +18,7 @@
                     {% if personnes is empty %}<p class="participant-empty">Aucun {{ type }} renseigné.</p>{% else %}
                         <div class="participant-list">
                             <div class="participant-row participant-row--head"><span>Participant</span><span>{{ type == 'jeune' ? 'Autorisation' : 'Formation' }}</span><span>Fiche sanitaire</span><span>Vaccins</span><span></span></div>
-                            {% for personne in personnes %}<div class="participant-row">
+                            {% for personne in personnes %}<div class="participant-row clickable-row" role="link" tabindex="0" data-controller="clickable-row" data-url="{{ path('app_participant_modifier', {id: personne.id}) }}" data-action="click->clickable-row#open keydown->clickable-row#open">
                                 <div class="participant-identity"><strong>{{ personne.prenom }} {{ personne.nom }}</strong><small>Présence : {{ personne.dateDebutPresence|date('d/m') }} → {{ personne.dateFinPresence|date('d/m/Y') }}</small></div>
                                 {% set premier_type = type == 'jeune' ? 'autorisation_depart_camp' : 'qualification' %}
                                 {% if type == 'adulte' and personne.qualifications is empty %}<span class="document-status document-status--na">Non concerné</span>{% else %}<span class="document-status {{ personne.hasDocumentType(premier_type) ? 'document-status--ok' : 'document-status--missing' }}">{{ personne.hasDocumentType(premier_type) ? '✓ Reçu' : 'À fournir' }}</span>{% endif %}

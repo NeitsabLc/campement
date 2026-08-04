@@ -31,7 +31,7 @@
                 <div class="users-list">
                     <div class="user-row user-row--head table-list-heading" aria-hidden="true"><span>Utilisateur</span><span>Rôle</span><span>Séjours</span><span>Groupe</span><span>Actions</span></div>
                     {% for utilisateur in utilisateurs|filter(utilisateur => utilisateur.role != constant('App\\Entity\\Utilisateur::ROLE_TECHNIQUE')) %}
-                    <article class="user-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}">
+                    <article class="user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" role="button" tabindex="0" data-controller="clickable-row" data-click-target="[data-user-edit]" data-action="click->clickable-row#open keydown->clickable-row#open">
                         <div><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
                         <span class="role-pill">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
                         <span class="user-assignment">
