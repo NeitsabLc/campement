@@ -20,6 +20,16 @@ export default class extends Controller {
     }
 
     refresh() {
+        const allowedOrigins = new Set(this.isEntry
+            ? ['INVENTAIRE', 'FOURNISSEUR', 'RETOUR_ALIMENTAIRE', 'CORRECTION']
+            : ['INVENTAIRE', 'DISTRIBUTION', 'POUBELLE', 'DONATION', 'CORRECTION']);
+        [...this.originTarget.options].forEach((option) => {
+            const visible = !option.value || allowedOrigins.has(option.dataset.code || '');
+            option.hidden = !visible;
+            option.disabled = !visible;
+        });
+        if (this.originTarget.selectedOptions[0]?.disabled) this.originTarget.value = '';
+
         const distribution = this.originCode === 'DISTRIBUTION';
         this.groupFieldTarget.hidden = !distribution;
         this.groupTarget.disabled = !distribution;
@@ -53,7 +63,8 @@ export default class extends Controller {
         if (!line) return;
         this.initializeLine(line);
         const supplierEntry = this.isEntry && this.originCode === 'FOURNISSEUR';
-        const entry = this.isEntry;
+        const inventoryMovement = this.originCode === 'INVENTAIRE';
+        const packagedMovement = supplierEntry || inventoryMovement;
         let food = line.querySelector('[data-line-food]')?.value || '';
         const foodSelect = line.querySelector('[data-line-food]');
         [...foodSelect.options].forEach((option) => {
@@ -66,25 +77,27 @@ export default class extends Controller {
         food = foodSelect.value;
         const exit = line.querySelector('[data-line-exit]');
         const entryBlock = line.querySelector('[data-line-entry]');
-        exit.hidden = supplierEntry;
-        entryBlock.hidden = !supplierEntry;
-        exit.querySelectorAll('select,input').forEach((field) => field.disabled = supplierEntry);
-        entryBlock.querySelectorAll('select,input').forEach((field) => field.disabled = !supplierEntry);
+        exit.hidden = packagedMovement;
+        entryBlock.hidden = !packagedMovement;
+        exit.querySelectorAll('select,input').forEach((field) => field.disabled = packagedMovement);
+        entryBlock.querySelectorAll('select,input').forEach((field) => field.disabled = !packagedMovement);
 
         const exitUnit = line.querySelector('[data-line-exit-unit]');
         this.populateExitUnits(line, exitUnit, food);
-        exitUnit.required = !supplierEntry;
-        line.querySelector('[data-line-quantity]').required = !supplierEntry;
+        exitUnit.required = !packagedMovement;
+        line.querySelector('[data-line-quantity]').required = !packagedMovement;
         line.querySelector('[data-line-unit]').textContent = exitUnit.selectedOptions[0]?.dataset.symbol || '—';
 
         const reference = line.querySelector('[data-line-reference]');
-        this.populateReferences(line, reference, foodSelect.value, this.supplierTarget.value, supplierEntry);
-        reference.required = supplierEntry;
-        this.populatePackagings(line, reference, supplierEntry);
+        const inventorySupplier = line.querySelector('[data-line-inventory-supplier]');
+        inventorySupplier.hidden = !inventoryMovement;
+        this.populateReferences(line, reference, foodSelect.value, this.supplierTarget.value, supplierEntry, inventoryMovement);
+        reference.required = packagedMovement;
+        this.populatePackagings(line, reference, packagedMovement);
         const hasSupplier = [...reference.options].some((option) => option.value && !option.disabled);
-        line.querySelector('[data-line-no-supplier]').hidden = !supplierEntry || !foodSelect.value || hasSupplier;
+        line.querySelector('[data-line-no-supplier]').hidden = !packagedMovement || !foodSelect.value || hasSupplier;
         const lot = line.querySelector('[data-line-lot]');
-        const lotAvailable = entry && Boolean(food);
+        const lotAvailable = supplierEntry && Boolean(food);
         lot.hidden = !lotAvailable;
         lot.querySelectorAll('input,button').forEach((field) => field.disabled = !lotAvailable);
     }
@@ -123,21 +136,23 @@ export default class extends Controller {
         select.dataset.initialized = 'true';
     }
 
-    populateReferences(line, select, food, supplier, active) {
-        const key = active ? `${food}:${supplier}` : '';
+    populateReferences(line, select, food, supplier, supplierEntry, inventoryMovement) {
+        const active = supplierEntry || inventoryMovement;
+        const mode = supplierEntry ? 'supplier' : (inventoryMovement ? 'inventory' : 'none');
+        const key = active ? `${mode}:${food}:${supplierEntry ? supplier : ''}` : '';
         if (select.dataset.catalogKey === key) {
             if (!active) select.value = '';
             return;
         }
         const selected = select.dataset.initialized ? select.value : (line.dataset.selectedReference || '');
         const references = active
-            ? this.catalog.references.filter((reference) => reference.denree === food && reference.fournisseur === supplier)
+            ? this.catalog.references.filter((reference) => reference.denree === food && (!supplierEntry || reference.fournisseur === supplier))
             : [];
         select.replaceChildren(
-            new Option('Aucune référence', ''),
+            new Option(inventoryMovement ? 'Sélectionner un fournisseur' : 'Aucune référence', ''),
             ...references.map((reference) => new Option(reference.nom, reference.id, false, reference.id === selected)),
         );
-        if (active && !select.value && references.length) select.value = references[0].id;
+        if (active && !select.value && (supplierEntry || references.length === 1)) select.value = references[0]?.id || '';
         select.dataset.catalogKey = key;
         select.dataset.initialized = 'true';
     }

@@ -1771,6 +1771,10 @@ body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25re
     margin-top: 1rem;
 }
 
+.movement-supplier:not([hidden]) + [data-line-packagings-container] {
+    margin-top: 1rem;
+}
+
 .movement-lot > label > span {
     display: block;
     font-weight: 700;
@@ -1799,6 +1803,16 @@ body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25re
     border-color: var(--sgdf-blue-light);
     outline: 0;
     box-shadow: 0 0 0 3px rgb(0 119 179 / 16%);
+}
+
+@media (min-width: 641px) {
+    .movement-lot-input .food-secondary {
+        display: none;
+    }
+
+    .movement-lot [data-line-lot-status] {
+        display: none;
+    }
 }
 
 @media (max-width: 640px) {

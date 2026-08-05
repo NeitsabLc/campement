@@ -15,7 +15,7 @@
         </div>
     </div>
     <div class="movement-line-detail" data-line-entry hidden>
-        <select name="{{ prefix ? prefix ~ '[reference]' : 'reference' }}" data-line-reference hidden><option value="">Aucune référence</option></select>
+        <label class="movement-supplier" data-line-inventory-supplier hidden>Fournisseur <b>*</b><select name="{{ prefix ? prefix ~ '[reference]' : 'reference' }}" data-line-reference data-action="change->stock-movement#refreshLine"><option value="">Sélectionner un fournisseur</option></select></label>
         <div data-line-packagings-container></div>
         <p class="movement-no-supplier" data-line-no-supplier hidden>Aucun fournisseur actif n’est associé à cette denrée.</p>
     </div>

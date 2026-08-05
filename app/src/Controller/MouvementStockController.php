@@ -31,6 +31,11 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
 final class MouvementStockController extends AbstractController
 {
+    private const ORIGINES_PAR_TYPE = [
+        'ENTREE' => ['INVENTAIRE', 'FOURNISSEUR', 'RETOUR_ALIMENTAIRE', 'CORRECTION'],
+        'SORTIE' => ['INVENTAIRE', 'DISTRIBUTION', 'POUBELLE', 'DONATION', 'CORRECTION'],
+    ];
+
     #[Route('/stocks', name: 'app_mouvements_stock', methods: ['GET'])]
     public function liste(ContexteSejour $sejours, MouvementStockLigneRepository $lignes): Response
     {
@@ -273,6 +278,10 @@ final class MouvementStockController extends AbstractController
             if (null === $type) $erreurs[] = 'Sélectionnez un type de mouvement valide.';
             if (null === $denree) $erreurs[] = 'Sélectionnez une denrée valide.';
             if (null === $origine) $erreurs[] = 'Sélectionnez une origine valide.';
+            elseif (!in_array($origine->getCode(), self::ORIGINES_PAR_TYPE[$typeCode] ?? [], true)) {
+                $erreurs[] = 'Sélectionnez une origine compatible avec le type de mouvement.';
+                $origine = null;
+            }
 
             $groupe = null;
             $reference = null;
@@ -349,6 +358,7 @@ final class MouvementStockController extends AbstractController
                     $quantiteReference,
                     $reference,
                     $typeCode,
+                    $entreeFournisseur,
                     $conditionnementSortie,
                     $conditionnementsParReference,
                     $quantitesConditionnements,
@@ -384,7 +394,7 @@ final class MouvementStockController extends AbstractController
                         $ligne->setReferenceFournisseur($reference);
                     }
                     $ligne->setConditionnementSortie(null === $reference ? $conditionnementSortie : null);
-                    $ligne->setNumeroLot('ENTREE' === $typeCode ? $this->normaliserNumeroLot($valeurs['numero_lot']) : null);
+                    $ligne->setNumeroLot($entreeFournisseur ? $this->normaliserNumeroLot($valeurs['numero_lot']) : null);
                     $em->persist($mouvement);
                     $em->persist($ligne);
                     if (null !== $reference) {
@@ -461,6 +471,10 @@ final class MouvementStockController extends AbstractController
         $fournisseur = null;
         if (null === $type) $erreurs[] = 'Sélectionnez un type de mouvement valide.';
         if (null === $origine) $erreurs[] = 'Sélectionnez une origine valide.';
+        elseif (!in_array($origine->getCode(), self::ORIGINES_PAR_TYPE[$typeCode] ?? [], true)) {
+            $erreurs[] = 'Sélectionnez une origine compatible avec le type de mouvement.';
+            $origine = null;
+        }
         if (null !== $origine && 'DISTRIBUTION' === $origine->getCode()) {
             $groupe = $this->selectionner($request->request->getString('groupe'), $groupesActifs);
             if (null === $groupe) $erreurs[] = 'Sélectionnez le groupe destinataire de la distribution.';
@@ -471,6 +485,8 @@ final class MouvementStockController extends AbstractController
         $lignesValides = [];
         $denreesVues = [];
         $entreeFournisseur = 'ENTREE' === $typeCode && null !== $origine && 'FOURNISSEUR' === $origine->getCode();
+        $mouvementInventaire = null !== $origine && 'INVENTAIRE' === $origine->getCode();
+        $mouvementConditionne = $entreeFournisseur || $mouvementInventaire;
         if ($entreeFournisseur) {
             $fournisseur = $this->selectionner($request->request->getString('fournisseur'), $fournisseursActifs);
             if (null === $fournisseur) $erreurs[] = 'Sélectionnez un fournisseur valide.';
@@ -493,9 +509,9 @@ final class MouvementStockController extends AbstractController
             $conditionnementSortie = null;
             $quantitesConditionnements = [];
             $quantiteReference = null;
-            $numeroLot = 'ENTREE' === $typeCode ? $this->normaliserNumeroLot((string) ($saisie['numero_lot'] ?? '')) : null;
+            $numeroLot = $entreeFournisseur ? $this->normaliserNumeroLot((string) ($saisie['numero_lot'] ?? '')) : null;
 
-            if (in_array($typeCode, ['ENTREE', 'SORTIE'], true) && !$entreeFournisseur) {
+            if (in_array($typeCode, ['ENTREE', 'SORTIE'], true) && !$mouvementConditionne) {
                 $conditionnementSortie = $this->selectionner((string) ($saisie['conditionnement_sortie'] ?? ''), $conditionnementsSortieParDenree[$denreeId] ?? []);
                 $quantite = $this->normaliserQuantite((string) ($saisie['quantite'] ?? ''));
                 if (null === $conditionnementSortie) $erreurs[] = sprintf('Ligne %d : sélectionnez un conditionnement valide.', $numero);
@@ -503,15 +519,21 @@ final class MouvementStockController extends AbstractController
                 if (null !== $conditionnementSortie && null !== $quantite) {
                     $quantiteReference = number_format($conversion->versUniteReference($denree, $conditionnementSortie, (float) $quantite), 3, '.', '');
                 }
-            } elseif ($entreeFournisseur) {
-                foreach ($referencesParDenree[$denreeId] ?? [] as $referenceDenree) {
-                    if ($referenceDenree->getFournisseur() === $fournisseur) {
-                        $reference = $referenceDenree;
-                        break;
+            } elseif ($mouvementConditionne) {
+                if ($mouvementInventaire) {
+                    $reference = $this->selectionner((string) ($saisie['reference'] ?? ''), $referencesParDenree[$denreeId] ?? []);
+                } else {
+                    foreach ($referencesParDenree[$denreeId] ?? [] as $referenceDenree) {
+                        if ($referenceDenree->getFournisseur() === $fournisseur) {
+                            $reference = $referenceDenree;
+                            break;
+                        }
                     }
                 }
                 if (null === $reference) {
-                    $erreurs[] = sprintf('Ligne %d : « %s » n’est pas proposée par le fournisseur sélectionné.', $numero, $denree->getNom());
+                    $erreurs[] = $mouvementInventaire
+                        ? sprintf('Ligne %d : sélectionnez un fournisseur pour « %s ».', $numero, $denree->getNom())
+                        : sprintf('Ligne %d : « %s » n’est pas proposée par le fournisseur sélectionné.', $numero, $denree->getNom());
                 } else {
                     $conditionnementsReference = $conditionnementsParReference[(string) $reference->getId()] ?? [];
                     $facteur = 1.0;
