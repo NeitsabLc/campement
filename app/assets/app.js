@@ -46,3 +46,93 @@ const initialiserNavigation = () => {
 };
 document.addEventListener('DOMContentLoaded', initialiserNavigation);
 document.addEventListener('turbo:load', initialiserNavigation);
+
+// Affiche les erreurs de la validation HTML au plus près du champ. Les écouteurs
+// sont délégués afin de couvrir également les lignes et formulaires ajoutés en JS.
+const SELECTEUR_CHAMP_VALIDABLE = 'input:not([type="hidden"]), select, textarea';
+
+const messageValidation = (champ) => {
+    const validite = champ.validity;
+
+    if (validite.valueMissing) return 'Ce champ est obligatoire.';
+    if (validite.typeMismatch && champ.type === 'email') return 'Saisissez une adresse électronique valide.';
+    if (validite.typeMismatch && champ.type === 'url') return 'Saisissez une adresse web valide.';
+    if (validite.patternMismatch) return champ.dataset.validationPattern || 'Le format saisi n’est pas valide.';
+    if (validite.tooShort) return `Saisissez au moins ${champ.minLength} caractères.`;
+    if (validite.tooLong) return `Saisissez au maximum ${champ.maxLength} caractères.`;
+    if (validite.rangeUnderflow) return `La valeur minimale autorisée est ${champ.min}.`;
+    if (validite.rangeOverflow) return `La valeur maximale autorisée est ${champ.max}.`;
+    if (validite.stepMismatch) return 'Saisissez une valeur autorisée.';
+    if (validite.badInput) return 'Saisissez une valeur valide.';
+
+    return champ.validationMessage || 'La valeur saisie n’est pas valide.';
+};
+
+const conteneurErreur = (champ) => champ.closest('label, .form-field, .group-form-field, .user-field') || champ.parentElement;
+
+const retirerErreurValidation = (champ) => {
+    const identifiant = champ.getAttribute('aria-errormessage');
+    if (identifiant) document.getElementById(identifiant)?.remove();
+    champ.removeAttribute('aria-invalid');
+    champ.removeAttribute('aria-errormessage');
+};
+
+const afficherErreurValidation = (champ) => {
+    if (!(champ instanceof HTMLInputElement || champ instanceof HTMLSelectElement || champ instanceof HTMLTextAreaElement)) return;
+    if (champ.validity.valid || champ.disabled) {
+        retirerErreurValidation(champ);
+        return;
+    }
+
+    let identifiant = champ.getAttribute('aria-errormessage');
+    let erreur = identifiant ? document.getElementById(identifiant) : null;
+    if (!erreur) {
+        identifiant = `validation-${crypto.randomUUID()}`;
+        erreur = document.createElement('span');
+        erreur.id = identifiant;
+        erreur.className = 'field-validation-error';
+        erreur.setAttribute('role', 'alert');
+        conteneurErreur(champ)?.append(erreur);
+    }
+
+    erreur.textContent = messageValidation(champ);
+    champ.setAttribute('aria-invalid', 'true');
+    champ.setAttribute('aria-errormessage', identifiant);
+};
+
+document.addEventListener('invalid', (event) => {
+    const champ = event.target.closest?.(SELECTEUR_CHAMP_VALIDABLE);
+    if (!champ) return;
+    event.preventDefault();
+    afficherErreurValidation(champ);
+
+    // Une seule programmation par formulaire suffit, même si plusieurs champs
+    // déclenchent successivement l’événement « invalid ».
+    const formulaire = champ.form;
+    if (formulaire && !formulaire.dataset.validationFocusScheduled) {
+        formulaire.dataset.validationFocusScheduled = 'true';
+        window.requestAnimationFrame(() => {
+            const premierChampInvalide = formulaire.querySelector(':invalid');
+            premierChampInvalide?.focus({preventScroll: true});
+            premierChampInvalide?.scrollIntoView({behavior: 'smooth', block: 'center'});
+            delete formulaire.dataset.validationFocusScheduled;
+        });
+    }
+}, true);
+
+const actualiserErreurValidation = (event) => {
+    const champ = event.target.closest?.(SELECTEUR_CHAMP_VALIDABLE);
+    if (!champ || !champ.hasAttribute('aria-invalid')) return;
+    afficherErreurValidation(champ);
+};
+
+document.addEventListener('input', actualiserErreurValidation);
+document.addEventListener('change', actualiserErreurValidation);
+
+// Signale les erreurs de format dès la sortie du champ. Un champ obligatoire
+// encore vide reste silencieux jusqu'à l'envoi du formulaire.
+document.addEventListener('focusout', (event) => {
+    const champ = event.target.closest?.(SELECTEUR_CHAMP_VALIDABLE);
+    if (!champ || champ.value === '') return;
+    afficherErreurValidation(champ);
+});

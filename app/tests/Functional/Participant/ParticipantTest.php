@@ -55,6 +55,7 @@ final class ParticipantTest extends WebTestCase
         self::assertSelectorExists(sprintf('select[name="groupe_id"] option[value="%s"][selected]', $groupe->getId()));
         self::assertSelectorExists(sprintf('input[name="date_debut_presence"][value="%s"]', $groupe->getDateDebutPresence()->format('Y-m-d')));
         self::assertSelectorExists(sprintf('input[name="date_fin_presence"][value="%s"]', $groupe->getDateFinPresence()->format('Y-m-d')));
+        self::assertSelectorExists('input[name="telephone_parent_1"][pattern]');
     }
 
     public function testLeModuleDesactiveEstMasqueEtSaPageInaccessible(): void

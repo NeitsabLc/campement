@@ -1561,6 +1561,38 @@ select {
 .distribution-button { display: flex; width: 100%; min-height: 3.35rem; align-items: center; justify-content: center; padding: .75rem 1rem; border: 0; border-radius: .4rem; color: white; background: var(--sgdf-blue); font-weight: 800; text-decoration: none; cursor: pointer; }
 .distribution-errors { margin-bottom: 1rem; padding: .75rem 1rem; border-left: 4px solid var(--danger); background: var(--danger-surface); color: var(--danger); }
 .distribution-errors p { margin: .25rem 0; }
+
+/* Validation des formulaires : même rendu sous chaque champ sur tous les écrans. */
+.field-validation-error {
+    display: block;
+    flex-basis: 100%;
+    width: 100%;
+    margin-top: .35rem;
+    color: var(--danger);
+    font-size: .875rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+    border-color: var(--danger) !important;
+    outline-color: var(--danger);
+}
+
+input[aria-invalid="true"]:focus,
+select[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+@media (max-width: 760px) {
+    .field-validation-error {
+        margin-top: .3rem;
+        font-size: .82rem;
+    }
+}
 .distribution-back { display: inline-block; margin-bottom: 1rem; font-weight: 700; text-decoration: none; }
 .distribution-summary { padding: 1.4rem; border-top: .3rem solid var(--sgdf-mint); border-radius: .5rem; background: white; box-shadow: 0 6px 20px rgb(0 58 93 / 10%); }
 .distribution-summary dl { margin: 0; }
