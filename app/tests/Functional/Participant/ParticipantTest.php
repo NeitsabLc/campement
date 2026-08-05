@@ -49,14 +49,12 @@ final class ParticipantTest extends WebTestCase
         $groupe = static::getContainer()->get(GroupeRepository::class)->findActifs()[0] ?? null;
         self::assertNotNull($groupe);
 
-        $crawler = $client->request('GET', '/administratif/participants');
-        $bouton = $crawler->filter(sprintf('button[data-participant-group="%s"]', $groupe->getId()))->first();
+        $client->request('GET', sprintf('/administratif/participants/ajouter?groupe=%s&type=jeune', $groupe->getId()));
 
-        self::assertCount(1, $bouton);
-        self::assertSame($groupe->getDateDebutPresence()->format('Y-m-d'), $bouton->attr('data-participant-start-date'));
-        self::assertSame($groupe->getDateFinPresence()->format('Y-m-d'), $bouton->attr('data-participant-end-date'));
-        self::assertSelectorExists('input[name="date_debut_presence"][data-participant-dialog-target="startDate"]');
-        self::assertSelectorExists('input[name="date_fin_presence"][data-participant-dialog-target="endDate"]');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists(sprintf('select[name="groupe_id"] option[value="%s"][selected]', $groupe->getId()));
+        self::assertSelectorExists(sprintf('input[name="date_debut_presence"][value="%s"]', $groupe->getDateDebutPresence()->format('Y-m-d')));
+        self::assertSelectorExists(sprintf('input[name="date_fin_presence"][value="%s"]', $groupe->getDateFinPresence()->format('Y-m-d')));
     }
 
     public function testLeModuleDesactiveEstMasqueEtSaPageInaccessible(): void

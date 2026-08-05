@@ -30,8 +30,9 @@ final class SejourTest extends WebTestCase
 
         $crawler = $client->request('GET', '/sejours');
         self::assertSelectorExists('.sidebar__link[href="/sejours"] + .sidebar__link[href="/utilisateurs"]');
-        self::assertSelectorNotExists('#form-sejour-create select[name="gestionnaire"]');
-        $formulaireCreation = $crawler->filter('#form-sejour-create')->form([
+        $crawler = $client->request('GET', '/sejours/ajouter');
+        self::assertSelectorNotExists('#stay-form select[name="gestionnaire"]');
+        $formulaireCreation = $crawler->filter('#stay-form')->form([
             'nom' => $nomInitial,
             'date_debut' => '2027-07-01',
             'date_fin' => '2027-07-15',
@@ -51,7 +52,8 @@ final class SejourTest extends WebTestCase
         $formulaireSelection = $crawler->filter('form[action="/sejours/'.$sejour->getId().'/selection"]')->form();
         $client->submit($formulaireSelection);
         self::assertResponseRedirects('/sejours');
-        $formulaireModification = $crawler->filter('#form-sejour-'.$sejour->getId())->form([
+        $crawler = $client->request('GET', '/sejours/'.$sejour->getId().'/modifier');
+        $formulaireModification = $crawler->filter('#stay-form')->form([
             'nom' => 'Séjour test fonctionnel modifié',
             'date_debut' => '2027-07-02',
             'date_fin' => '2027-07-16',
@@ -84,7 +86,8 @@ final class SejourTest extends WebTestCase
         self::assertSelectorTextContains('.sidebar__nav', 'Mes séjours');
         self::assertSelectorTextContains('.sidebar__section--management summary', 'Gestion');
         self::assertSelectorExists('.sidebar__section--management a[href="/utilisateurs"]');
-        $formulaireGestionnaire = $crawler->filter('#form-sejour-'.$sejour->getId())->form([
+        $crawler = $client->request('GET', '/sejours/'.$sejour->getId().'/modifier');
+        $formulaireGestionnaire = $crawler->filter('#stay-form')->form([
             'nom' => 'Séjour modifié par le gestionnaire',
             'date_debut' => '2027-07-03',
             'date_fin' => '2027-07-17',

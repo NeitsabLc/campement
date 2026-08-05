@@ -25,6 +25,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-campement.ini
 
 WORKDIR /var/www/app
 

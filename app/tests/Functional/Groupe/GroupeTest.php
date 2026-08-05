@@ -30,20 +30,12 @@ final class GroupeTest extends WebTestCase
         $client->request('GET', '/groupes');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Gestion des unités participantes');
-        self::assertSelectorExists('form input[name="nom"]');
-        self::assertSelectorExists('form input[name="type"][value="farfadets"]');
-        self::assertSelectorExists('form input[name="type"][value="louveteaux-jeannettes"]');
-        self::assertSelectorExists('form input[name="type"][value="scouts-guides"]');
-        self::assertSelectorExists('form input[name="type"][value="pionniers-caravelles"]');
-        self::assertSelectorExists('form input[name="type"][value="compagnons"]');
-        self::assertSelectorExists('form input[name="type"][value="adulte"]');
-        self::assertSelectorExists('form input[name="date_debut_presence"][type="date"]');
-        self::assertSelectorExists('form input[name="date_fin_presence"][type="date"]');
-        self::assertSelectorExists('.edit-group-button[data-group-id]');
+        self::assertSelectorTextContains('h1', 'Unités participantes');
+        self::assertSelectorExists('.food-add-button[href="/groupes/ajouter"]');
+        self::assertSelectorExists('.edit-group-button[href^="/groupes/"]');
         self::assertSelectorExists('.delete-group-button[data-delete-url]');
         self::assertSelectorExists('.delete-group-dialog');
-        self::assertSelectorExists('.groups-heading .add-group-button');
+        self::assertSelectorExists('.groups-heading .food-add-button');
         self::assertSelectorTextContains('.group-row dl', 'réels');
     }
 

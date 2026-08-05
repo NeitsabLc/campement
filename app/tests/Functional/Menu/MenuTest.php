@@ -30,7 +30,7 @@ final class MenuTest extends WebTestCase
         $client->request('GET', '/menus');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Gestion des menus');
+        self::assertSelectorTextContains('h1', 'Menus');
         self::assertSelectorExists('.meal-calendar[data-turbo-prefetch="false"]');
     }
 
