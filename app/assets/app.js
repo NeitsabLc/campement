@@ -27,20 +27,77 @@ const programmerDisparitionMessages = () => {
 document.addEventListener('DOMContentLoaded', programmerDisparitionMessages);
 document.addEventListener('turbo:load', programmerDisparitionMessages);
 
+// Lorsqu'une destination est choisie dans un module, prépare le nouveau body
+// fermé avant que Turbo ne l'affiche. Le panneau courant reste ainsi visible
+// pendant la transition et aucun retour fugitif au menu principal n'apparaît.
+document.addEventListener('turbo:before-render', (event) => {
+    if (sessionStorage.getItem('campement-close-sidebar-panel') !== 'true') return;
+    event.detail.newBody.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.removeAttribute('open'));
+    event.detail.newBody.classList.remove('sidebar-panel-open');
+});
+
 const initialiserNavigation = () => {
     const body = document.body;
-    body.classList.toggle('sidebar-collapsed', localStorage.getItem('campement-sidebar') === 'collapsed');
-    document.querySelectorAll('[data-sidebar-collapse]').forEach((button) => button.addEventListener('click', () => {
-        body.classList.toggle('sidebar-collapsed');
-        localStorage.setItem('campement-sidebar', body.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded');
-    }));
-    document.querySelectorAll('[data-sidebar-toggle]').forEach((button) => button.addEventListener('click', () => body.classList.toggle('sidebar-open')));
-    document.querySelectorAll('[data-sidebar-section]').forEach((section) => section.addEventListener('toggle', () => {
-        if (!section.open) return;
-        document.querySelectorAll('[data-sidebar-section]').forEach((otherSection) => {
-            if (otherSection !== section) otherSection.open = false;
+    const navigationMobile = window.matchMedia('(max-width: 760px)').matches;
+    const fermerPanneauApresNavigation = sessionStorage.getItem('campement-close-sidebar-panel') === 'true';
+    sessionStorage.removeItem('campement-close-sidebar-panel');
+    if (fermerPanneauApresNavigation) {
+        document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
+    }
+    body.classList.toggle('sidebar-collapsed', !navigationMobile && localStorage.getItem('campement-sidebar') === 'collapsed');
+    document.querySelectorAll('[data-sidebar-collapse]').forEach((button) => {
+        if (button.dataset.navigationBound) return;
+        button.dataset.navigationBound = 'true';
+        button.addEventListener('click', () => {
+            if (window.matchMedia('(max-width: 760px)').matches) {
+                document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
+                body.classList.remove('sidebar-panel-open');
+                body.classList.remove('sidebar-open');
+                return;
+            }
+            document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
+            body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('campement-sidebar', body.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded');
         });
-    }));
+    });
+    document.querySelectorAll('[data-sidebar-toggle]').forEach((button) => {
+        if (button.dataset.navigationBound) return;
+        button.dataset.navigationBound = 'true';
+        button.addEventListener('click', () => {
+            if (body.classList.contains('sidebar-open')) {
+                document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
+                body.classList.remove('sidebar-panel-open');
+            }
+            body.classList.toggle('sidebar-open');
+        });
+    });
+    document.querySelectorAll('[data-sidebar-section]').forEach((section) => {
+        if (section.dataset.navigationBound) return;
+        section.dataset.navigationBound = 'true';
+        section.addEventListener('toggle', () => {
+            if (section.open) {
+                document.querySelectorAll('[data-sidebar-section]').forEach((otherSection) => {
+                    if (otherSection !== section) otherSection.open = false;
+                });
+            }
+            body.classList.toggle('sidebar-panel-open', Boolean(document.querySelector('[data-sidebar-section][open]')));
+        });
+    });
+    body.classList.toggle('sidebar-panel-open', Boolean(document.querySelector('[data-sidebar-section][open]')));
+    document.querySelectorAll('[data-sidebar-panel-close]').forEach((button) => {
+        if (button.dataset.navigationBound) return;
+        button.dataset.navigationBound = 'true';
+        button.addEventListener('click', () => {
+            button.closest('[data-sidebar-section]')?.removeAttribute('open');
+        });
+    });
+    document.querySelectorAll('.sidebar-module-panel a').forEach((link) => {
+        if (link.dataset.navigationBound) return;
+        link.dataset.navigationBound = 'true';
+        link.addEventListener('click', () => {
+            sessionStorage.setItem('campement-close-sidebar-panel', 'true');
+        });
+    });
     document.querySelectorAll('[data-open-dialog]').forEach((button) => button.addEventListener('click', () => document.getElementById(button.dataset.openDialog)?.showModal()));
     document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => button.closest('dialog')?.close()));
 };

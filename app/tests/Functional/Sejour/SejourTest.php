@@ -29,7 +29,7 @@ final class SejourTest extends WebTestCase
         $nomInitial = 'Séjour test fonctionnel '.bin2hex(random_bytes(4));
 
         $crawler = $client->request('GET', '/sejours');
-        self::assertSelectorExists('.sidebar__link[href="/sejours"] + .sidebar__link[href="/utilisateurs"]');
+        self::assertSelectorExists('.sidebar__section--management a[href="/sejours"] + a[href="/utilisateurs"]');
         $crawler = $client->request('GET', '/sejours/ajouter');
         self::assertSelectorNotExists('#stay-form select[name="gestionnaire"]');
         $formulaireCreation = $crawler->filter('#stay-form')->form([

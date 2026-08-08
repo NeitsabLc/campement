@@ -30,6 +30,65 @@
     .presence-group .presence-daily-row,.presence-group>p{padding-inline:1.25rem}
 }
 
+/* Conserve la largeur Jambville malgré les anciens correctifs placés plus haut. */
+body.app-shell { padding-left: 14.5rem; }
+.sidebar__user.user-summary { align-items: center; flex-direction: row; }
+@media (max-width: 760px) { body.app-shell, body.app-shell.sidebar-collapsed { padding-left: 0; } }
+
+/* Navigation à deux niveaux : rail principal et panneau de module. */
+.sidebar__section summary { position: relative; }
+.sidebar__chevron { margin-left: auto; font-size: 1.25rem; transition: transform 160ms ease; }
+.sidebar__section[open] .sidebar__chevron { transform: rotate(180deg); }
+.sidebar__section--management { margin-top: auto; }
+.sidebar__section > .sidebar-module-panel {
+    position: fixed;
+    z-index: 45;
+    top: 0;
+    bottom: 0;
+    left: 14.5rem;
+    display: none;
+    width: 18rem;
+    padding: 1.2rem 1rem;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    color: var(--sgdf-blue);
+    background: #fff;
+    box-shadow: 10px 0 28px rgb(0 34 55 / 14%);
+}
+body.sidebar-panel-open .sidebar__section[open] > .sidebar-module-panel { display: block; }
+.sidebar-module-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .15rem .25rem 1rem; border-bottom: 1px solid var(--border); }
+.sidebar-module-panel > header small,
+.sidebar-module-panel > header strong { display: block; }
+.sidebar-module-panel > header small { color: var(--text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.sidebar-module-panel > header button { display: grid; width: 2.35rem; height: 2.35rem; padding: 0; border: 0; border-radius: .45rem; color: var(--sgdf-blue); background: var(--surface-muted); font: inherit; font-size: 1.5rem; cursor: pointer; place-items: center; }
+.sidebar-module-panel > nav { display: grid; gap: .2rem; padding-top: .75rem; }
+.sidebar__section .sidebar-module-panel a { display: flex; align-items: center; gap: .75rem; padding: .7rem .65rem; border-radius: .45rem; color: #244f67; text-decoration: none; }
+.sidebar__section .sidebar-module-panel a:hover { color: var(--sgdf-blue); background: var(--surface-muted); text-decoration: none; }
+.sidebar__section .sidebar-module-panel a[aria-current="page"] { color: var(--sgdf-blue); background: #e2f4ee; box-shadow: inset 3px 0 var(--sgdf-mint); }
+.sidebar-module-panel a > span:last-child { min-width: 0; }
+.sidebar-module-panel a strong,
+.sidebar-module-panel a small { display: block; }
+.sidebar-module-panel a small { margin-top: .08rem; color: var(--text-muted); font-size: .73rem; font-weight: 400; }
+body.app-shell.sidebar-panel-open { padding-left: 32.5rem; }
+.sidebar-collapsed .sidebar__section > .sidebar-module-panel { left: 4.75rem; }
+body.app-shell.sidebar-collapsed.sidebar-panel-open { padding-left: 22.75rem; }
+
+@media (max-width: 760px) {
+    body.app-shell.sidebar-panel-open,
+    body.app-shell.sidebar-collapsed.sidebar-panel-open { padding-left: 0; }
+    .sidebar { overflow-y: auto; }
+    .sidebar__nav { overflow: visible; }
+    .sidebar__section > .sidebar-module-panel,
+    .sidebar-collapsed .sidebar__section > .sidebar-module-panel {
+        z-index: 60;
+        inset: 0;
+        width: 100%;
+        min-height: 100%;
+        border-right: 0;
+        box-shadow: none;
+    }
+}
+
 /* Le gestionnaire consulte les menus sur mobile avec la même vue que les groupes. */
 .manager-menu-mobile{display:none}
 @media(max-width:48rem){
@@ -421,6 +480,82 @@ body.app-shell.sidebar-collapsed { padding-left: 4.75rem; }
 @media(max-width:48rem){.presence-daily-row>.presence-edit-button{display:none!important}}
 body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25rem, 4vw, 3.5rem); }
 @media (max-width: 760px) { body.app-shell, body.app-shell.sidebar-collapsed { padding-left: 0; } body.app-shell .page-content { padding-top: 4.5rem; } .sidebar-collapsed .sidebar__stay { display:flex; } }
+
+/* Navigation alignée sur la structure de Bénévoles Jambville. */
+body.app-shell { padding-left: 14.5rem; }
+.sidebar {
+    width: 14.5rem;
+    padding: 1.35rem .8rem 1rem;
+    box-shadow: 8px 0 30px rgb(0 34 54 / 10%);
+}
+.sidebar__brand {
+    min-height: auto;
+    padding: 0 .65rem 1.35rem;
+    border-bottom-color: rgb(255 255 255 / 14%);
+    font-family: "Sarabun", system-ui, sans-serif;
+    font-size: 1rem;
+}
+.sidebar__brand-identity { display: flex; min-width: 0; flex: 1; align-items: center; gap: .7rem; }
+.sidebar__brand-symbol { display: grid; width: 2.8rem; height: 2.8rem; flex: 0 0 2.8rem; place-items: center; border-radius: .75rem .75rem .75rem .15rem; color: var(--sgdf-blue); background: #fff; font-weight: 800; }
+.sidebar__brand-identity strong,
+.sidebar__brand-identity small { display: block; }
+.sidebar__brand-identity small { margin-top: .08rem; color: #b8cfdb; font-size: .68rem; font-weight: 400; line-height: 1.15; }
+.sidebar__brand button { width: 2rem; height: 2rem; border: 0; background: rgb(255 255 255 / 8%); font-size: 1.45rem; }
+.sidebar__nav { gap: .3rem; padding: 1.25rem 0; }
+.sidebar__link,
+.sidebar__section summary {
+    min-height: 2.85rem;
+    gap: .8rem;
+    padding: .65rem .8rem;
+    border-radius: .55rem;
+    color: #dceaf0;
+    font-size: .9rem;
+    transition: color .15s, background .15s, box-shadow .15s;
+}
+.sidebar__link:hover,
+.sidebar__section summary:hover { color: #fff; background: rgb(255 255 255 / 8%); }
+.sidebar__link[aria-current="page"],
+.sidebar__section summary[aria-current="page"] {
+    color: #fff;
+    background: rgb(72 185 148 / 28%);
+    box-shadow: inset 3px 0 0 var(--sgdf-mint);
+}
+.sidebar__icon { width: 1.2rem; flex-basis: 1.2rem; font-size: 1.1rem; }
+.sidebar__icon svg { width: 1.2rem; height: 1.2rem; stroke-width: 1.7; }
+.sidebar__stay { margin: .7rem 0; border-radius: .55rem; }
+.sidebar__section > div { padding: .1rem 0 .45rem 2.8rem; }
+.sidebar__section a { color: #dceaf0; font-size: .86rem; }
+.sidebar__section a:hover { color: #fff; }
+.sidebar__version { padding: .55rem .4rem; color: #8fb2c3; }
+.sidebar__account { display: flex; align-items: center; gap: .35rem; padding: 1rem .4rem 0; border-top: 1px solid rgb(255 255 255 / 14%); }
+.sidebar__user { min-width: 0; flex: 1; padding: 0; border-top: 0; }
+.sidebar__user small { color: #b8cfdb; }
+.sidebar__user .sidebar__text { min-width: 0; }
+.sidebar__user strong,
+.sidebar__user small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar__avatar { color: #fff; background: var(--sgdf-mint); }
+.sidebar__logout-form { width: auto; margin: 0; }
+.sidebar__logout { width: 2.3rem; height: 2.3rem; justify-content: center; padding: .45rem; border-radius: .5rem; color: #ff9ab4; }
+.sidebar__logout:hover { color: #fff; }
+.sidebar-collapsed .sidebar__account { justify-content: center; padding-inline: 0; }
+.sidebar-collapsed .sidebar__user { flex: 0 0 auto; }
+.sidebar-collapsed .sidebar__logout-form { display: none; }
+.sidebar-collapsed .sidebar__brand-identity { display: none; }
+
+@media (max-width: 760px) {
+    body.app-shell,
+    body.app-shell.sidebar-collapsed { padding-left: 0; }
+    .sidebar,
+    .sidebar-collapsed .sidebar { width: min(18rem, 86vw); }
+    .sidebar-collapsed .sidebar__brand { justify-content: flex-start; padding: 0 .65rem 1.35rem; }
+    .sidebar-collapsed .sidebar__brand img { display: block; }
+    .sidebar-collapsed .sidebar__brand button { margin-left: auto; transform: none; }
+    .sidebar-collapsed .sidebar__link,
+    .sidebar-collapsed .sidebar__section summary,
+    .sidebar-collapsed .sidebar__logout { justify-content: flex-start; padding-inline: .8rem; }
+    .sidebar-collapsed .sidebar__section > div { display: grid; }
+    .sidebar-collapsed .sidebar__logout { justify-content: center; padding: .45rem; }
+}
 
 .searchable-select__native{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
 .searchable-select{position:relative;width:100%;min-width:0;margin-top:.4rem;font-weight:400}
