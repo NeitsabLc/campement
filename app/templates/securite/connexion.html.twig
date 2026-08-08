@@ -1,29 +1,34 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Connexion | Campement{% endblock %}
+{% block body_class %}login-shell{% endblock %}
 
 {% block body %}
-    <main class="auth-page">
-        <div class="auth-brand">
-            <img class="auth-brand__logo" src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France">
-            <span class="brand__name">Campement</span>
-            <span class="brand__tagline">Gestion des camps accompagnés</span>
-        </div>
+    <main class="login-page">
+        <section class="login-panel" aria-labelledby="connexion-title">
+            <div class="login-identity" aria-label="Campement, Scouts et Guides de France">
+                <span class="login-identity__symbol" aria-hidden="true">CA</span>
+                <span>
+                    <strong>Campement</strong>
+                    <small>Scouts et Guides de France</small>
+                </span>
+                <img class="login-identity__sgdf-logo" src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France">
+            </div>
 
-        <section class="auth-card" aria-labelledby="connexion-title">
-            <header class="auth-card__header">
-                <h1 id="connexion-title">Connexion</h1>
-                <p class="auth-card__intro">Accédez à votre espace Campement.</p>
+            <header class="login-header">
+                <p class="login-eyebrow">Gestion des camps accompagnés</p>
+                <h1 id="connexion-title">Ravi de vous revoir</h1>
+                <p>Connectez-vous pour organiser votre séjour et préparer l’accueil des unités participantes.</p>
             </header>
 
             {% if erreur %}
-                <p class="alert" role="alert">Identifiants incorrects.</p>
+                <div class="login-alert login-alert--error" role="alert">Identifiants incorrects.</div>
             {% endif %}
-            {% for message in app.flashes('success') %}<p class="flash flash--success" role="status">{{ message }}</p>{% endfor %}
+            {% for message in app.flashes('success') %}<div class="login-alert login-alert--success" role="status">{{ message }}</div>{% endfor %}
 
-            <form method="post" action="{{ path('app_connexion') }}">
-                <div class="form-field">
-                    <label for="email">Adresse électronique</label>
+            <form class="login-form" method="post" action="{{ path('app_connexion') }}">
+                <div class="login-field">
+                    <label for="email">Adresse e-mail</label>
                     <input
                         id="email"
                         name="_username"
@@ -35,7 +40,7 @@
                     >
                 </div>
 
-                <div class="form-field">
+                <div class="login-field">
                     <label for="mot-de-passe">Mot de passe</label>
                     <input
                         id="mot-de-passe"
@@ -48,9 +53,15 @@
 
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
-                <button class="primary-button" type="submit">Se connecter</button>
+                <button class="login-submit" type="submit">Se connecter</button>
             </form>
-            <p class="auth-card__footer"><a href="{{ path('app_mot_de_passe_oublie') }}">Mot de passe oublié ?</a></p>
+            <p class="login-note"><a href="{{ path('app_mot_de_passe_oublie') }}">Mot de passe oublié ?</a></p>
         </section>
+        <aside class="login-illustration" aria-hidden="true">
+            <div class="login-welcome">
+                <p class="login-eyebrow login-eyebrow--light">Bienvenue au camp</p>
+                <p>« Tout ce qu’il faut pour vivre pleinement l’aventure. »</p>
+            </div>
+        </aside>
     </main>
 {% endblock %}

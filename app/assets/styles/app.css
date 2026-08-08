@@ -844,6 +844,121 @@ select {
 .auth-card__footer { margin: 1.25rem 0 0; text-align: center; }
 .auth-card__footer a { color: var(--sgdf-blue-light); font-weight: 700; }
 
+/* Connexion — mise en page inspirée de l'application Bénévoles Jambville. */
+.login-shell {
+    margin: 0;
+    color: var(--sgdf-blue);
+    background: var(--surface);
+}
+
+.login-page {
+    display: grid;
+    min-height: 100vh;
+    grid-template-columns: minmax(0, 1.05fr) minmax(22rem, 0.95fr);
+    background: var(--surface);
+}
+
+.login-panel {
+    width: min(100%, 38rem);
+    margin: auto;
+    padding: clamp(2rem, 7vw, 5.5rem);
+}
+
+.login-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: clamp(3rem, 8vh, 5rem);
+}
+
+.login-identity__symbol {
+    display: grid;
+    width: 2.8rem;
+    height: 2.8rem;
+    flex: 0 0 auto;
+    border-radius: 0.75rem 0.75rem 0.75rem 0.15rem;
+    color: var(--surface);
+    background: var(--sgdf-blue);
+    font-weight: 800;
+    place-items: center;
+}
+
+.login-identity__sgdf-logo { display: block; width: 5.25rem; height: 3rem; margin-left: auto; object-fit: contain; }
+
+.login-identity strong,
+.login-identity small { display: block; }
+.login-identity small { margin-top: 0.1rem; color: var(--text-muted); font-size: 0.72rem; }
+
+.login-header { margin-bottom: 2rem; }
+.login-eyebrow { margin: 0; color: #087b67; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.login-header h1 { margin: 0.45rem 0 0.65rem; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.08; letter-spacing: -0.035em; }
+.login-header > p:last-child { max-width: 31rem; margin: 0; color: var(--text-muted); line-height: 1.55; }
+
+.login-form { display: grid; gap: 1.25rem; }
+.login-field { display: grid; gap: 0.45rem; }
+.login-field label { font-size: 0.9rem; font-weight: 700; }
+.login-field input {
+    width: 100%;
+    min-height: 3.2rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #c7d2d8;
+    border-radius: 0.55rem;
+    color: #173f53;
+    background: var(--surface);
+    font: inherit;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.login-field input:focus { border-color: var(--sgdf-mint); box-shadow: 0 0 0 3px rgb(101 188 153 / 18%); }
+
+.login-submit {
+    display: inline-flex;
+    min-height: 3.25rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+    border: 0;
+    border-radius: 0.55rem;
+    color: var(--surface);
+    background: var(--sgdf-blue);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 150ms ease, transform 150ms ease;
+}
+.login-submit:hover { background: #075079; }
+.login-submit:active { transform: translateY(1px); }
+.login-submit:focus-visible { outline: 3px solid var(--sgdf-blue-light); outline-offset: 3px; }
+
+.login-note { margin: 1.5rem 0 0; color: var(--text-muted); font-size: 0.83rem; line-height: 1.5; text-align: center; }
+.login-note a { color: var(--sgdf-blue-light); font-weight: 700; }
+.login-alert { margin-bottom: 1.25rem; padding: 0.85rem 1rem; border: 1px solid; border-radius: 0.5rem; font-size: 0.88rem; line-height: 1.45; }
+.login-alert--error { border-color: #f2c1bd; color: #7d2424; background: #fff0ef; }
+.login-alert--success { border-color: #b7e3d4; color: #17614e; background: #eaf8f2; }
+
+.login-illustration {
+    position: relative;
+    overflow: hidden;
+    min-height: 100%;
+    background-image: linear-gradient(180deg, rgb(0 35 56 / 6%) 25%, rgb(0 35 56 / 64%) 100%), url('../images/camp-sous-bois.jpg');
+    background-position: center;
+    background-size: cover;
+}
+.login-welcome { position: absolute; right: clamp(2rem, 7vw, 6rem); bottom: clamp(2rem, 8vh, 5rem); left: clamp(2rem, 7vw, 6rem); color: var(--surface); }
+.login-welcome > p:last-child { max-width: 28rem; margin: 0.6rem 0 0; font-size: clamp(1.55rem, 3vw, 2.5rem); font-weight: 700; line-height: 1.25; }
+.login-eyebrow--light { color: #c6f4e3; }
+
+@media (max-width: 800px) {
+    .login-page { grid-template-columns: 1fr; }
+    .login-panel { width: min(100%, 36rem); padding: 2rem 1.5rem 3rem; }
+    .login-identity { margin-bottom: 3rem; }
+    .login-illustration { display: none; }
+}
+
+@media (max-width: 420px) {
+    .login-identity__sgdf-logo { width: 4.25rem; }
+}
+
 .primary-button:focus-visible,
 .button-link:focus-visible,
 .primary-navigation a:focus-visible,
