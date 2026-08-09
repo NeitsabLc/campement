@@ -37,6 +37,8 @@ security:
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/conditions-utilisation$, roles: PUBLIC_ACCESS }
+        - { path: ^/politique-confidentialite$, roles: PUBLIC_ACCESS }
         - { path: ^/mot-de-passe-oublie$, roles: PUBLIC_ACCESS }
         - { path: ^/reinitialiser-mot-de-passe/, roles: PUBLIC_ACCESS }
         - { path: ^/sortie-consommation(?:/|$), roles: PUBLIC_ACCESS }

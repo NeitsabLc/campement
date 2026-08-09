@@ -66,6 +66,9 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
+    #[ORM\Column(name: 'desactive_at', type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
+    private ?DateTimeImmutable $desactiveAt = null;
+
     #[ORM\Column(name: 'changement_mot_de_passe_requis', options: ['default' => false])]
     private bool $changementMotDePasseRequis = false;
 
@@ -208,9 +211,17 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setActif(bool $actif): self
     {
+        if ($this->actif !== $actif) {
+            $this->desactiveAt = $actif ? null : new DateTimeImmutable();
+        }
         $this->actif = $actif;
 
         return $this;
+    }
+
+    public function getDesactiveAt(): ?DateTimeImmutable
+    {
+        return $this->desactiveAt;
     }
 
     public function isChangementMotDePasseRequis(): bool

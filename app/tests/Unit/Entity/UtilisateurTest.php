@@ -62,4 +62,21 @@ final class UtilisateurTest extends TestCase
         $utilisateur->effacerJetonReinitialisation();
         self::assertFalse($utilisateur->jetonReinitialisationEstValide('secret'));
     }
+
+    public function testLaDesactivationDeclencheLeDelaiEtLaReactivationLAnnule(): void
+    {
+        $utilisateur = new Utilisateur();
+
+        self::assertNull($utilisateur->getDesactiveAt());
+
+        $utilisateur->setActif(false);
+        $dateDesactivation = $utilisateur->getDesactiveAt();
+        self::assertInstanceOf(\DateTimeImmutable::class, $dateDesactivation);
+
+        $utilisateur->setActif(false);
+        self::assertSame($dateDesactivation, $utilisateur->getDesactiveAt());
+
+        $utilisateur->setActif(true);
+        self::assertNull($utilisateur->getDesactiveAt());
+    }
 }

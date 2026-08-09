@@ -156,6 +156,15 @@ clean: ## Nettoyer les fichiers temporaires Symfony
 	rm -rf app/var/cache/*
 	rm -rf app/var/log/*
 
+.PHONY: purge-data
+purge-data: ## Appliquer immédiatement les délais de conservation
+	$(PHP) php bin/console app:sejours:anonymiser
+	$(PHP) php bin/console app:donnees:purger
+
+.PHONY: backup-now
+backup-now: ## Créer immédiatement une sauvegarde via le service de production
+	$(DOCKER_COMPOSE_PROD) run --rm -e BACKUP_ONCE=1 backup
+
 .PHONY: db-check-connection
 db-check-connection: ## Vérifier la connexion Doctrine à PostgreSQL
 	$(PHP) php bin/console dbal:run-sql \

@@ -30,6 +30,18 @@
     .presence-group .presence-daily-row,.presence-group>p{padding-inline:1.25rem}
 }
 
+/* Pages d'information et liens légaux */
+.legal-footer{display:flex;flex-wrap:wrap;justify-content:center;gap:.55rem;padding:1rem 1.5rem;color:var(--text-muted);font-size:.78rem}
+.legal-footer a{color:inherit}.legal-footer--with-sidebar{margin-left:var(--sidebar-width,17rem)}
+.login-legal{max-width:30rem;margin:1.25rem auto 0;color:var(--text-muted);font-size:.75rem;line-height:1.55;text-align:center}.login-legal a{color:inherit}
+.legal-shell{min-height:100vh;background:#f4f7f8;color:var(--text)}
+.legal-page{width:min(100% - 2rem,52rem);margin:0 auto;padding:3rem 0 4rem}
+.legal-heading{margin-bottom:1.5rem}.legal-heading>p:not(.legal-updated){margin:1.75rem 0 .25rem;color:var(--sgdf-blue);font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.legal-heading h1{margin:.2rem 0;font-family:var(--font-title);font-size:clamp(2rem,5vw,3rem);line-height:1.1}.legal-updated{margin:.5rem 0;color:var(--text-muted);font-size:.85rem}
+.legal-brand{display:inline-flex;align-items:center;gap:.65rem;color:var(--sgdf-blue);text-decoration:none}.legal-brand span{display:grid;width:2.35rem;height:2.35rem;place-items:center;border-radius:.35rem;color:#fff;background:var(--sgdf-blue);font-family:var(--font-title);font-size:.8rem}.legal-brand strong{font-family:var(--font-title);font-size:1.2rem}
+.legal-content{padding:clamp(1.5rem,5vw,3rem);border-top:.4rem solid var(--sgdf-mint);border-radius:.55rem;background:#fff;box-shadow:0 8px 30px rgb(0 58 93 / 8%)}.legal-content h2{margin:2.2rem 0 .7rem;color:var(--sgdf-blue);font-family:var(--font-title);font-size:1.25rem}.legal-content h2:first-of-type{margin-top:1.5rem}.legal-content p,.legal-content li{line-height:1.72}.legal-content ul{padding-left:1.3rem}.legal-content li+li{margin-top:.45rem}.legal-content a{color:var(--sgdf-blue);font-weight:700}.legal-notice{margin:1.5rem 0;padding:1rem 1.2rem;border-left:.3rem solid var(--sgdf-yellow);background:var(--surface-muted)}.legal-notice p{margin:.35rem 0 0}.legal-related{margin:2.5rem 0 0;padding-top:1.25rem;border-top:1px solid var(--border)}
+@media(max-width:60rem){.legal-footer--with-sidebar{margin-left:0}}
+@media(max-width:36rem){.legal-page{width:100%;padding:1.25rem 0 2rem}.legal-heading{padding:0 1.25rem}.legal-content{border-radius:0;box-shadow:none}}
+
 /* Conserve la largeur Jambville malgré les anciens correctifs placés plus haut. */
 body.app-shell { padding-left: 14.5rem; }
 .sidebar__user.user-summary { align-items: center; flex-direction: row; }

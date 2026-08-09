@@ -71,5 +71,10 @@
         <div{% if afficher_navigation %} class="page-content"{% endif %}>
             {% block body %}{% endblock %}
         </div>
+        <footer class="legal-footer{{ afficher_navigation ? ' legal-footer--with-sidebar' : '' }}">
+            <a href="{{ path('app_conditions_utilisation') }}">Conditions d’utilisation</a>
+            <span aria-hidden="true">·</span>
+            <a href="{{ path('app_politique_confidentialite') }}">Politique de confidentialité</a>
+        </footer>
     </body>
 </html>
