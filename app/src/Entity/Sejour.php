@@ -50,6 +50,9 @@ class Sejour
     #[ORM\Column(name: 'distribuer_gouter_dejeuner', options: ['default' => false])]
     private bool $distribuerGouterDejeuner = false;
 
+    #[ORM\Column(name: 'anonymise_at', type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $anonymiseAt = null;
+
     #[ORM\Column(name: 'jeton_distribution_publique', type: 'uuid', unique: true)]
     private Uuid $jetonDistributionPublique;
 
@@ -154,6 +157,9 @@ class Sejour
     public function setDistribuerGouterDejeuner(bool $valeur): self { $this->distribuerGouterDejeuner = $valeur; $this->touch(); return $this; }
     public function getJetonDistributionPublique(): Uuid { return $this->jetonDistributionPublique; }
     public function renouvelerJetonDistributionPublique(): self { $this->jetonDistributionPublique = new UuidV7(); $this->touch(); return $this; }
+    public function getAnonymiseAt(): ?\DateTimeImmutable { return $this->anonymiseAt; }
+    public function marquerAnonymise(?\DateTimeImmutable $date = null): self { $this->anonymiseAt = $date ?? new \DateTimeImmutable(); $this->touch(); return $this; }
+    public function reinitialiserAnonymisation(): self { $this->anonymiseAt = null; $this->touch(); return $this; }
 
     /** @return Collection<int, SejourPublicCible> */
     public function getPublicsCibles(): Collection { return $this->publicsCibles; }

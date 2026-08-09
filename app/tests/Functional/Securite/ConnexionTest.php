@@ -15,7 +15,7 @@ final class ConnexionTest extends WebTestCase
         $client->request('GET', '/login');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Connexion');
+        self::assertSelectorTextContains('h1', 'Ravi de vous revoir');
         self::assertSelectorExists('a[href="/mot-de-passe-oublie"]');
 
         $politique = $client->getResponse()->headers->get('Content-Security-Policy');

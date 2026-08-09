@@ -33,6 +33,8 @@ final class UtilisateurController extends AbstractController
     ];
 
     public function __construct(
+        #[Autowire('%env(APP_PUBLIC_URL)%')]
+        private readonly string $urlPublique,
         #[Autowire('%env(MAILER_FROM_EMAIL)%')]
         private readonly string $emailExpediteur,
         #[Autowire('%env(MAILER_FROM_NAME)%')]
@@ -180,12 +182,18 @@ final class UtilisateurController extends AbstractController
                     $utilisateur->addSejourGere($sejour);
                 }
                 if ($creation) {
-                    $motDePasseProvisoire = $this->genererMotDePasseProvisoire();
+                    $jetonInvitation = bin2hex(random_bytes(32));
                     $utilisateur
-                        ->setPassword($hasher->hashPassword($utilisateur, $motDePasseProvisoire))
-                        ->setChangementMotDePasseRequis(true);
+                        ->setPassword($hasher->hashPassword($utilisateur, bin2hex(random_bytes(32))))
+                        ->setChangementMotDePasseRequis(true)
+                        ->definirJetonReinitialisation($jetonInvitation, new \DateTimeImmutable('+24 hours'));
                     $entityManager->persist($utilisateur);
                     $entityManager->flush();
+
+                    $lienInvitation = rtrim($this->urlPublique, '/').$this->generateUrl(
+                        'app_reinitialiser_mot_de_passe',
+                        ['jeton' => $jetonInvitation],
+                    );
 
                     try {
                         $mailer->send((new TemplatedEmail())
@@ -193,7 +201,7 @@ final class UtilisateurController extends AbstractController
                             ->to($utilisateur->getEmail())
                             ->subject('Votre accès à Campement')
                             ->htmlTemplate('emails/nouvel_utilisateur.html.twig')
-                            ->context(['utilisateur' => $utilisateur, 'mot_de_passe' => $motDePasseProvisoire]));
+                            ->context(['utilisateur' => $utilisateur, 'lien_invitation' => $lienInvitation]));
                     } catch (\Throwable $exception) {
                         $entityManager->remove($utilisateur);
                         $entityManager->flush();
@@ -205,7 +213,7 @@ final class UtilisateurController extends AbstractController
 
                 $this->addFlash('success', sprintf(
                     $creation
-                        ? 'Le compte de %s %s a été créé et son mot de passe provisoire lui a été envoyé.'
+                        ? 'Le compte de %s %s a été créé et son invitation lui a été envoyée.'
                         : 'Le compte de %s %s a été mis à jour.',
                     $utilisateur->getPrenom(),
                     $utilisateur->getNom(),
@@ -271,11 +279,6 @@ final class UtilisateurController extends AbstractController
         }
 
         return $this->redirectToRoute('app_utilisateurs', null === $sejourSelectionne ? [] : ['sejour' => $sejourSelectionne->getId()]);
-    }
-
-    private function genererMotDePasseProvisoire(): string
-    {
-        return 'Ca!'.substr(strtr(base64_encode(random_bytes(12)), '+/', 'AZ'), 0, 16).'9';
     }
 
     /** @param list<Sejour> $sejoursAccessibles */

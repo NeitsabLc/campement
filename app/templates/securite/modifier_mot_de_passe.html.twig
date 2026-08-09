@@ -3,7 +3,7 @@
 {% block body %}
 <main class="{{ premiere_connexion ? 'auth-page' : '' }}">
     <section class="auth-card">
-        <header class="auth-card__header"><h1>Modifier mon mot de passe</h1><p class="auth-card__intro">{{ premiere_connexion ? 'Pour sécuriser votre compte, remplacez le mot de passe provisoire avant de continuer.' : 'Choisissez un nouveau mot de passe.' }}</p></header>
+        <header class="auth-card__header"><h1>Modifier mon mot de passe</h1><p class="auth-card__intro">{{ premiere_connexion ? 'Pour sécuriser votre compte, choisissez votre mot de passe avant de continuer.' : 'Choisissez un nouveau mot de passe.' }}</p></header>
         {% if erreurs %}<div class="alert" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
         <form method="post">
             <input type="hidden" name="_token" value="{{ csrf_token('modifier_mot_de_passe') }}">

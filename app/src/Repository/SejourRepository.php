@@ -27,6 +27,20 @@ final class SejourRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /** @return list<Sejour> */
+    public function findAAnonymiser(\DateTimeImmutable $dateLimite): array
+    {
+        return $this->createQueryBuilder('sejour')
+            ->leftJoin('sejour.gestionnaires', 'gestionnaire')->addSelect('gestionnaire')
+            ->andWhere('sejour.dateFin <= :limite')
+            // Un séjour réactivé doit être retraité même s'il conserve une
+            // ancienne marque d'anonymisation provenant de sa désactivation.
+            ->andWhere('(sejour.anonymiseAt IS NULL OR sejour.actif = true)')
+            ->setParameter('limite', $dateLimite)
+            ->orderBy('sejour.dateFin', 'ASC')
+            ->getQuery()->getResult();
+    }
+
     public function findPourDistributionPublique(string $jeton): ?Sejour
     {
         return $this->createQueryBuilder('sejour')

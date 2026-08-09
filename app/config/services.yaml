@@ -29,5 +29,10 @@ services:
         arguments:
             $repertoireDocuments: '%app.document_storage_dir%'
 
+    App\Command\AnonymiserSejoursTerminesCommand:
+        arguments:
+            $mailerFromEmail: '%env(MAILER_FROM_EMAIL)%'
+            $mailerFromName: '%env(MAILER_FROM_NAME)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

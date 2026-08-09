@@ -61,7 +61,7 @@
 
     <dialog class="user-dialog" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>
         <section class="users-card users-create">
-            <header class="user-dialog__header"><div><h2 data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un accès provisoire lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
+            <header class="user-dialog__header"><div><h2 data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un lien d’invitation lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
             {% if erreurs %}<div class="flash flash--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('creer_utilisateur') }}">
@@ -101,7 +101,7 @@
                         </select>
                     </label>
                 </div>
-                <p class="users-help">Un mot de passe provisoire sera envoyé par e-mail et devra être remplacé à la première connexion.</p>
+                <p class="users-help">Un lien valable 24 heures sera envoyé par e-mail pour lui permettre de choisir son mot de passe.</p>
                 <button class="food-primary" type="submit" data-user-submit>{{ donnees.utilisateur_id ? 'Enregistrer les modifications' : 'Créer et envoyer l’invitation' }}</button>
             </form>
         </section>

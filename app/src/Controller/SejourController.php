@@ -12,6 +12,8 @@ use App\Repository\PublicCibleRepository;
 use App\Repository\SejourRepository;
 use App\Repository\TypeRepasRepository;
 use App\Service\ContexteSejour;
+use App\Service\AnonymisationSejour;
+use App\Service\DuplicationSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,6 +35,7 @@ final class SejourController extends AbstractController
         TypeRepasRepository $typesRepas,
         ContexteSejour $contexte,
         EntityManagerInterface $entityManager,
+        DuplicationSejour $duplication,
         ?string $id = null,
     ): Response {
         $admin = $this->isGranted(Utilisateur::ROLE_ADMIN);
@@ -45,6 +48,8 @@ final class SejourController extends AbstractController
         $erreurs = [];
         $idFormulaire = $request->request->getString('sejour_id', $id ?? '');
         $sejour = '' !== $idFormulaire && Uuid::isValid($idFormulaire) ? $repository->find($idFormulaire) : null;
+        $sourceId = $request->request->getString('source_id');
+        $sourceDuplication = '' !== $sourceId && Uuid::isValid($sourceId) ? $repository->find($sourceId) : null;
         if (null !== $id && (!$sejour instanceof Sejour || (!$admin && !$connecte->getSejoursGeres()->contains($sejour)))) {
             throw $this->createNotFoundException('Séjour introuvable.');
         }
@@ -82,7 +87,15 @@ final class SejourController extends AbstractController
                     $entityManager->persist($sejour);
                     foreach ($typesRepas->findActifs() as $typeRepas) $entityManager->persist(new SejourTypeRepas($sejour, $typeRepas, $typeRepas->getOrdre()));
                 }
-                $entityManager->flush();
+                if ($creation && $sourceDuplication instanceof Sejour) {
+                    $choix = array_values(array_filter($request->request->all('duplication'), 'is_string'));
+                    $entityManager->wrapInTransaction(function () use ($entityManager, $duplication, $sourceDuplication, $sejour, $choix, $connecte): void {
+                        $entityManager->flush();
+                        $duplication->dupliquer($sourceDuplication, $sejour, $choix, $connecte);
+                    });
+                } else {
+                    $entityManager->flush();
+                }
                 $this->addFlash('success', $creation ? 'Le séjour a été créé.' : 'Le séjour a été mis à jour.');
                 return $this->redirectToRoute('app_sejours');
             }
@@ -97,6 +110,18 @@ final class SejourController extends AbstractController
             'sejour_selectionne' => $contexte->actif(),
             'est_administrateur' => $admin,
             'sejour_formulaire' => $sejour,
+            'source_duplication' => $sourceDuplication,
+        ]);
+    }
+
+    #[Route('/sejours/{id}/dupliquer', name: 'app_sejour_dupliquer', methods: ['GET'])]
+    #[IsGranted(Utilisateur::ROLE_ADMIN)]
+    public function dupliquer(Sejour $sejour, PublicCibleRepository $publics): Response
+    {
+        return $this->render('sejour/formulaire.html.twig', [
+            'sejours' => [], 'publics' => $publics->findActifs(), 'erreurs' => [],
+            'sejour_formulaire' => null, 'source_duplication' => $sejour,
+            'est_administrateur' => true, 'sejour_selectionne' => null,
         ]);
     }
 
@@ -109,13 +134,23 @@ final class SejourController extends AbstractController
     }
 
     #[Route('/sejours/{id}/statut', name: 'app_sejour_statut', methods: ['POST'])]
-    public function statut(Sejour $sejour, Request $request, EntityManagerInterface $entityManager, ContexteSejour $contexte): Response
+    public function statut(Sejour $sejour, Request $request, EntityManagerInterface $entityManager, ContexteSejour $contexte, AnonymisationSejour $anonymisation): Response
     {
         $connecte = $this->getUser();
         if (!$connecte instanceof Utilisateur || (!$this->isGranted(Utilisateur::ROLE_ADMIN) && !$connecte->getSejoursGeres()->contains($sejour))) { throw $this->createAccessDeniedException(); }
         if (!$this->isCsrfTokenValid('statut_sejour_'.$sejour->getId(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
         if (!$sejour->isActif() && !$this->isGranted(Utilisateur::ROLE_ADMIN)) { throw $this->createAccessDeniedException(); }
-        $sejour->setActif(!$sejour->isActif());
+        $activation = !$sejour->isActif();
+        if (!$activation && 'CONFIRMER' !== $request->request->getString('confirmation')) {
+            $this->addFlash('error', 'La confirmation de suppression des données personnelles est requise.');
+            return $this->redirectToRoute('app_sejours');
+        }
+        $sejour->setActif($activation);
+        if ($activation) {
+            $sejour->reinitialiserAnonymisation();
+        } else {
+            $anonymisation->anonymiser($sejour, true);
+        }
         if (!$sejour->isActif() && $contexte->actif() === $sejour) { $contexte->selectionner(null); }
         $entityManager->flush();
         $this->addFlash('success', $sejour->isActif() ? 'Le séjour a été réactivé.' : 'Le séjour a été désactivé.');

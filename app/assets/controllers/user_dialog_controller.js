@@ -32,7 +32,7 @@ export default class extends Controller {
             form?.reset();
             dialog.querySelector('[data-user-id-field]').value = '';
             dialog.querySelector('[data-user-dialog-title]').textContent = 'Ajouter un utilisateur';
-            dialog.querySelector('[data-user-dialog-intro]').textContent = 'Un accès provisoire lui sera envoyé par e-mail.';
+            dialog.querySelector('[data-user-dialog-intro]').textContent = 'Un lien d’invitation lui sera envoyé par e-mail.';
             dialog.querySelector('[data-user-submit]').textContent = 'Créer et envoyer l’invitation';
             update();
             updateGroups();

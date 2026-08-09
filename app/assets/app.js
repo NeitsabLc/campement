@@ -27,11 +27,9 @@ const programmerDisparitionMessages = () => {
 document.addEventListener('DOMContentLoaded', programmerDisparitionMessages);
 document.addEventListener('turbo:load', programmerDisparitionMessages);
 
-// Lorsqu'une destination est choisie dans un module, prépare le nouveau body
-// fermé avant que Turbo ne l'affiche. Le panneau courant reste ainsi visible
-// pendant la transition et aucun retour fugitif au menu principal n'apparaît.
+// Prépare chaque nouveau body avec les panneaux fermés avant que Turbo ne
+// l'affiche. Une section ne s'ouvre ainsi que sur un clic explicite.
 document.addEventListener('turbo:before-render', (event) => {
-    if (sessionStorage.getItem('campement-close-sidebar-panel') !== 'true') return;
     event.detail.newBody.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.removeAttribute('open'));
     event.detail.newBody.classList.remove('sidebar-panel-open');
 });
@@ -39,11 +37,11 @@ document.addEventListener('turbo:before-render', (event) => {
 const initialiserNavigation = () => {
     const body = document.body;
     const navigationMobile = window.matchMedia('(max-width: 760px)').matches;
-    const fermerPanneauApresNavigation = sessionStorage.getItem('campement-close-sidebar-panel') === 'true';
     sessionStorage.removeItem('campement-close-sidebar-panel');
-    if (fermerPanneauApresNavigation) {
-        document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
-    }
+    // Un panneau n'est ouvert que par une action explicite de l'utilisateur.
+    // Les attributs `open` rendus pour signaler la section active ne doivent pas
+    // survivre à un chargement ou à une navigation Turbo.
+    document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
     body.classList.toggle('sidebar-collapsed', !navigationMobile && localStorage.getItem('campement-sidebar') === 'collapsed');
     document.querySelectorAll('[data-sidebar-collapse]').forEach((button) => {
         if (button.dataset.navigationBound) return;
@@ -98,8 +96,23 @@ const initialiserNavigation = () => {
             sessionStorage.setItem('campement-close-sidebar-panel', 'true');
         });
     });
-    document.querySelectorAll('[data-open-dialog]').forEach((button) => button.addEventListener('click', () => document.getElementById(button.dataset.openDialog)?.showModal()));
-    document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => button.closest('dialog')?.close()));
+    document.querySelectorAll('[data-open-dialog]').forEach((button) => {
+        if (button.dataset.dialogBound) return;
+        button.dataset.dialogBound = 'true';
+        button.addEventListener('click', () => document.getElementById(button.dataset.openDialog)?.showModal());
+    });
+    document.querySelectorAll('[data-close-dialog]').forEach((button) => {
+        if (button.dataset.dialogBound) return;
+        button.dataset.dialogBound = 'true';
+        button.addEventListener('click', () => button.closest('dialog')?.close());
+    });
+    document.querySelectorAll('.stay-delete-dialog').forEach((dialog) => {
+        if (dialog.dataset.backdropBound) return;
+        dialog.dataset.backdropBound = 'true';
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) dialog.close();
+        });
+    });
 };
 document.addEventListener('DOMContentLoaded', initialiserNavigation);
 document.addEventListener('turbo:load', initialiserNavigation);
