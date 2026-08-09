@@ -6,6 +6,12 @@ set -eu
 # téléversements avec www-data.
 install -d -o www-data -g www-data -m 0770 /var/www/app/var/documents_participants
 
+# Symfony doit pouvoir alimenter ses caches et journaux depuis les workers
+# PHP-FPM, exécutés avec www-data. Ces répertoires se trouvent sur le bind mount
+# de l'application et peuvent avoir été recréés par root lors d'un déploiement.
+install -d -o www-data -g www-data -m 0770 /var/www/app/var/cache /var/www/app/var/log
+chown -R www-data:www-data /var/www/app/var/cache /var/www/app/var/log
+
 # En développement, AssetMapper sert directement les sources et détecte leurs
 # changements. Un ancien répertoire compilé prendrait le dessus et figerait les
 # CSS/JS jusqu'à la prochaine compilation.

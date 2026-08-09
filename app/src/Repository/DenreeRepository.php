@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Denree;
 use App\Entity\Sejour;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\Persistence\ManagerRegistry;
 
 /** @extends ServiceEntityRepository<Denree> */
@@ -40,7 +41,7 @@ final class DenreeRepository extends ServiceEntityRepository
             ->addSelect("COALESCE(SUM(CASE WHEN tm.code = 'SORTIE' THEN l.quantiteUniteInventaire ELSE 0 END), 0) AS stockSortie")
             ->join('d.uniteReference', 'u')
             ->join('d.uniteInventaire', 'ui')
-            ->leftJoin(\App\Entity\MouvementStockLigne::class, 'l', 'WITH', 'l.denree = d')
+            ->leftJoin(\App\Entity\MouvementStockLigne::class, 'l', Join::ON, 'l.denree = d')
             ->leftJoin('l.mouvementStock', 'm')
             ->leftJoin('m.typeMouvement', 'tm')
             ->andWhere('d.sejour = :sejour')
