@@ -57,7 +57,11 @@
                         </details>
                     {% endif %}
                 </nav>
-                <div class="sidebar__version sidebar__text">Version : {{ app_version }}</div>
+                <nav class="sidebar__legal-mobile" aria-label="Informations légales">
+                    <span>Version {{ app_version }}</span>
+                    <a href="{{ path('app_conditions_utilisation') }}">Conditions d’utilisation</a>
+                    <a href="{{ path('app_politique_confidentialite') }}">Politique de confidentialité</a>
+                </nav>
                 <div class="sidebar__account">
                     <a class="sidebar__user user-summary" href="{{ path('app_mon_profil') }}"{{ app.current_route == 'app_mon_profil' ? ' aria-current="page"' : '' }} title="Mon profil"><span class="sidebar__avatar">{{ app.user.prenom|first }}{{ app.user.nom|first }}</span><span class="sidebar__text"><strong>{{ app.user.prenom }} {{ app.user.nom }}</strong><small>Mon profil</small><span class="visually-hidden">{{ app.user.role }}</span></span></a>
                     <form class="sidebar__logout-form" method="post" action="{{ path('app_deconnexion') }}">
@@ -72,8 +76,10 @@
             {% block body %}{% endblock %}
         </div>
         <footer class="legal-footer{{ afficher_navigation ? ' legal-footer--with-sidebar' : '' }}">
+            <span>Version {{ app_version }}</span>
+            <span class="legal-footer__separator" aria-hidden="true">—</span>
             <a href="{{ path('app_conditions_utilisation') }}">Conditions d’utilisation</a>
-            <span aria-hidden="true">·</span>
+            <span class="legal-footer__separator" aria-hidden="true">—</span>
             <a href="{{ path('app_politique_confidentialite') }}">Politique de confidentialité</a>
         </footer>
     </body>
