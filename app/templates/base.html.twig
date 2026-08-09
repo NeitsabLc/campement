@@ -59,7 +59,7 @@
                 </nav>
                 <div class="sidebar__version sidebar__text">Version : {{ app_version }}</div>
                 <div class="sidebar__account">
-                    <div class="sidebar__user user-summary"><span class="sidebar__avatar">{{ app.user.prenom|first }}{{ app.user.nom|first }}</span><span class="sidebar__text"><strong>{{ app.user.prenom }} {{ app.user.nom }}</strong><small>{{ is_granted('ROLE_ADMIN') ? 'Administrateur' : (is_granted('ROLE_GROUPE') ? 'Unité participante' : 'Gestionnaire') }}</small><span class="visually-hidden">{{ app.user.role }}</span></span></div>
+                    <a class="sidebar__user user-summary" href="{{ path('app_mon_profil') }}"{{ app.current_route == 'app_mon_profil' ? ' aria-current="page"' : '' }} title="Mon profil"><span class="sidebar__avatar">{{ app.user.prenom|first }}{{ app.user.nom|first }}</span><span class="sidebar__text"><strong>{{ app.user.prenom }} {{ app.user.nom }}</strong><small>Mon profil</small><span class="visually-hidden">{{ app.user.role }}</span></span></a>
                     <form class="sidebar__logout-form" method="post" action="{{ path('app_deconnexion') }}">
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
                         <button class="sidebar__logout" type="submit" aria-label="Se déconnecter" title="Se déconnecter"><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M15 16l4-4-4-4M19 12H9"/></svg></span></button>

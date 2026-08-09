@@ -527,20 +527,31 @@ body.app-shell { padding-left: 14.5rem; }
 .sidebar__section a { color: #dceaf0; font-size: .86rem; }
 .sidebar__section a:hover { color: #fff; }
 .sidebar__version { padding: .55rem .4rem; color: #8fb2c3; }
-.sidebar__account { display: flex; align-items: center; gap: .35rem; padding: 1rem .4rem 0; border-top: 1px solid rgb(255 255 255 / 14%); }
-.sidebar__user { min-width: 0; flex: 1; padding: 0; border-top: 0; }
-.sidebar__user small { color: #b8cfdb; }
+.sidebar__account { display: flex; align-items: center; gap: .4rem; padding: 1rem .4rem 0; border-top: 1px solid rgb(255 255 255 / 20%); }
+.sidebar__user { min-width: 0; min-height: 3.4rem; flex: 1; gap: .75rem; padding: .35rem 0; border-top: 0; border-radius: .45rem; color: #fff; text-decoration: none; }
+.sidebar__user:hover,.sidebar__user[aria-current="page"] { color: #fff; text-decoration: none; }
+.sidebar__user:hover strong,.sidebar__user[aria-current="page"] strong { text-decoration: underline; text-underline-offset: .16rem; }
+.sidebar__user small { margin-top: .08rem; color: #b8cfdb; font-size: .78rem; }
 .sidebar__user .sidebar__text { min-width: 0; }
 .sidebar__user strong,
 .sidebar__user small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar__avatar { color: #fff; background: var(--sgdf-mint); }
+.sidebar__user strong { font-size: .95rem; }
+.sidebar__avatar { width: 2.8rem; height: 2.8rem; flex-basis: 2.8rem; color: #fff; background: var(--sgdf-mint); font-size: 1rem; }
 .sidebar__logout-form { width: auto; margin: 0; }
-.sidebar__logout { width: 2.3rem; height: 2.3rem; justify-content: center; padding: .45rem; border-radius: .5rem; color: #ff9ab4; }
-.sidebar__logout:hover { color: #fff; }
+.sidebar__logout { width: 2.5rem; height: 2.5rem; justify-content: center; padding: .5rem; border-radius: .5rem; color: #ff7fa3; }
+.sidebar__logout:hover { color: #ffacc1; background: rgb(255 255 255 / 8%); }
 .sidebar-collapsed .sidebar__account { justify-content: center; padding-inline: 0; }
 .sidebar-collapsed .sidebar__user { flex: 0 0 auto; }
 .sidebar-collapsed .sidebar__logout-form { display: none; }
 .sidebar-collapsed .sidebar__brand-identity { display: none; }
+
+.profile-page{width:100%;margin:0}
+.profile-layout{display:grid;gap:1.5rem}
+.profile-layout form{margin:0}
+.profile-card-intro{margin:.45rem 0 1.25rem;color:var(--text-muted)}
+.profile-card-actions{display:flex;justify-content:flex-end;margin-top:1.25rem}
+.profile-page .flash{margin:1rem 0}
+@media(max-width:48rem){.profile-page{width:100%}.profile-card-actions .food-primary{width:100%}}
 
 @media (max-width: 760px) {
     body.app-shell,
