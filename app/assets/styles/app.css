@@ -579,6 +579,9 @@ body.app-shell { padding-left: 14.5rem; }
 .searchable-select__options{max-height:15rem;overflow-y:auto;margin-top:.35rem}
 .searchable-select__option{display:block;width:100%;padding:.6rem .7rem;border:0;border-radius:.25rem;color:var(--sgdf-blue);background:white;text-align:left;cursor:pointer}
 .searchable-select__option:hover,.searchable-select__option:focus,.searchable-select__option[aria-selected="true"]{outline:0;background:#eaf5fa}
+.searchable-select--multiple .searchable-select__option{display:flex;align-items:center;gap:.65rem}
+.searchable-select--multiple .searchable-select__option::before{width:1.1rem;height:1.1rem;flex:0 0 1.1rem;border:1px solid #8da8b7;border-radius:.2rem;content:"";background:white}
+.searchable-select--multiple .searchable-select__option[aria-selected="true"]::before{border-color:var(--sgdf-blue-light);color:white;background:var(--sgdf-blue-light);content:"✓";font-size:.8rem;font-weight:800;line-height:1rem;text-align:center}
 .searchable-select__empty{margin:.65rem;color:var(--text-muted);font-size:.9rem;text-align:center}
 .recipe-row>.searchable-select{margin-top:0}
 

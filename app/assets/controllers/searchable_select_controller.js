@@ -24,13 +24,17 @@ export default class extends Controller {
         this.search.placeholder = this.select.dataset.searchPlaceholder || 'Rechercher une denrée…';
         this.search.setAttribute('aria-label', this.select.dataset.searchLabel || 'Rechercher une denrée');
         this.empty.textContent = this.select.dataset.emptyLabel || 'Aucune denrée trouvée';
+        if (this.select.multiple) {
+            this.wrapper.classList.add('searchable-select--multiple');
+            this.options.setAttribute('aria-multiselectable', 'true');
+        }
 
         this.isOpen = false;
         this.toggle = () => this.isOpen ? this.close() : this.open();
         this.filter = () => this.render();
         this.sync = () => { this.updateTrigger(); this.render(); };
         this.clickOutside = (event) => {
-            if (!this.wrapper.contains(event.target)) this.close();
+            if (!event.composedPath().includes(this.wrapper)) this.close();
         };
         this.keydown = (event) => {
             if (event.key === 'Escape') {

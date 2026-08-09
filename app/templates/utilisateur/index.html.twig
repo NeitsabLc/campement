@@ -39,7 +39,7 @@
                         </span>
                         <span class="user-group">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
                         <div class="user-actions">
-                            <a class="edit-group-button" data-user-edit href="{{ path('app_utilisateur_modifier', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}" aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
+                            <a class="edit-group-button" href="{{ path('app_utilisateur_modifier', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}" aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                             {% if utilisateur.actif %}
                                 <button class="delete-group-button" type="button" aria-label="Désactiver {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Désactiver"
                                     data-user-disable
@@ -78,11 +78,11 @@
                     </select>
                 </label>
                 {% if est_administrateur %}
-                    <label class="user-field assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Séjour géré
-                        <select name="sejours[]">
-                            <option value="">Sélectionner</option>
+                    <label class="user-field assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Séjours gérés
+                        <select name="sejours[]" multiple data-controller="searchable-select" data-placeholder="Sélectionner des séjours" data-search-placeholder="Rechercher un séjour…" data-search-label="Rechercher un séjour" data-empty-label="Aucun séjour trouvé" aria-describedby="managed-stays-dialog-help">
                             {% for sejour in sejours %}<option value="{{ sejour.id }}"{{ sejour.id in donnees.sejours ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}
                         </select>
+                        <small id="managed-stays-dialog-help" class="users-help">Vous pouvez sélectionner plusieurs séjours.</small>
                     </label>
                 {% else %}
                     <div class="assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Le nouveau gestionnaire sera associé au séjour <strong>{{ sejour_selectionne ? sejour_selectionne.nom : 'indisponible' }}</strong>.</div>

@@ -40,24 +40,6 @@ export default class extends Controller {
         };
 
         this.element.querySelector('[data-user-dialog-open]')?.addEventListener('click', openCreate, listenerOptions);
-        this.element.querySelectorAll('[data-user-edit]').forEach((button) => button.addEventListener('click', () => {
-            form?.reset();
-            dialog.querySelector('[data-user-id-field]').value = button.dataset.userId;
-            form.elements.prenom.value = button.dataset.userFirstName;
-            form.elements.nom.value = button.dataset.userLastName;
-            form.elements.email.value = button.dataset.userEmail;
-            form.elements.role.value = button.dataset.userRole;
-            const managerStay = form.elements['sejours[]'];
-            if (managerStay && button.dataset.userRole === 'ROLE_GESTIONNAIRE') managerStay.value = button.dataset.userStay;
-            groupStaySelector.value = button.dataset.userRole === 'ROLE_GROUPE' ? button.dataset.userStay : '';
-            update();
-            updateGroups();
-            groupSelector.value = button.dataset.userGroup || '';
-            dialog.querySelector('[data-user-dialog-title]').textContent = 'Modifier l’utilisateur';
-            dialog.querySelector('[data-user-dialog-intro]').textContent = 'Modifiez ses informations et son affectation.';
-            dialog.querySelector('[data-user-submit]').textContent = 'Enregistrer les modifications';
-            dialog.showModal();
-        }, listenerOptions));
         this.element.querySelector('[data-user-dialog-close]')?.addEventListener('click', () => dialog.close(), listenerOptions);
         dialog.addEventListener('click', (event) => {
             if (event.target === dialog) dialog.close();
