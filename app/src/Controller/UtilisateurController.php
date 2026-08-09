@@ -239,6 +239,10 @@ final class UtilisateurController extends AbstractController
             ? 'utilisateur/index.html.twig'
             : 'utilisateur/formulaire.html.twig';
 
+        $reponseValidation = $request->isMethod('POST') && [] !== $erreurs
+            ? new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY)
+            : null;
+
         return $this->render($vue, [
             'utilisateurs' => $utilisateursVisibles,
             'sejours' => $sejoursAccessibles,
@@ -248,7 +252,7 @@ final class UtilisateurController extends AbstractController
             'est_administrateur' => $estAdministrateur,
             'donnees' => $donnees,
             'erreurs' => $erreurs,
-        ]);
+        ], $reponseValidation);
     }
 
     #[Route('/utilisateurs/{id}/statut', name: 'app_utilisateurs_statut', methods: ['POST'])]

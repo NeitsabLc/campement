@@ -1,19 +1,29 @@
 {% extends 'base.html.twig' %}
 {% block title %}Nouveau mot de passe | Campement{% endblock %}
 {% block body %}
-<main class="auth-page">
-    <section class="auth-card">
-        <header class="auth-card__header"><h1>Nouveau mot de passe</h1><p class="auth-card__intro">Choisissez un mot de passe personnel et robuste.</p></header>
+<main class="auth-page password-page">
+    <section class="auth-card password-card" aria-labelledby="nouveau-mot-de-passe-title">
+        <div class="login-identity password-identity" aria-label="Campement, Gestion des camps accompagnés">
+            <span class="login-identity__symbol" aria-hidden="true">CA</span>
+            <span><strong>Campement</strong><small>Gestion des camps accompagnés</small></span>
+            <img class="login-identity__sgdf-logo" src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France">
+        </div>
+        <header class="password-header">
+            <p class="login-eyebrow">Sécurisez votre accès</p>
+            <h1 id="nouveau-mot-de-passe-title">Nouveau mot de passe</h1>
+            <p>Choisissez un mot de passe personnel et robuste pour accéder à Campement.</p>
+        </header>
         {% if not jeton_valide %}
-            <p class="alert" role="alert">Ce lien est invalide ou a expiré.</p>
+            <p class="login-alert login-alert--error" role="alert">Ce lien est invalide ou a expiré.</p>
             <p class="auth-card__footer"><a href="{{ path('app_mot_de_passe_oublie') }}">Demander un nouveau lien</a></p>
         {% else %}
-            {% if erreurs %}<div class="alert" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
-            <form method="post">
+            {% if erreurs %}<div class="login-alert login-alert--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+            <form class="login-form" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('reinitialiser_mot_de_passe_' ~ app.request.attributes.get('jeton')) }}">
-                <div class="form-field"><label for="mot_de_passe">Nouveau mot de passe</label><input id="mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password"></div>
-                <div class="form-field"><label for="confirmation">Confirmer le mot de passe</label><input id="confirmation" type="password" name="confirmation" required minlength="12" autocomplete="new-password"></div>
-                <button class="primary-button" type="submit">Mettre à jour le mot de passe</button>
+                <div class="login-field"><label for="mot_de_passe">Nouveau mot de passe</label><input id="mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password"></div>
+                <div class="login-field"><label for="confirmation">Confirmer le mot de passe</label><input id="confirmation" type="password" name="confirmation" required minlength="12" autocomplete="new-password"></div>
+                <p class="password-rules">12 caractères minimum, avec une minuscule, une majuscule, un chiffre et un caractère spécial.</p>
+                <button class="login-submit" type="submit">Enregistrer mon mot de passe</button>
             </form>
         {% endif %}
     </section>

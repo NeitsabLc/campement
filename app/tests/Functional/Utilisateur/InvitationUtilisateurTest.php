@@ -12,6 +12,27 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class InvitationUtilisateurTest extends WebTestCase
 {
+    public function testUneErreurDeValidationEstAfficheeAvecTurbo(): void
+    {
+        $client = static::createClient();
+        $utilisateurs = static::getContainer()->get(UtilisateurRepository::class);
+        $administrateur = $utilisateurs->findOneBy(['email' => 'admin@campement.local']);
+        self::assertInstanceOf(Utilisateur::class, $administrateur);
+        $client->loginUser($administrateur);
+
+        $crawler = $client->request('GET', '/utilisateurs/ajouter');
+        $formulaire = $crawler->selectButton('Enregistrer l’utilisateur')->form([
+            'prenom' => 'Autre',
+            'nom' => 'Administrateur',
+            'email' => 'admin@campement.local',
+            'role' => Utilisateur::ROLE_ADMIN,
+        ]);
+        $client->submit($formulaire);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('[role="alert"]', 'Un utilisateur possède déjà cette adresse électronique.');
+    }
+
     public function testLaCreationEnvoieUnLienDInvitationValable24Heures(): void
     {
         $client = static::createClient();
@@ -36,11 +57,12 @@ final class InvitationUtilisateurTest extends WebTestCase
         $message = self::getMailerMessage();
         self::assertInstanceOf(TemplatedEmail::class, $message);
         self::assertEmailHtmlBodyContains($message, 'Ce lien d’invitation est valable pendant 24 heures.');
-        self::assertEmailHtmlBodyContains($message, 'Activer mon compte et choisir mon mot de passe');
+        self::assertEmailHtmlBodyContains($message, 'Je choisis mon mot de passe');
         self::assertEmailHtmlBodyNotContains($message, 'Mot de passe provisoire');
 
         $corps = $message->getHtmlBody();
         self::assertIsString($corps);
+        self::assertStringContainsString('http://localhost:8080/reinitialiser-mot-de-passe/', $corps);
         self::assertMatchesRegularExpression('#/reinitialiser-mot-de-passe/[a-f0-9]{64}#', $corps);
         preg_match('#/reinitialiser-mot-de-passe/([a-f0-9]{64})#', $corps, $correspondances);
         $jeton = $correspondances[1] ?? '';

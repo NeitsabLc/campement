@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Securite;
 
+use App\Entity\Utilisateur;
 use App\Repository\UtilisateurRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ConnexionTest extends WebTestCase
@@ -32,6 +34,44 @@ final class ConnexionTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Mot de passe oublié');
+    }
+
+    public function testUnUtilisateurConnecteNePeutPasUtiliserLeLienDUnAutreCompte(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $jeton = bin2hex(random_bytes(32));
+        $invite = (new Utilisateur())
+            ->setPrenom('Compte')
+            ->setNom('Invité')
+            ->setEmail('lien-autre-compte-'.bin2hex(random_bytes(5)).'@example.test')
+            ->setRole(Utilisateur::ROLE_ADMIN)
+            ->setPassword('mot-de-passe-inutilisable')
+            ->definirJetonReinitialisation($jeton, new \DateTimeImmutable('+24 hours'));
+        $entityManager->persist($invite);
+        $entityManager->flush();
+        $inviteId = $invite->getId();
+
+        $client->request('GET', '/reinitialiser-mot-de-passe/'.$jeton);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.password-card img[alt="Scouts et Guides de France"]');
+        self::assertSelectorTextContains('h1', 'Nouveau mot de passe');
+        self::assertSelectorExists('input[name="mot_de_passe"]');
+
+        $administrateur = $container->get(UtilisateurRepository::class)->findOneBy(['email' => 'admin@campement.local']);
+        self::assertInstanceOf(Utilisateur::class, $administrateur);
+        $client->loginUser($administrateur);
+        $client->request('GET', '/reinitialiser-mot-de-passe/'.$jeton);
+
+        self::assertResponseRedirects('/');
+        $client->followRedirect();
+        self::assertSelectorTextContains('.flash--error', 'Ce lien est associé à un autre compte.');
+
+        $inviteGere = $container->get(EntityManagerInterface::class)->find(Utilisateur::class, $inviteId);
+        self::assertInstanceOf(Utilisateur::class, $inviteGere);
+        $container->get(EntityManagerInterface::class)->remove($inviteGere);
+        $container->get(EntityManagerInterface::class)->flush();
     }
 
     public function testUnePageProtegeeRedirigeVersLaConnexion(): void

@@ -78,6 +78,12 @@ final class MotDePasseController extends AbstractController
         EntityManagerInterface $entityManager,
     ): Response {
         $utilisateur = $utilisateurs->findOneByJetonReinitialisation($jeton);
+        $utilisateurConnecte = $this->getUser();
+        if ($utilisateurConnecte instanceof Utilisateur && $utilisateurConnecte !== $utilisateur) {
+            $this->addFlash('error_auto_dismiss', 'Ce lien est associé à un autre compte. Déconnectez-vous avant de l’utiliser.');
+
+            return $this->redirectToRoute('app_tableau_de_bord');
+        }
         if (!$utilisateur instanceof Utilisateur || !$utilisateur->jetonReinitialisationEstValide($jeton)) {
             return $this->render('securite/reinitialiser_mot_de_passe.html.twig', ['jeton_valide' => false, 'erreurs' => []]);
         }

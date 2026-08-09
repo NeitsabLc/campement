@@ -1087,6 +1087,16 @@ select {
 .login-alert--error { border-color: #f2c1bd; color: #7d2424; background: #fff0ef; }
 .login-alert--success { border-color: #b7e3d4; color: #17614e; background: #eaf8f2; }
 
+.password-page { width: min(100%, 34rem); }
+.password-card { padding: clamp(1.75rem, 5vw, 2.5rem); }
+.password-identity { margin-bottom: 2.25rem; }
+.password-header { margin-bottom: 1.75rem; }
+.password-header h1 { margin: 0.45rem 0 0.65rem; font-size: clamp(1.9rem, 5vw, 2.4rem); line-height: 1.1; letter-spacing: -0.03em; }
+.password-header > p:last-child { margin: 0; color: var(--text-muted); line-height: 1.55; }
+.password-rules { margin: -0.25rem 0 0; color: var(--text-muted); font-size: 0.8rem; line-height: 1.5; }
+.password-card .login-alert p { margin: 0; }
+.password-card .login-alert p + p { margin-top: 0.35rem; }
+
 .login-illustration {
     position: relative;
     overflow: hidden;
