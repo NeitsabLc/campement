@@ -108,7 +108,11 @@ final class MotDePasseController extends AbstractController
             }
         }
 
-        return $this->render('securite/reinitialiser_mot_de_passe.html.twig', ['jeton_valide' => true, 'erreurs' => $erreurs]);
+        return $this->render('securite/reinitialiser_mot_de_passe.html.twig', [
+            'jeton_valide' => true,
+            'utilisateur' => $utilisateur,
+            'erreurs' => $erreurs,
+        ]);
     }
 
     #[Route('/modifier-mon-mot-de-passe', name: 'app_modifier_mot_de_passe', methods: ['GET', 'POST'])]

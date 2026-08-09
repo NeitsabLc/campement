@@ -1,17 +1,24 @@
 {% extends 'base.html.twig' %}
-{% block title %}Nouveau mot de passe | Campement{% endblock %}
+{% block title %}Première connexion | Campement{% endblock %}
+{% block body_class %}login-shell{% endblock %}
 {% block body %}
-<main class="auth-page password-page">
-    <section class="auth-card password-card" aria-labelledby="nouveau-mot-de-passe-title">
+<main class="login-page password-activation-page">
+    <section class="login-panel password-card" aria-labelledby="nouveau-mot-de-passe-title">
         <div class="login-identity password-identity" aria-label="Campement, Gestion des camps accompagnés">
             <span class="login-identity__symbol" aria-hidden="true">CA</span>
             <span><strong>Campement</strong><small>Gestion des camps accompagnés</small></span>
             <img class="login-identity__sgdf-logo" src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France">
         </div>
+        <div class="password-progress" aria-label="Étape 1 sur 1"><span></span></div>
         <header class="password-header">
-            <p class="login-eyebrow">Sécurisez votre accès</p>
-            <h1 id="nouveau-mot-de-passe-title">Nouveau mot de passe</h1>
-            <p>Choisissez un mot de passe personnel et robuste pour accéder à Campement.</p>
+            <p class="login-eyebrow">Première connexion</p>
+            {% if jeton_valide %}
+                <h1 id="nouveau-mot-de-passe-title">Bienvenue, {{ utilisateur.prenom }} {{ utilisateur.nom }}</h1>
+                <p>Choisissez votre mot de passe pour activer définitivement votre espace Campement.</p>
+            {% else %}
+                <h1 id="nouveau-mot-de-passe-title">Lien indisponible</h1>
+                <p>Ce lien de première connexion ne peut plus être utilisé.</p>
+            {% endif %}
         </header>
         {% if not jeton_valide %}
             <p class="login-alert login-alert--error" role="alert">Ce lien est invalide ou a expiré.</p>
@@ -20,12 +27,18 @@
             {% if erreurs %}<div class="login-alert login-alert--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
             <form class="login-form" method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('reinitialiser_mot_de_passe_' ~ app.request.attributes.get('jeton')) }}">
-                <div class="login-field"><label for="mot_de_passe">Nouveau mot de passe</label><input id="mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password"></div>
+                <div class="login-field"><label for="mot_de_passe">Créer un mot de passe</label><input id="mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password" autofocus><small>Utilisez au moins 12 caractères. Une phrase facile à retenir fonctionne très bien.</small></div>
                 <div class="login-field"><label for="confirmation">Confirmer le mot de passe</label><input id="confirmation" type="password" name="confirmation" required minlength="12" autocomplete="new-password"></div>
-                <p class="password-rules">12 caractères minimum, avec une minuscule, une majuscule, un chiffre et un caractère spécial.</p>
-                <button class="login-submit" type="submit">Enregistrer mon mot de passe</button>
+                <p class="password-rules">Ajoutez une minuscule, une majuscule, un chiffre et un caractère spécial.</p>
+                <button class="login-submit" type="submit">Activer mon espace</button>
             </form>
         {% endif %}
     </section>
+    <aside class="login-illustration password-illustration" aria-hidden="true">
+        <div class="login-welcome">
+            <p class="login-eyebrow login-eyebrow--light">Presque terminé</p>
+            <p>Votre espace Campement sera prêt dans quelques secondes.</p>
+        </div>
+    </aside>
 </main>
 {% endblock %}

@@ -56,8 +56,10 @@ final class ConnexionTest extends WebTestCase
         $client->request('GET', '/reinitialiser-mot-de-passe/'.$jeton);
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.password-card img[alt="Scouts et Guides de France"]');
-        self::assertSelectorTextContains('h1', 'Nouveau mot de passe');
+        self::assertSelectorTextContains('h1', 'Bienvenue, Compte Invité');
         self::assertSelectorExists('input[name="mot_de_passe"]');
+        self::assertSelectorTextContains('button[type="submit"]', 'Activer mon espace');
+        self::assertSelectorExists('.password-progress[aria-label="Étape 1 sur 1"]');
 
         $administrateur = $container->get(UtilisateurRepository::class)->findOneBy(['email' => 'admin@campement.local']);
         self::assertInstanceOf(Utilisateur::class, $administrateur);
