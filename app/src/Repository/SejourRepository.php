@@ -48,7 +48,9 @@ final class SejourRepository extends ServiceEntityRepository
             ->andWhere('sejour.actif = true')
             ->andWhere('sejour.moduleIntendanceActif = true')
             ->andWhere('sejour.distributionPubliqueActive = true')
+            ->andWhere('sejour.dateFin >= :aujourdhui')
             ->setParameter('jeton', $jeton)
+            ->setParameter('aujourdhui', new \DateTimeImmutable('today'))
             ->getQuery()->getOneOrNullResult();
     }
 

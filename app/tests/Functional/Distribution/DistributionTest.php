@@ -198,6 +198,41 @@ final class DistributionTest extends WebTestCase
         }
     }
 
+    public function testLeLienPublicFermeApresLeDernierJourDuSejour(): void
+    {
+        $client = static::createClient();
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+
+        try {
+            $connexion = static::getContainer()->get(Connection::class);
+            $aujourdhui = new \DateTimeImmutable('today');
+            $connexion->executeStatement(
+                'UPDATE campement.sejour SET date_fin = :date_fin WHERE id = :sejour',
+                ['date_fin' => $aujourdhui->format('Y-m-d'), 'sejour' => $fixture['sejour']],
+            );
+            static::getContainer()->get(EntityManagerInterface::class)->clear();
+
+            $client->request('GET', '/distribution/'.$fixture['jeton']);
+
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('.distribution-action .distribution-button');
+
+            $connexion->executeStatement(
+                'UPDATE campement.sejour SET date_fin = :date_fin WHERE id = :sejour',
+                ['date_fin' => $aujourdhui->modify('-1 day')->format('Y-m-d'), 'sejour' => $fixture['sejour']],
+            );
+            static::getContainer()->get(EntityManagerInterface::class)->clear();
+
+            $client->request('GET', '/distribution/'.$fixture['jeton']);
+
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('.distribution-empty', 'Distribution indisponible');
+            self::assertSelectorNotExists('.distribution-action .distribution-button');
+        } finally {
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
+    }
+
     /** @return array{sejour: string, jeton: string, groupe: string, menu: string, denree: string} */
     private function creerFixtureDistribution(string $codeRepas, bool $fusionGouterDejeuner): array
     {

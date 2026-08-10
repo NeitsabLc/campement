@@ -21,6 +21,8 @@ suivent le versionnement sémantique.
 - la politique de conservation précise que les unités et les données
   d’intendance sont conservées sans échéance automatique pour préserver
   l’historique opérationnel.
+- le jeton de distribution publique est renouvelé automatiquement lors de la
+  réactivation d’un séjour et le lien est fermé après son dernier jour.
 
 ## [1.1.3] - 2026-08-10
 

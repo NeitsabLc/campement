@@ -148,6 +148,7 @@ final class SejourController extends AbstractController
         $sejour->setActif($activation);
         if ($activation) {
             $sejour->reinitialiserAnonymisation();
+            $sejour->renouvelerJetonDistributionPublique();
         } else {
             $anonymisation->anonymiser($sejour, true);
         }

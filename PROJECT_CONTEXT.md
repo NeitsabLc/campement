@@ -435,7 +435,12 @@ propre au séjour :
 ```
 
 Le gestionnaire peut consulter le lien absolu, afficher son QR code et régénérer
-le jeton. Toute régénération invalide immédiatement l’ancien lien.
+le jeton. Toute régénération invalide immédiatement l’ancien lien. Le jeton est
+également renouvelé automatiquement lorsqu’un séjour désactivé est réactivé.
+
+Le lien public est fermé automatiquement après le dernier jour du séjour. Il
+reste utilisable pendant toute la date de fin, sous réserve que le séjour, le
+module intendance et la distribution publique soient actifs.
 
 Le séjour est toujours déduit du jeton. Il ne dépend ni de la session d’un
 utilisateur connecté ni d’un identifiant de séjour envoyé librement par le
@@ -690,6 +695,5 @@ Le dépôt suit désormais ce cycle de publication :
 Les points suivants restent à arbitrer :
 
 * les droits détaillés de consultation du journal pour `ROLE_GROUPE` ;
-* la rotation périodique ou uniquement manuelle des jetons publics ;
 * la fréquence des tests de restauration des sauvegardes ;
 * le niveau de couverture de tests attendu pour chaque module.

@@ -39,6 +39,7 @@ final class SejourTest extends WebTestCase
         $entityManager->persist($sejour);
         $entityManager->flush();
         $sejourId = (string) $sejour->getId();
+        $jetonInitial = $sejour->getJetonDistributionPublique()->toRfc4122();
 
         $client->loginUser($admin);
         $crawler = $client->request('GET', '/sejours');
@@ -47,13 +48,23 @@ final class SejourTest extends WebTestCase
 
         $client->submit($form);
         self::assertResponseRedirects('/sejours');
-        $client->followRedirect();
+        $crawler = $client->followRedirect();
         self::assertSelectorTextContains('.flash--success', 'désactivé');
 
         $entityManager->clear();
         $sejourDesactive = $entityManager->find(Sejour::class, $sejourId);
         self::assertInstanceOf(Sejour::class, $sejourDesactive);
         self::assertFalse($sejourDesactive->isActif());
+
+        $formulaireReactivation = $crawler->filter('form[action="/sejours/'.$sejourId.'/statut"]')->form();
+        $client->submit($formulaireReactivation);
+        self::assertResponseRedirects('/sejours');
+
+        $entityManager->clear();
+        $sejourReactive = $entityManager->find(Sejour::class, $sejourId);
+        self::assertInstanceOf(Sejour::class, $sejourReactive);
+        self::assertTrue($sejourReactive->isActif());
+        self::assertNotSame($jetonInitial, $sejourReactive->getJetonDistributionPublique()->toRfc4122());
     }
 
     public function testAnonymisationSupprimeLesDonneesPersonnellesMaisConserveLUnite(): void
