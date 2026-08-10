@@ -6,9 +6,9 @@
         <div><h1>{{ est_administrateur ? 'Séjours' : 'Mes séjours' }}</h1></div>
         {% if est_administrateur %}<a class="food-primary food-add-button" href="{{ path('app_sejour_ajouter') }}" aria-label="Créer un séjour"><span aria-hidden="true">＋</span><span class="food-add-button__label">Créer un séjour</span></a>{% endif %}
     </header>
-    {% for message in app.flashes('success') %}<div class="flash flash--success">{{ message }}</div>{% endfor %}
-    {% for message in app.flashes('error') %}<div class="flash flash--error">{{ message }}</div>{% endfor %}
-    {% for erreur in erreurs %}<div class="flash flash--error">{{ erreur }}</div>{% endfor %}
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
+    {% for erreur in erreurs %}<div class="flash flash--error" role="alert">{{ erreur }}</div>{% endfor %}
     <section class="stays-list-card object-list-card object-detail-list-card">
         <header class="object-list-summary stays-card-heading"><p>{{ sejours|length }} séjour{{ sejours|length > 1 ? 's' : '' }}</p></header>
         <div class="management-list">

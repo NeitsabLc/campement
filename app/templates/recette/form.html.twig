@@ -4,7 +4,7 @@
 <main class="food-form-page recipe-form-page" data-controller="recipe-editor">
     <div class="food-breadcrumb"><a href="{{ path('app_recettes') }}">Recettes</a><span>›</span><span>{{ recette.nom ? 'Modifier' : 'Ajouter' }}</span></div>
     <header class="food-form-heading"><div><h1>{{ recette.nom ?: 'Ajouter une recette' }}</h1></div></header>
-    {% if erreurs %}<div class="flash flash--error">{% for e in erreurs %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
+    {% if erreurs %}<div class="flash flash--error" role="alert">{% for e in erreurs %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
     <form id="recipe-form" method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_recette') }}">
         <section class="food-form-card"><h2>Informations générales</h2><div class="food-general-grid recipe-name-grid"><label>Nom de la recette <b>*</b><input name="nom" required maxlength="150" value="{{ recette.nom }}"></label><label>Catégorie <b>*</b><select name="categorie" required>{% for code, libelle in {'ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert'} %}<option value="{{ code }}"{{ recette.categorie == code ? ' selected' : '' }}>{{ libelle }}</option>{% endfor %}</select></label></div></section>
         <section class="food-form-card recipe-lines-card"><header><div><h2>Composition</h2><p>Définissez les quantités individuelles pour chaque public.</p></div><button class="food-secondary" type="button" data-action="recipe-editor#add">＋ Ajouter une denrée</button></header>

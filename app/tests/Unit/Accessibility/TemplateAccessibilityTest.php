@@ -73,4 +73,40 @@ final class TemplateAccessibilityTest extends TestCase
             self::assertStringContainsString('role="cell"', $contenu);
         }
     }
+
+    public function testLesMessagesFlashSontAnnoncesSelonLeurPriorite(): void
+    {
+        $repertoire = dirname(__DIR__, 3).'/templates';
+        $fichiers = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($repertoire));
+        $messagesTrouves = 0;
+
+        foreach ($fichiers as $fichier) {
+            if (!$fichier->isFile() || 'twig' !== $fichier->getExtension()) {
+                continue;
+            }
+
+            $lignes = file($fichier->getPathname());
+            self::assertIsArray($lignes);
+            foreach ($lignes as $numero => $ligne) {
+                if (str_contains($ligne, "app.flashes('success')")) {
+                    ++$messagesTrouves;
+                    self::assertStringContainsString(
+                        'role="status"',
+                        $ligne,
+                        sprintf('Le succès de %s:%d doit être annoncé.', $fichier->getPathname(), $numero + 1),
+                    );
+                }
+                if (preg_match("/app\\.flashes\\('error(?:_auto_dismiss)?'\\)/", $ligne)) {
+                    ++$messagesTrouves;
+                    self::assertStringContainsString(
+                        'role="alert"',
+                        $ligne,
+                        sprintf('L’erreur de %s:%d doit être annoncée.', $fichier->getPathname(), $numero + 1),
+                    );
+                }
+            }
+        }
+
+        self::assertGreaterThan(0, $messagesTrouves);
+    }
 }
