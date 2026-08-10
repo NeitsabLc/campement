@@ -8,6 +8,18 @@ suivent le versionnement sémantique.
 
 Aucun changement pour le moment.
 
+## [1.1.3] - 2026-08-10
+
+### Sécurité
+
+- les journaux d’accès Nginx masquent les jetons de distribution et de
+  réinitialisation, suppriment les paramètres d’URL et n’enregistrent plus le
+  référent, le User-Agent ou l’adresse du visiteur ;
+- un processeur Monolog masque les secrets, identifiants, cookies, adresses et
+  jetons présents dans les messages et contextes applicatifs ;
+- la rotation des journaux Docker de production est limitée en taille et en
+  nombre de fichiers.
+
 ## [1.1.2] - 2026-08-10
 
 ### Corrigé

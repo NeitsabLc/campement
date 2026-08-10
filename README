@@ -8,11 +8,11 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 10 août 2026 :
 
-- version applicative de référence : `v1.1.2` ;
+- version applicative de référence : `v1.1.3` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V031` ;
-- suite automatisée : 97 tests et 482 assertions ;
+- suite automatisée : 99 tests et 492 assertions ;
 - application fonctionnelle en environnement Docker local ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
   du schéma.

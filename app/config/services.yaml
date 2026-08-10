@@ -35,5 +35,9 @@ services:
             $mailerFromEmail: '%env(MAILER_FROM_EMAIL)%'
             $mailerFromName: '%env(MAILER_FROM_NAME)%'
 
+    App\Logging\SensitiveDataProcessor:
+        tags:
+            - { name: monolog.processor }
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

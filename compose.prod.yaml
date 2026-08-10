@@ -1,12 +1,23 @@
+x-production-logging: &production-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   php:
+    logging: *production-logging
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"
       TRUSTED_HOST_PATTERN: "${TRUSTED_HOST_PATTERN:-^(localhost|127\\.0\\.0\\.1)$}"
       TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1}"
 
+  nginx:
+    logging: *production-logging
+
   maintenance:
+    logging: *production-logging
     restart: unless-stopped
     build:
       context: .
@@ -30,6 +41,7 @@ services:
       - campement
 
   backup:
+    logging: *production-logging
     restart: unless-stopped
     image: "postgres:${POSTGRES_VERSION}"
     entrypoint: ["/bin/sh", "/usr/local/bin/campement-backup"]
@@ -48,6 +60,7 @@ services:
       - campement
 
   database:
+    logging: *production-logging
     environment:
       POSTGRES_APP_PASSWORD: "${POSTGRES_APP_PASSWORD:-}"
       POSTGRES_MIGRATOR_PASSWORD: "${POSTGRES_MIGRATOR_PASSWORD:-}"
@@ -61,6 +74,7 @@ services:
       - ./docker/postgres/harden-roles.sh:/usr/local/bin/campement-harden-roles:ro
 
   liquibase:
+    logging: *production-logging
     environment:
       LIQUIBASE_COMMAND_USERNAME: "${LIQUIBASE_DATABASE_USER:-${POSTGRES_USER}}"
       LIQUIBASE_COMMAND_PASSWORD: "${LIQUIBASE_DATABASE_PASSWORD:-${POSTGRES_PASSWORD}}"
