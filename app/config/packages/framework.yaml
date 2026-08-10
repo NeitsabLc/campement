@@ -3,6 +3,12 @@ framework:
     secret: '%env(APP_SECRET)%'
     trusted_hosts:
         - '%env(TRUSTED_HOST_PATTERN)%'
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers:
+        - x-forwarded-for
+        - x-forwarded-host
+        - x-forwarded-proto
+        - x-forwarded-port
 
     # Note that the session will be started ONLY if you read or write from it.
     session:

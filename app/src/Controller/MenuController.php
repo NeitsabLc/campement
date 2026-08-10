@@ -18,6 +18,7 @@ use App\Repository\SejourTypeRepasRepository;
 use App\Repository\UniteRepository;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
+use App\Service\PreparationDistribution;
 use DateInterval;
 use DatePeriod;
 use DateTimeImmutable;
@@ -52,6 +53,7 @@ final class MenuController extends AbstractController
         RecetteRepository $recettes,
         UniteRepository $unites,
         ConversionConditionnement $conversion,
+        PreparationDistribution $preparationDistribution,
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexte->actif();
@@ -166,6 +168,7 @@ final class MenuController extends AbstractController
             }
 
             $entityManager->persist($menu);
+            $preparationDistribution->completerDejeuners($sejour, $menu);
             $entityManager->flush();
             $this->addFlash('success', 'Le repas a bien été enregistré.');
 

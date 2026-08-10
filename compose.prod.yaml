@@ -1,0 +1,72 @@
+services:
+  php:
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      TRUSTED_HOST_PATTERN: "${TRUSTED_HOST_PATTERN:-^(localhost|127\\.0\\.0\\.1)$}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1}"
+
+  maintenance:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        PHP_VERSION: "${PHP_VERSION}"
+    working_dir: /var/www/app
+    entrypoint: ["campement-maintenance"]
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      TRUSTED_HOST_PATTERN: "${TRUSTED_HOST_PATTERN:-^(localhost|127\\.0\\.0\\.1)$}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1}"
+    volumes:
+      - ./app:/var/www/app
+      - documents_participants:/var/www/app/var/documents_participants
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - campement
+
+  backup:
+    restart: unless-stopped
+    image: "postgres:${POSTGRES_VERSION}"
+    entrypoint: ["/bin/sh", "/usr/local/bin/campement-backup"]
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${BACKUP_DATABASE_USER:-${POSTGRES_USER}}"
+      PGPASSWORD: "${BACKUP_DATABASE_PASSWORD:-${POSTGRES_PASSWORD}}"
+    volumes:
+      - ./docker/postgres/backup.sh:/usr/local/bin/campement-backup:ro
+      - documents_participants:/documents:ro
+      - "${BACKUP_DIR:-./var/backups}:/backups"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - campement
+
+  database:
+    environment:
+      POSTGRES_APP_PASSWORD: "${POSTGRES_APP_PASSWORD:-}"
+      POSTGRES_MIGRATOR_PASSWORD: "${POSTGRES_MIGRATOR_PASSWORD:-}"
+      POSTGRES_BACKUP_PASSWORD: "${POSTGRES_BACKUP_PASSWORD:-}"
+    command:
+      - postgres
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    volumes:
+      - "${POSTGRES_HBA_FILE:-./docker/postgres/pg_hba.prod.conf.example}:/etc/postgresql/pg_hba.conf:ro"
+      - ./docker/postgres/harden-roles.sh:/usr/local/bin/campement-harden-roles:ro
+
+  liquibase:
+    environment:
+      LIQUIBASE_COMMAND_USERNAME: "${LIQUIBASE_DATABASE_USER:-${POSTGRES_USER}}"
+      LIQUIBASE_COMMAND_PASSWORD: "${LIQUIBASE_DATABASE_PASSWORD:-${POSTGRES_PASSWORD}}"
+
+networks:
+  campement:
+    ipam:
+      config:
+        - subnet: "${CAMP_NETWORK_SUBNET:-172.30.0.0/16}"

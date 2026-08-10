@@ -1,0 +1,19 @@
+# Exemple restrictif pour une installation isolée.
+# Copier ce fichier dans un emplacement non suivi, adapter le sous-réseau et
+# définir POSTGRES_HBA_FILE avant toute exposition réseau.
+
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+
+local   replication     all                                     trust
+host    replication     all             127.0.0.1/32            trust
+host    replication     all             ::1/128                 trust
+
+host    campement       campement_app          172.30.0.0/16           scram-sha-256
+host    campement       campement_migrator     172.30.0.0/16           scram-sha-256
+host    campement       campement_backup       172.30.0.0/16           scram-sha-256
+host    campement       campement              172.30.0.0/16           scram-sha-256
+
+host    all             all                     0.0.0.0/0               reject
+host    all             all                     ::/0                    reject

@@ -9,10 +9,12 @@
 .env
 .env.local
 .env.*.local
+.local/
 
 # Docker overrides
 compose.override.yaml
 docker-compose.override.yaml
+docker/postgres/pg_hba.prod.conf
 
 # Local production backups
 app/.env.local.backup*

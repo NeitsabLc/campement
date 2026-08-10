@@ -66,7 +66,7 @@ class Participant
     private ?string $contactUrgenceTelephone = null;
 
     /** @var list<string> */
-    #[ORM\Column(type: Types::JSON, options: ['jsonb' => true])]
+    #[ORM\Column(type: Types::JSONB)]
     private array $qualifications = [];
 
     #[ORM\Column(name: 'autre_diplome', length: 255, nullable: true)]

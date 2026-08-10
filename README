@@ -1,0 +1,145 @@
+# Campement
+
+Campement est une application web de gestion des camps accompagnés. Elle aide
+les équipes pilotes et les unités participantes à gérer l’intendance, les
+dossiers administratifs et le suivi du séjour.
+
+## État du projet
+
+État vérifié le 10 août 2026 :
+
+- version applicative de référence : `v1.0` ;
+- branche de développement : `dev` ;
+- schéma Liquibase : `V031` ;
+- suite automatisée : 97 tests et 482 assertions ;
+- application fonctionnelle en environnement Docker local ;
+- Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
+  du schéma.
+
+Les changements en cours sont détaillés dans [CHANGELOG.md](CHANGELOG.md). Le
+contexte fonctionnel et les conventions de développement sont décrits dans
+[PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
+
+## Fonctionnalités
+
+- authentification, invitations, mots de passe, rôles et comptes actifs ;
+- gestion multi-séjour et affectation des gestionnaires ;
+- unités participantes, participants, documents et registre de présence ;
+- situations particulières et tâches associées ;
+- menus, recettes, fournisseurs, denrées et conditionnements ;
+- journal et mouvements de stock ;
+- distribution de denrées par lien public, protégée contre les doubles
+  confirmations ;
+- exports PDF et envoi d’e-mails ;
+- anonymisation et délais de conservation des données.
+
+## Architecture technique
+
+- PHP 8.4 et Symfony 8.1 ;
+- Doctrine ORM ;
+- PostgreSQL 18 et Liquibase ;
+- Nginx et Docker Compose ;
+- Twig, AssetMapper, Turbo et Stimulus ;
+- PHPUnit.
+
+## Installation locale
+
+> Toutes les commandes de ce README concernent exclusivement une installation
+> locale de développement. Elles ne constituent pas une procédure de livraison
+> ou d’exploitation d’un environnement distant.
+
+Prérequis : Docker, Docker Compose, Make et Git. Aucun PHP, Composer,
+PostgreSQL ou Liquibase installé directement sur la machine n’est nécessaire.
+
+```bash
+cp .env.example .env
+make install
+```
+
+L’application locale est ensuite disponible sur l’adresse définie par
+`NGINX_HOST_PORT` dans `.env`, soit `http://localhost:8080` avec la valeur par
+défaut.
+
+Le fichier `.env` est local et ignoré par Git. Les valeurs `change-me` de
+`.env.example` doivent être remplacées avant tout usage contenant des données
+réelles.
+
+## Commandes locales
+
+### Cycle de développement
+
+```bash
+make help
+make up
+make down
+make restart
+make ps
+make logs
+```
+
+### Dépendances et cache
+
+```bash
+make composer-install
+make composer ARGS="require nom/package"
+make cache-clear
+make assets-compile
+```
+
+En développement, AssetMapper sert directement les sources. La compilation des
+assets sert surtout à vérifier qu’ils peuvent être construits correctement.
+
+### Base de données locale
+
+```bash
+make db-validate
+make db-status-dev
+make db-sql-dev
+make db-update-dev
+make db-history
+make db-shell
+```
+
+Les migrations communes sont placées dans `database/changelog/versioned/`. Les
+données réservées au développement et aux tests sont dans
+`database/changelog/dev/`.
+
+`make reset` supprime les conteneurs et volumes locaux. Cette commande détruit
+la base locale et ne doit être utilisée que lorsqu’elle peut être recréée.
+
+### Qualité et tests
+
+```bash
+make doctrine-validate
+make test
+```
+
+`make test` recrée uniquement `campement_test`, applique les migrations avec le
+contexte `dev`, puis exécute PHPUnit. Il ne doit jamais pointer vers une base
+contenant des données à conserver.
+
+## Règles de persistance
+
+Liquibase est l’unique source de vérité du schéma. Doctrine assure le mapping et
+les requêtes applicatives, mais ne doit pas créer ni mettre à jour le schéma.
+
+Ne pas exécuter :
+
+```bash
+php bin/console doctrine:schema:update --force
+php bin/console doctrine:migrations:migrate
+```
+
+## Sécurité des données locales
+
+- ne jamais ajouter `.env`, `.env.local`, une sauvegarde ou un document de
+  participant au dépôt ;
+- ne pas utiliser de données personnelles réelles pour les fixtures ;
+- conserver les fichiers importés et les dumps hors des répertoires suivis ;
+- vérifier `git status` avant chaque commit ;
+- considérer toute valeur publiée dans l’historique Git comme potentiellement
+  divulguée et remplacer immédiatement tout secret concerné.
+
+Le runbook de livraison et les paramètres d’infrastructure sont volontairement
+absents du dépôt. Une copie locale peut être conservée dans
+`.local/PRODUCTION_RUNBOOK.md` ; ce répertoire est ignoré par Git.

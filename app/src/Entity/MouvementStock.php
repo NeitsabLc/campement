@@ -7,9 +7,11 @@ use App\Entity\Traits\EntityIdTrait;
 use App\Entity\Traits\TimestampableTrait;
 use App\Repository\MouvementStockRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity(repositoryClass: MouvementStockRepository::class)]
 #[ORM\Table(name: "mouvement_stock", schema: "campement")]
+#[ORM\UniqueConstraint(name: 'uq_mouvement_stock_cle_soumission', columns: ['cle_soumission'])]
 #[ORM\Index(name: "idx_mouvement_stock_sejour", columns: ["sejour_id"])]
 #[ORM\Index(name: "idx_mouvement_stock_date", columns: ["date_mouvement"])]
 #[ORM\Index(name: "idx_mouvement_stock_groupe", columns: ["groupe_id"])]
@@ -38,6 +40,9 @@ class MouvementStock
     #[ORM\JoinColumn(name: "menu_id", nullable: true, onDelete: "RESTRICT")]
     private ?Menu $menu = null;
 
+    #[ORM\Column(name: 'cle_soumission', type: 'uuid', nullable: true)]
+    private ?Uuid $cleSoumission = null;
+
     #[ORM\ManyToOne(targetEntity: TypeMouvement::class)]
     #[ORM\JoinColumn(name: "type_mouvement_id",nullable: false,onDelete: "RESTRICT",),]
     private TypeMouvement $typeMouvement;
@@ -46,7 +51,7 @@ class MouvementStock
     #[ORM\JoinColumn(name: "origine_mouvement_id",nullable: false,onDelete: "RESTRICT",),]
     private OrigineMouvement $origineMouvement;
 
-    #[ORM\Column(name: "date_mouvement",type: "datetimetz_immutable",options: ["default" => "CURRENT_TIMESTAMP"],),]
+    #[ORM\Column(name: "date_mouvement", type: "datetimetz_immutable", options: ["default" => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
     private \DateTimeImmutable $dateMouvement;
 
     public function __construct(Sejour $sejour, Utilisateur $utilisateur, TypeMouvement $typeMouvement, OrigineMouvement $origineMouvement)
@@ -91,6 +96,18 @@ class MouvementStock
     {
         $this->menu = $menu;
         $this->touch();
+        return $this;
+    }
+
+    public function getCleSoumission(): ?Uuid
+    {
+        return $this->cleSoumission;
+    }
+
+    public function setCleSoumission(?Uuid $cleSoumission): self
+    {
+        $this->cleSoumission = $cleSoumission;
+
         return $this;
     }
 

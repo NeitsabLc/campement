@@ -128,6 +128,13 @@ final class UtilisateurController extends AbstractController
             if (!isset($rolesAccessibles[$donnees['role']])) {
                 $erreurs[] = 'Sélectionnez un rôle valide.';
             }
+            if (!$estAdministrateur
+                && $utilisateurModifie instanceof Utilisateur
+                && Utilisateur::ROLE_GESTIONNAIRE === $utilisateurModifie->getRole()
+                && Utilisateur::ROLE_GESTIONNAIRE !== $donnees['role']
+                && $this->possedeAutreSejour($utilisateurModifie, $sejourSelectionne)) {
+                $erreurs[] = 'Le rôle de ce gestionnaire multi-séjours ne peut être modifié que par un administrateur.';
+            }
 
             $sejoursChoisis = [];
             if (Utilisateur::ROLE_GESTIONNAIRE === $donnees['role']) {
@@ -170,7 +177,9 @@ final class UtilisateurController extends AbstractController
                 $creation = !$utilisateurModifie instanceof Utilisateur;
                 $utilisateur = $utilisateurModifie ?? new Utilisateur();
                 foreach ($utilisateur->getSejoursGeres()->toArray() as $ancienSejour) {
-                    $utilisateur->removeSejourGere($ancienSejour);
+                    if ($estAdministrateur || $ancienSejour === $sejourSelectionne) {
+                        $utilisateur->removeSejourGere($ancienSejour);
+                    }
                 }
                 $utilisateur
                     ->setPrenom($donnees['prenom'])
@@ -274,6 +283,9 @@ final class UtilisateurController extends AbstractController
             || !$this->utilisateurEstVisible($utilisateur, $sejourSelectionne, false))) {
             throw $this->createAccessDeniedException('Cet utilisateur n’appartient pas au séjour sélectionné.');
         }
+        if (!$estAdministrateur && $this->possedeAutreSejour($utilisateur, $sejourSelectionne)) {
+            throw $this->createAccessDeniedException('Un gestionnaire multi-séjours ne peut être désactivé que par un administrateur.');
+        }
         if ($utilisateur === $connecte) {
             $this->addFlash('error', 'Vous ne pouvez pas désactiver votre propre compte.');
         } else {
@@ -326,5 +338,16 @@ final class UtilisateurController extends AbstractController
 
         return (Utilisateur::ROLE_GESTIONNAIRE === $utilisateur->getRole() && $utilisateur->getSejoursGeres()->contains($sejour))
             || (Utilisateur::ROLE_GROUPE === $utilisateur->getRole() && $utilisateur->getGroupe()?->getSejour() === $sejour);
+    }
+
+    private function possedeAutreSejour(Utilisateur $utilisateur, ?Sejour $sejour): bool
+    {
+        foreach ($utilisateur->getSejoursGeres() as $sejourGere) {
+            if ($sejourGere !== $sejour) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

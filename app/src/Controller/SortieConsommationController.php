@@ -11,12 +11,12 @@ use App\Repository\GroupeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\OrigineMouvementRepository;
 use App\Repository\SejourRepository;
-use App\Repository\SejourTypeRepasRepository;
 use App\Repository\TypeMouvementRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ConversionConditionnement;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,7 +42,6 @@ final class SortieConsommationController extends AbstractController
         SejourRepository $sejours,
         GroupeRepository $groupes,
         MenuRepository $menus,
-        SejourTypeRepasRepository $typesRepas,
         TypeMouvementRepository $types,
         OrigineMouvementRepository $origines,
         UtilisateurRepository $utilisateurs,
@@ -56,43 +55,9 @@ final class SortieConsommationController extends AbstractController
 
         $groupesActifs = $groupes->findActifsPresentsPourSejour($sejour, new DateTimeImmutable('today'));
         $tousLesMenus = $menus->findActifsPourSejour($sejour);
-        if ($sejour->isDistribuerGouterDejeuner()) {
-            $dejeuner = null;
-            foreach ($typesRepas->findActifsPourSejour($sejour) as $typeRepas) {
-                if ('DEJEUNER' === $typeRepas->getTypeRepas()->getCode()) {
-                    $dejeuner = $typeRepas;
-                    break;
-                }
-            }
-
-            if (null !== $dejeuner) {
-                $menuAjoute = false;
-                $datesAvecDejeuner = [];
-                foreach ($tousLesMenus as $menu) {
-                    if ($this->repasEst($menu, 'DEJEUNER')) {
-                        $datesAvecDejeuner[$menu->getDateMenu()?->format('Y-m-d') ?? ''] = true;
-                    }
-                }
-                foreach ($tousLesMenus as $menu) {
-                    $date = $menu->getDateMenu();
-                    if ($this->repasEst($menu, 'GOUTER')
-                        && !$menu->getDenrees()->isEmpty()
-                        && null !== $date
-                        && !isset($datesAvecDejeuner[$date->format('Y-m-d')])) {
-                        $menuDejeuner = (new Menu())
-                            ->setSejour($sejour)
-                            ->setDateMenu($date)
-                            ->setSejourTypeRepas($dejeuner);
-                        $entityManager->persist($menuDejeuner);
-                        $tousLesMenus[] = $menuDejeuner;
-                        $datesAvecDejeuner[$date->format('Y-m-d')] = true;
-                        $menuAjoute = true;
-                    }
-                }
-                if ($menuAjoute) {
-                    $entityManager->flush();
-                }
-            }
+        $cleSoumission = $request->request->getString('cle_soumission');
+        if (!Uuid::isValid($cleSoumission)) {
+            $cleSoumission = Uuid::v7()->toRfc4122();
         }
         $menusActifs = array_values(array_filter(
             $tousLesMenus,
@@ -156,6 +121,10 @@ final class SortieConsommationController extends AbstractController
                     'quantites' => $quantites,
                 ];
                 if ('confirmer' === $request->request->getString('action')) {
+                    $dejaEnregistre = $entityManager->getRepository(MouvementStock::class)->findOneBy(['cleSoumission' => $cleSoumission]);
+                    if ($dejaEnregistre instanceof MouvementStock) {
+                        return $this->render('sortie_consommation/succes.html.twig', compact('groupe', 'menu'));
+                    }
                     $type = $types->findOneBy(['code' => 'SORTIE', 'actif' => true]);
                     $origine = $origines->findOneBy(['code' => 'DISTRIBUTION', 'actif' => true]);
                     $utilisateur = $utilisateurs->loadUserByIdentifier('saisie-consommation@campement.local');
@@ -166,6 +135,7 @@ final class SortieConsommationController extends AbstractController
                     $mouvement = (new MouvementStock($sejour, $utilisateur, $type, $origine))
                         ->setGroupe($groupe)
                         ->setMenu($menu)
+                        ->setCleSoumission(Uuid::fromString($cleSoumission))
                         ->setDateMouvement($this->dateMouvementNavigateur($request, $menu));
                     $entityManager->persist($mouvement);
                     foreach ($selection['vue']['lignes'] as $ligne) {
@@ -185,7 +155,11 @@ final class SortieConsommationController extends AbstractController
                         $mouvementLigne->setConditionnementSortie($ligne['unite']);
                         $entityManager->persist($mouvementLigne);
                     }
-                    $entityManager->flush();
+                    try {
+                        $entityManager->flush();
+                    } catch (UniqueConstraintViolationException) {
+                        // Deux confirmations concurrentes portant la même clé : la première a gagné.
+                    }
 
                     return $this->render('sortie_consommation/succes.html.twig', compact('groupe', 'menu'));
                 }
@@ -205,6 +179,7 @@ final class SortieConsommationController extends AbstractController
             'groupe_soumis' => $request->request->getString('groupe'),
             'menu_soumis' => $request->request->getString('menu'),
             'date_soumise' => $menuSoumis instanceof Menu ? ($menuSoumis->getDateMenu()?->format('Y-m-d') ?? 'special') : '',
+            'cle_soumission' => $cleSoumission,
         ]);
     }
 
@@ -300,7 +275,8 @@ final class SortieConsommationController extends AbstractController
     {
         $iso = $request->request->getString('date_navigateur');
         $heure = $request->request->getString('heure_navigateur');
-        $decalage = $request->request->getInt('decalage_utc');
+        $decalageBrut = $request->request->getString('decalage_utc');
+        $decalage = preg_match('/^-?\d+$/', $decalageBrut) ? (int) $decalageBrut : 0;
         try {
             $instant = '' !== $iso ? new DateTimeImmutable($iso) : new DateTimeImmutable();
         } catch (\Exception) {

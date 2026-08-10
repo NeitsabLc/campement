@@ -45,7 +45,7 @@ class SituationParticuliere
     private \DateTimeImmutable $dateSituation;
 
     /** @var list<string> */
-    #[ORM\Column(name: 'informations_complementaires', type: Types::JSON, options: ['jsonb' => true])]
+    #[ORM\Column(name: 'informations_complementaires', type: Types::JSONB)]
     private array $informationsComplementaires = [];
 
     /** @var Collection<int, Participant> */

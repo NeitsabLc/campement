@@ -53,4 +53,32 @@ final class StockageDocumentParticipant
         $chemin = $this->chemin($nomStockage);
         if (is_file($chemin)) @unlink($chemin);
     }
+
+    /** @return list<string> */
+    public function listerFichiers(?\DateTimeImmutable $creesAvant = null): array
+    {
+        if (!is_dir($this->repertoireDocuments)) {
+            return [];
+        }
+
+        $fichiers = [];
+        foreach (new \FilesystemIterator($this->repertoireDocuments, \FilesystemIterator::SKIP_DOTS) as $fichier) {
+            if (!$fichier->isFile()) {
+                continue;
+            }
+            $nom = $fichier->getFilename();
+            $extension = strtolower($fichier->getExtension());
+            $identifiant = pathinfo($nom, PATHINFO_FILENAME);
+            if (!Uuid::isValid($identifiant) || !in_array($extension, self::EXTENSIONS_PAR_MIME, true)) {
+                continue;
+            }
+            if ($creesAvant instanceof \DateTimeImmutable && $fichier->getMTime() > $creesAvant->getTimestamp()) {
+                continue;
+            }
+            $fichiers[] = $nom;
+        }
+        sort($fichiers);
+
+        return $fichiers;
+    }
 }

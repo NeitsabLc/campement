@@ -165,6 +165,14 @@ purge-data: ## Appliquer immédiatement les délais de conservation
 backup-now: ## Créer immédiatement une sauvegarde via le service de production
 	$(DOCKER_COMPOSE_PROD) run --rm -e BACKUP_ONCE=1 backup
 
+.PHONY: prod-db-roles-prepare
+prod-db-roles-prepare: ## Préparer les rôles PostgreSQL limités sans retirer les accès existants
+	$(DOCKER_COMPOSE_PROD) exec database campement-harden-roles prepare
+
+.PHONY: prod-db-roles-finalize
+prod-db-roles-finalize: ## Retirer définitivement les privilèges du rôle PostgreSQL historique
+	$(DOCKER_COMPOSE_PROD) exec database campement-harden-roles finalize
+
 .PHONY: db-check-connection
 db-check-connection: ## Vérifier la connexion Doctrine à PostgreSQL
 	$(PHP) php bin/console dbal:run-sql \

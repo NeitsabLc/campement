@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Utilisateur;
 use App\Service\ArchiveListesCourses;
 use App\Service\ContexteSejour;
+use App\Service\PreparationDistribution;
 use Doctrine\ORM\EntityManagerInterface;
 use Endroid\QrCode\Color\Color;
 use Endroid\QrCode\Encoding\Encoding;
@@ -26,7 +27,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class DistributionController extends AbstractController
 {
     #[Route('/intendance/distribution', name: 'app_distribution', methods: ['GET', 'POST'])]
-    public function index(Request $request, ContexteSejour $contexte, EntityManagerInterface $em): Response
+    public function index(Request $request, ContexteSejour $contexte, EntityManagerInterface $em, PreparationDistribution $preparation): Response
     {
         $sejour = $contexte->actif();
         if (null === $sejour) { return $this->redirectToRoute('app_tableau_de_bord'); }
@@ -40,6 +41,7 @@ final class DistributionController extends AbstractController
             } else {
                 $sejour->setDistributionPubliqueActive($request->request->has('distribution_publique_active'));
                 $sejour->setDistribuerGouterDejeuner($request->request->has('distribuer_gouter_dejeuner'));
+                $preparation->completerDejeuners($sejour);
                 $message = 'La configuration de la distribution a bien été enregistrée.';
             }
             $em->flush();
