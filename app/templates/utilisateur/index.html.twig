@@ -27,18 +27,18 @@
             {% block rows %}
             {% if utilisateurs is empty %}<div class="shared-list-empty">Aucun utilisateur.</div>{% else %}
                     {% for utilisateur in utilisateurs|filter(utilisateur => utilisateur.role != constant('App\\Entity\\Utilisateur::ROLE_TECHNIQUE')) %}
-                    <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_utilisateur_modifier',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_utilisateurs_statut',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_'~utilisateur.id) }}"><button type="submit">Supprimer</button></form><article class="shared-list-row user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate keydown->swipe-actions#activate">
-                        <div><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
-                        <span class="role-pill">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
-                        <span class="user-assignment">
+                    <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_utilisateur_modifier',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_utilisateurs_statut',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_'~utilisateur.id) }}"><button type="submit">Supprimer</button></form><article class="shared-list-row user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
+                        <div role="cell"><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
+                        <span class="role-pill" role="cell">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
+                        <span class="user-assignment" role="cell">
                             {% if utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GESTIONNAIRE') %}
                                 {{ utilisateur.sejoursGeres|map(sejour => sejour.nom)|join(', ') }}
                             {% elseif utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GROUPE') and utilisateur.groupe %}
                                 {{ utilisateur.groupe.sejour.nom }}
                             {% else %}Tous les séjours{% endif %}
                         </span>
-                        <span class="user-group">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
-                        <div class="user-actions">
+                        <span class="user-group" role="cell">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
+                        <div class="user-actions" role="cell">
                             <a class="edit-group-button" href="{{ path('app_utilisateur_modifier', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}" aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                             {% if utilisateur.actif %}
                                 <button class="delete-group-button" type="button" aria-label="Désactiver {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Désactiver"

@@ -45,4 +45,32 @@ final class TemplateAccessibilityTest extends TestCase
 
         self::assertGreaterThan(0, $dialoguesTrouves);
     }
+
+    public function testChaquePseudoTableauDeclareSesEntetesLignesEtCellules(): void
+    {
+        $repertoire = dirname(__DIR__, 3).'/templates';
+        $pseudoTableaux = [
+            [
+                $repertoire.'/components/list_table.html.twig',
+                $repertoire.'/fournisseur/index.html.twig',
+                $repertoire.'/utilisateur/index.html.twig',
+            ],
+            [$repertoire.'/recette/index.html.twig'],
+            [$repertoire.'/situation_particuliere/liste.html.twig'],
+        ];
+
+        foreach ($pseudoTableaux as $fichiers) {
+            $contenu = '';
+            foreach ($fichiers as $fichier) {
+                $modele = file_get_contents($fichier);
+                self::assertIsString($modele);
+                $contenu .= $modele;
+            }
+
+            self::assertStringContainsString('role="table"', $contenu);
+            self::assertStringContainsString('role="columnheader"', $contenu);
+            self::assertStringContainsString('role="row"', $contenu);
+            self::assertStringContainsString('role="cell"', $contenu);
+        }
+    }
 }

@@ -4,6 +4,6 @@
         <div class="shared-list-row shared-list-row--head" role="row">
             {% for heading in headings %}<span role="columnheader">{{ heading }}</span>{% endfor %}
         </div>
-        <div class="shared-list-body">{% block rows %}{% endblock %}</div>
+        <div class="shared-list-body" role="rowgroup">{% block rows %}{% endblock %}</div>
     </div>
 </section>
