@@ -14,6 +14,11 @@ suivent le versionnement sémantique.
 - annulation non destructive d’un mouvement, qui conserve son historique tout
   en retirant son effet du calcul du stock.
 
+### Modifié
+
+- la page publique distingue désormais l’absence de menu configuré de l’absence
+  d’unité présente le jour de la distribution.
+
 ## [1.1.3] - 2026-08-10
 
 ### Sécurité

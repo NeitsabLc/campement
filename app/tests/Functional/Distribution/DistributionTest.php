@@ -156,6 +156,48 @@ final class DistributionTest extends WebTestCase
         }
     }
 
+    public function testLaPageExpliqueQuandAucunMenuNEstConfigure(): void
+    {
+        $client = static::createClient();
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+
+        try {
+            $connexion = static::getContainer()->get(Connection::class);
+            $connexion->executeStatement('DELETE FROM campement.menu_denree WHERE menu_id = :menu', ['menu' => $fixture['menu']]);
+            $connexion->executeStatement('DELETE FROM campement.menu WHERE id = :menu', ['menu' => $fixture['menu']]);
+
+            $client->request('GET', '/distribution/'.$fixture['jeton']);
+
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('.distribution-empty', 'Aucun menu n’est configuré.');
+            self::assertSelectorTextNotContains('.distribution-empty', 'Aucune unité n’est présente aujourd’hui.');
+        } finally {
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
+    }
+
+    public function testLaPageExpliqueQuandAucuneUniteNEstPresente(): void
+    {
+        $client = static::createClient();
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+
+        try {
+            static::getContainer()->get(Connection::class)->executeStatement(
+                'UPDATE campement.groupe SET actif = FALSE WHERE id = :groupe',
+                ['groupe' => $fixture['groupe']],
+            );
+            static::getContainer()->get(EntityManagerInterface::class)->clear();
+
+            $client->request('GET', '/distribution/'.$fixture['jeton']);
+
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('.distribution-empty', 'Aucune unité n’est présente aujourd’hui.');
+            self::assertSelectorTextNotContains('.distribution-empty', 'Aucun menu n’est configuré.');
+        } finally {
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
+    }
+
     /** @return array{sejour: string, jeton: string, groupe: string, menu: string, denree: string} */
     private function creerFixtureDistribution(string $codeRepas, bool $fusionGouterDejeuner): array
     {

@@ -457,6 +457,10 @@ l’écran de confirmation. Une contrainte unique sur
 `mouvement_stock.cle_soumission` rend la confirmation idempotente et protège
 aussi contre deux requêtes concurrentes.
 
+Lorsque la distribution est indisponible, la page publique distingue l’absence
+de menu configuré de l’absence d’unité présente à la date du jour. Les dates et
+repas proposés sont uniquement ceux pour lesquels un menu actif existe.
+
 L’application ne combine pas automatiquement les effectifs, les publics cibles
 et les quantités individuelles du menu.
 
@@ -678,7 +682,6 @@ Le dépôt suit désormais ce cycle de publication :
 Les points suivants restent à arbitrer :
 
 * les droits détaillés de consultation du journal pour `ROLE_GROUPE` ;
-* le comportement exact lorsqu’aucun menu n’existe pour le jour et le repas ;
 * la politique d’archivage et de conservation des séjours ;
 * la rotation périodique ou uniquement manuelle des jetons publics ;
 * la fréquence des tests de restauration des sauvegardes ;
