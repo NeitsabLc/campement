@@ -70,8 +70,8 @@
                     {% endif %}
             </section>
 
-            <dialog class="group-dialog" data-group-dialog-target="dialog" data-action="click->group-dialog#closeOnBackdrop">
-                <section class="group-dialog__content" aria-labelledby="group-dialog-title">
+            <dialog class="group-dialog" aria-labelledby="group-dialog-title" data-group-dialog-target="dialog" data-action="click->group-dialog#closeOnBackdrop">
+                <section class="group-dialog__content">
                     <header class="group-dialog__header">
                         <div><h2 id="group-dialog-title" data-group-dialog-target="title">{{ donnees.groupe_id ? 'Modifier l’unité participante' : 'Ajouter une unité' }}</h2><p>Renseignez les informations de l’unité participante.</p></div>
                         <button class="group-dialog__close" type="button" aria-label="Fermer" data-action="group-dialog#close">×</button>
@@ -113,8 +113,8 @@
                 </section>
             </dialog>
 
-            <dialog class="delete-group-dialog" data-group-dialog-target="deleteDialog" data-action="click->group-dialog#closeDeleteOnBackdrop">
-                <section class="delete-group-dialog__content" aria-labelledby="delete-group-dialog-title">
+            <dialog class="delete-group-dialog" aria-labelledby="delete-group-dialog-title" data-group-dialog-target="deleteDialog" data-action="click->group-dialog#closeDeleteOnBackdrop">
+                <section class="delete-group-dialog__content">
                     <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
                     <h2 id="delete-group-dialog-title">Désactiver cette unité ?</h2>
                     <p>L’unité <strong data-group-dialog-target="deleteName"></strong> ne sera plus proposée dans les écrans du séjour.</p>

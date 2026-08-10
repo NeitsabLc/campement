@@ -32,8 +32,8 @@
                 </div>
             </article>
             {% if sejour.actif %}
-            <dialog id="stay-delete-{{ sejour.id }}" class="delete-group-dialog stay-delete-dialog">
-                <section class="delete-group-dialog__content" aria-labelledby="stay-delete-title-{{ sejour.id }}">
+            <dialog id="stay-delete-{{ sejour.id }}" class="delete-group-dialog stay-delete-dialog" aria-labelledby="stay-delete-title-{{ sejour.id }}">
+                <section class="delete-group-dialog__content">
                     <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
                     <h2 id="stay-delete-title-{{ sejour.id }}">Désactiver ce séjour ?</h2>
                     <p>Les participants, leurs documents, le registre de présence et les situations particulières seront définitivement supprimés.</p>

@@ -59,9 +59,9 @@
         {% endembed %}
     </div>
 
-    <dialog class="user-dialog" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>
+    <dialog class="user-dialog" aria-labelledby="user-dialog-title" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>
         <section class="users-card users-create">
-            <header class="user-dialog__header"><div><h2 data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un lien d’invitation lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
+            <header class="user-dialog__header"><div><h2 id="user-dialog-title" data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un lien d’invitation lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
             {% if erreurs %}<div class="flash flash--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('creer_utilisateur') }}">
@@ -107,10 +107,10 @@
         </section>
     </dialog>
 
-    <dialog class="user-status-dialog" data-user-status-dialog>
+    <dialog class="user-status-dialog" aria-labelledby="user-status-dialog-title" data-user-status-dialog>
         <section>
             <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
-            <h2>Désactiver cet utilisateur ?</h2>
+            <h2 id="user-status-dialog-title">Désactiver cet utilisateur ?</h2>
             <p>Le compte de <strong data-user-disable-name></strong> ne pourra plus se connecter.</p>
             <form method="post" data-user-disable-form>
                 <input type="hidden" name="_token" data-user-disable-token>

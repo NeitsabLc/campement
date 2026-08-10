@@ -34,8 +34,8 @@
             </article>
         {% endfor %}
         </div>
-        <dialog class="participant-dialog" data-participant-dialog-target="dialog" data-action="click->participant-dialog#backdrop">
-            <section><header><div><h2 data-participant-dialog-target="title">Ajouter un participant</h2></div><button type="button" aria-label="Fermer" data-action="participant-dialog#close">×</button></header>
+        <dialog class="participant-dialog" aria-labelledby="participant-dialog-title" data-participant-dialog-target="dialog" data-action="click->participant-dialog#backdrop">
+            <section><header><div><h2 id="participant-dialog-title" data-participant-dialog-target="title">Ajouter un participant</h2></div><button type="button" aria-label="Fermer" data-action="participant-dialog#close">×</button></header>
             {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
             <form method="post" data-participant-dialog-target="form"><input type="hidden" name="_token" value="{{ csrf_token('ajouter_participant') }}"><input type="hidden" name="type" value="{{ donnees.type }}" data-participant-dialog-target="type"><input type="hidden" name="groupe_id" value="{{ donnees.groupe_id }}" data-participant-dialog-target="group">
                 <fieldset><legend>Informations</legend>
@@ -51,8 +51,8 @@
                 <footer><button type="button" class="cancel-participant" data-action="participant-dialog#close">Annuler</button><button type="submit" class="save-participant">Ajouter le participant</button></footer>
             </form></section>
         </dialog>
-        <dialog class="delete-participant-dialog" data-participant-dialog-target="deleteDialog" data-action="click->participant-dialog#deleteBackdrop">
-            <section><div class="delete-group-dialog__icon" aria-hidden="true">!</div><h2>Supprimer cette personne ?</h2><p>La fiche de <strong data-participant-dialog-target="deleteName"></strong> et ses documents associés seront définitivement supprimés.</p><form method="post" data-participant-dialog-target="deleteForm"><input type="hidden" name="_token" data-participant-dialog-target="deleteToken"><div class="group-dialog__actions"><button class="cancel-group-button" type="button" data-action="participant-dialog#closeDelete">Annuler</button><button class="confirm-delete-group-button" type="submit">Supprimer</button></div></form></section>
+        <dialog class="delete-participant-dialog" aria-labelledby="delete-participant-dialog-title" data-participant-dialog-target="deleteDialog" data-action="click->participant-dialog#deleteBackdrop">
+            <section><div class="delete-group-dialog__icon" aria-hidden="true">!</div><h2 id="delete-participant-dialog-title">Supprimer cette personne ?</h2><p>La fiche de <strong data-participant-dialog-target="deleteName"></strong> et ses documents associés seront définitivement supprimés.</p><form method="post" data-participant-dialog-target="deleteForm"><input type="hidden" name="_token" data-participant-dialog-target="deleteToken"><div class="group-dialog__actions"><button class="cancel-group-button" type="button" data-action="participant-dialog#closeDelete">Annuler</button><button class="confirm-delete-group-button" type="submit">Supprimer</button></div></form></section>
         </dialog>
     {% endif %}
 </main>

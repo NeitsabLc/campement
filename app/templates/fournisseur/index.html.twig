@@ -50,8 +50,8 @@
             {% endif %}{% endblock %}
         {% endembed %}
 
-        <dialog class="supplier-dialog" data-supplier-dialog-target="dialog" data-action="click->supplier-dialog#closeOnBackdrop">
-            <section class="supplier-dialog__content" aria-labelledby="supplier-dialog-title">
+        <dialog class="supplier-dialog" aria-labelledby="supplier-dialog-title" data-supplier-dialog-target="dialog" data-action="click->supplier-dialog#closeOnBackdrop">
+            <section class="supplier-dialog__content">
                 <header class="supplier-dialog__header">
                     <div><h2 id="supplier-dialog-title" data-supplier-dialog-target="title">{{ donnees.fournisseur_id ? 'Modifier le fournisseur' : 'Ajouter un fournisseur' }}</h2><p>Renseignez les coordonnées du fournisseur.</p></div>
                     <button class="supplier-dialog__close" type="button" aria-label="Fermer" data-action="supplier-dialog#close">×</button>
@@ -74,8 +74,8 @@
             </section>
         </dialog>
 
-        <dialog class="delete-supplier-dialog" data-supplier-dialog-target="deleteDialog" data-action="click->supplier-dialog#closeDeleteOnBackdrop">
-            <section class="delete-supplier-dialog__content" aria-labelledby="delete-supplier-dialog-title">
+        <dialog class="delete-supplier-dialog" aria-labelledby="delete-supplier-dialog-title" data-supplier-dialog-target="deleteDialog" data-action="click->supplier-dialog#closeDeleteOnBackdrop">
+            <section class="delete-supplier-dialog__content">
                 <div class="delete-supplier-dialog__icon" aria-hidden="true">!</div>
                 <h2 id="delete-supplier-dialog-title">Désactiver ce fournisseur ?</h2>
                 <p>Le fournisseur <strong data-supplier-dialog-target="deleteName"></strong> ne sera plus proposé dans les listes.</p>
