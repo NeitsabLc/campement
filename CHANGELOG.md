@@ -8,6 +8,16 @@ suivent le versionnement sémantique.
 
 Aucun changement pour le moment.
 
+## [1.1.1] - 2026-08-10
+
+### Corrigé
+
+- le contrôle de santé PostgreSQL peut utiliser le rôle interne de récupération
+  après la désactivation du rôle historique, sans générer d’échecs de connexion
+  répétés dans les journaux ;
+- le rôle de sauvegarde peut lire les tables de suivi Liquibase du schéma
+  `public`, y compris celles créées ultérieurement par le migrateur.
+
 ## [1.1.0] - 2026-08-10
 
 ### Ajouté

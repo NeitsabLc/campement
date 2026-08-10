@@ -41,12 +41,13 @@ SELECT format('ALTER ROLE campement_backup PASSWORD %L', :'backup_password') \ge
 ALTER ROLE campement_admin SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS PASSWORD NULL;
 
 SELECT format('GRANT CONNECT ON DATABASE %I TO campement_app, campement_migrator, campement_backup', :'database_name') \gexec
-GRANT USAGE ON SCHEMA campement TO campement_app, campement_backup;
+GRANT USAGE ON SCHEMA campement TO campement_app;
+GRANT USAGE ON SCHEMA campement, public TO campement_backup;
 GRANT USAGE, CREATE ON SCHEMA campement, public TO campement_migrator;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA campement TO campement_app;
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA campement TO campement_app;
-GRANT SELECT ON ALL TABLES IN SCHEMA campement TO campement_backup;
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA campement TO campement_backup;
+GRANT SELECT ON ALL TABLES IN SCHEMA campement, public TO campement_backup;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA campement, public TO campement_backup;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA campement, public TO campement_migrator;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA campement, public TO campement_migrator;
 
@@ -57,6 +58,10 @@ ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
 ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
     GRANT SELECT ON TABLES TO campement_backup;
 ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
+    GRANT SELECT ON SEQUENCES TO campement_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA public
+    GRANT SELECT ON TABLES TO campement_backup;
+ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA public
     GRANT SELECT ON SEQUENCES TO campement_backup;
 
 SELECT format('ALTER ROLE campement_app IN DATABASE %I SET search_path TO campement, public', :'database_name') \gexec
