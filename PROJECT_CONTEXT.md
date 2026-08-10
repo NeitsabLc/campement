@@ -551,6 +551,14 @@ Sont fonctionnels dans le dépôt actuel :
 * les tests PHPUnit utilisant une base dédiée ;
 * l’envoi d’e-mails applicatifs.
 
+Après anonymisation d’un séjour, les unités participantes et les données
+d’intendance — fournisseurs, denrées, menus, recettes et mouvements de stock —
+sont conservées sans échéance automatique afin de préserver l’historique
+opérationnel. Le séjour reste visible des administrateurs sous un statut
+désactivé. Les données personnelles des participants, leurs documents, leurs
+présences et les situations particulières restent soumises aux suppressions
+automatiques décrites ci-dessus.
+
 La validation du mapping Doctrine est fonctionnelle. Les types JSONB, les
 expressions temporelles et la jointure ManyToMany multi-séjour utilisent les
 déclarations compatibles avec les versions actuelles de Doctrine. La comparaison
@@ -682,7 +690,6 @@ Le dépôt suit désormais ce cycle de publication :
 Les points suivants restent à arbitrer :
 
 * les droits détaillés de consultation du journal pour `ROLE_GROUPE` ;
-* la politique d’archivage et de conservation des séjours ;
 * la rotation périodique ou uniquement manuelle des jetons publics ;
 * la fréquence des tests de restauration des sauvegardes ;
 * le niveau de couverture de tests attendu pour chaque module.

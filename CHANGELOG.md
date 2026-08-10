@@ -18,6 +18,9 @@ suivent le versionnement sémantique.
 
 - la page publique distingue désormais l’absence de menu configuré de l’absence
   d’unité présente le jour de la distribution.
+- la politique de conservation précise que les unités et les données
+  d’intendance sont conservées sans échéance automatique pour préserver
+  l’historique opérationnel.
 
 ## [1.1.3] - 2026-08-10
 
