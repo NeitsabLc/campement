@@ -22,8 +22,8 @@ L’application couvre actuellement :
 * les exports PDF et les règles automatiques de conservation des données.
 
 État vérifié le 10 août 2026 : version de référence `v1.1.3`, branche
-stable `main`, branche de développement `dev`, schéma Liquibase `V031`, 99
-tests et 492 assertions. Le projet est fonctionnel. Toute évolution doit
+stable `main`, branche de développement `dev`, schéma Liquibase `V032`. Le
+projet est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
@@ -503,9 +503,13 @@ Chaque denrée doit appartenir au même séjour que le mouvement.
 Les quantités des lignes sont positives ; leur effet sur le stock dépend du type
 de mouvement. Une ligne peut détailler les conditionnements utilisés.
 
-Les mouvements peuvent actuellement être corrigés ou supprimés par un
-gestionnaire dans le périmètre du séjour. Toute opération doit rester protégée
-par CSRF et vérifier l’appartenance au séjour côté serveur.
+Les mouvements peuvent être modifiés, annulés ou supprimés par un gestionnaire
+dans le périmètre du séjour. Un motif est obligatoire. Une modification conserve
+l’état avant et après ; une annulation conserve le mouvement mais retire son
+effet du calcul du stock ; une suppression efface le mouvement tout en conservant
+une trace indépendante. L’audit enregistre l’auteur, la date et le motif. Toute
+opération reste protégée par CSRF et vérifie l’appartenance au séjour côté
+serveur.
 
 ## 13. Index et contraintes
 
@@ -667,10 +671,7 @@ Le dépôt suit désormais ce cycle de publication :
    suivis et, après validation, dans l’historique Git distant ;
 2. tester périodiquement la restauration des sauvegardes ;
 3. augmenter la couverture fonctionnelle des parcours sensibles ;
-4. renforcer la traçabilité des corrections et suppressions de mouvements ;
-5. poursuivre l’ergonomie mobile et l’accessibilité ;
-6. mettre en place des protections de branches adaptées lorsque la plateforme
-   et le niveau d’abonnement le permettent.
+4. poursuivre l’accessibilité de l’interface.
 
 ## 19. Décisions restant à préciser
 
@@ -681,5 +682,4 @@ Les points suivants restent à arbitrer :
 * la politique d’archivage et de conservation des séjours ;
 * la rotation périodique ou uniquement manuelle des jetons publics ;
 * la fréquence des tests de restauration des sauvegardes ;
-* la politique de modification et de suppression des mouvements de stock ;
 * le niveau de couverture de tests attendu pour chaque module.

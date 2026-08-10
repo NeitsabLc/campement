@@ -19,6 +19,8 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Index(name: "idx_mouvement_stock_utilisateur",columns: ["utilisateur_id"],),]
 #[ORM\Index(name: "idx_mouvement_stock_type", columns: ["type_mouvement_id"])]
 #[ORM\Index(name: "idx_mouvement_stock_origine",columns: ["origine_mouvement_id"],),]
+#[ORM\Index(name: 'idx_mouvement_stock_annule', columns: ['annule_at'])]
+#[ORM\Index(name: 'idx_mouvement_stock_annule_par', columns: ['annule_par_id'])]
 class MouvementStock
 {
     use EntityIdTrait;
@@ -42,6 +44,16 @@ class MouvementStock
 
     #[ORM\Column(name: 'cle_soumission', type: 'uuid', nullable: true)]
     private ?Uuid $cleSoumission = null;
+
+    #[ORM\Column(name: 'annule_at', type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $annuleAt = null;
+
+    #[ORM\ManyToOne(targetEntity: Utilisateur::class)]
+    #[ORM\JoinColumn(name: 'annule_par_id', nullable: true, onDelete: 'SET NULL')]
+    private ?Utilisateur $annulePar = null;
+
+    #[ORM\Column(name: 'motif_annulation', type: 'text', nullable: true)]
+    private ?string $motifAnnulation = null;
 
     #[ORM\ManyToOne(targetEntity: TypeMouvement::class)]
     #[ORM\JoinColumn(name: "type_mouvement_id",nullable: false,onDelete: "RESTRICT",),]
@@ -107,6 +119,44 @@ class MouvementStock
     public function setCleSoumission(?Uuid $cleSoumission): self
     {
         $this->cleSoumission = $cleSoumission;
+
+        return $this;
+    }
+
+    public function isAnnule(): bool
+    {
+        return null !== $this->annuleAt;
+    }
+
+    public function getAnnuleAt(): ?\DateTimeImmutable
+    {
+        return $this->annuleAt;
+    }
+
+    public function getAnnulePar(): ?Utilisateur
+    {
+        return $this->annulePar;
+    }
+
+    public function getMotifAnnulation(): ?string
+    {
+        return $this->motifAnnulation;
+    }
+
+    public function annuler(Utilisateur $utilisateur, string $motif): self
+    {
+        $motif = trim($motif);
+        if ('' === $motif) {
+            throw new \InvalidArgumentException('Le motif d’annulation est obligatoire.');
+        }
+        if ($this->isAnnule()) {
+            throw new \LogicException('Ce mouvement est déjà annulé.');
+        }
+
+        $this->annuleAt = new \DateTimeImmutable();
+        $this->annulePar = $utilisateur;
+        $this->motifAnnulation = $motif;
+        $this->touch();
 
         return $this;
     }

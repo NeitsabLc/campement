@@ -19,6 +19,7 @@ use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
+use App\Service\AuditMouvementStock;
 use App\Repository\TypeMouvementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,7 +38,7 @@ final class MouvementStockController extends AbstractController
     ];
 
     #[Route('/stocks', name: 'app_mouvements_stock', methods: ['GET'])]
-    public function liste(ContexteSejour $sejours, MouvementStockLigneRepository $lignes): Response
+    public function liste(ContexteSejour $sejours, MouvementStockLigneRepository $lignes, AuditMouvementStock $audit): Response
     {
         $sejour = $sejours->actif();
         $lignesMouvements = null === $sejour ? [] : $lignes->findPourGestion($sejour);
@@ -74,29 +75,110 @@ final class MouvementStockController extends AbstractController
         return $this->render('mouvement_stock/liste.html.twig', [
             'sejour' => $sejour,
             'mouvements' => array_values($mouvements),
+            'audits' => null === $sejour ? [] : $audit->historique($sejour),
         ]);
     }
 
-    #[Route('/stocks/mouvement/{id}/supprimer', name: 'app_mouvement_stock_supprimer', methods: ['POST'])]
+    #[Route('/stocks/mouvement/{id}/supprimer', name: 'app_mouvement_stock_supprimer', methods: ['GET', 'POST'])]
     public function supprimer(
         string $id,
         Request $request,
         ContexteSejour $sejours,
         MouvementStockRepository $mouvements,
         EntityManagerInterface $em,
+        AuditMouvementStock $audit,
     ): Response {
         $sejour = $sejours->actif();
         $mouvement = Uuid::isValid($id) ? $mouvements->findPourFormulaire($id) : null;
         if (null === $sejour || null === $mouvement || $mouvement->getSejour() !== $sejour) {
             throw $this->createNotFoundException('Mouvement de stock introuvable.');
         }
+        if (!$request->isMethod('POST')) {
+            return $this->render('mouvement_stock/confirmer_action.html.twig', [
+                'mouvement' => $mouvement,
+                'action' => 'suppression',
+                'erreur' => null,
+            ]);
+        }
         if (!$this->isCsrfTokenValid('supprimer_mouvement_stock_'.$id, $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException('Jeton CSRF invalide.');
         }
+        $motif = trim($request->request->getString('motif'));
+        if ('' === $motif || mb_strlen($motif) > 1000) {
+            return $this->render('mouvement_stock/confirmer_action.html.twig', [
+                'mouvement' => $mouvement,
+                'action' => 'suppression',
+                'erreur' => 'Le motif est obligatoire et limité à 1 000 caractères.',
+            ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+        $utilisateur = $this->getUser();
+        if (!$utilisateur instanceof Utilisateur) {
+            throw new \LogicException('Utilisateur connecté invalide.');
+        }
+        $avant = $audit->instantane($mouvement);
 
-        $em->remove($mouvement);
-        $em->flush();
+        $em->wrapInTransaction(function () use ($em, $audit, $mouvement, $sejour, $utilisateur, $motif, $avant): void {
+            $audit->enregistrer($mouvement, $sejour, $utilisateur, AuditMouvementStock::SUPPRESSION, $motif, $avant, null);
+            $em->remove($mouvement);
+            $em->flush();
+        });
         $this->addFlash('success', 'Le mouvement de stock a bien été supprimé.');
+
+        return $this->redirectToRoute('app_mouvements_stock');
+    }
+
+    #[Route('/stocks/mouvement/{id}/annuler', name: 'app_mouvement_stock_annuler', methods: ['GET', 'POST'])]
+    public function annuler(
+        string $id,
+        Request $request,
+        ContexteSejour $sejours,
+        MouvementStockRepository $mouvements,
+        EntityManagerInterface $em,
+        AuditMouvementStock $audit,
+    ): Response {
+        $sejour = $sejours->actif();
+        $mouvement = Uuid::isValid($id) ? $mouvements->findPourFormulaire($id) : null;
+        if (null === $sejour || null === $mouvement || $mouvement->getSejour() !== $sejour || $mouvement->isAnnule()) {
+            throw $this->createNotFoundException('Mouvement de stock introuvable ou déjà annulé.');
+        }
+        if (!$request->isMethod('POST')) {
+            return $this->render('mouvement_stock/confirmer_action.html.twig', [
+                'mouvement' => $mouvement,
+                'action' => 'annulation',
+                'erreur' => null,
+            ]);
+        }
+        if (!$this->isCsrfTokenValid('annuler_mouvement_stock_'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
+        $motif = trim($request->request->getString('motif'));
+        if ('' === $motif || mb_strlen($motif) > 1000) {
+            return $this->render('mouvement_stock/confirmer_action.html.twig', [
+                'mouvement' => $mouvement,
+                'action' => 'annulation',
+                'erreur' => 'Le motif est obligatoire et limité à 1 000 caractères.',
+            ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+        $utilisateur = $this->getUser();
+        if (!$utilisateur instanceof Utilisateur) {
+            throw new \LogicException('Utilisateur connecté invalide.');
+        }
+        $avant = $audit->instantane($mouvement);
+
+        $em->wrapInTransaction(function () use ($em, $audit, $mouvement, $sejour, $utilisateur, $motif, $avant): void {
+            $mouvement->annuler($utilisateur, $motif);
+            $em->flush();
+            $audit->enregistrer(
+                $mouvement,
+                $sejour,
+                $utilisateur,
+                AuditMouvementStock::ANNULATION,
+                $motif,
+                $avant,
+                $audit->instantane($mouvement),
+            );
+        });
+        $this->addFlash('success', 'Le mouvement a été annulé et ne compte plus dans le stock.');
 
         return $this->redirectToRoute('app_mouvements_stock');
     }
@@ -116,12 +198,13 @@ final class MouvementStockController extends AbstractController
         MouvementStockLigneRepository $lignes,
         MouvementStockLigneConditionnementRepository $lignesConditionnements,
         ConversionConditionnement $conversion,
+        AuditMouvementStock $audit,
         EntityManagerInterface $em,
         ?string $id = null,
     ): Response {
         $sejour = $sejours->actif();
         $mouvementExistant = null !== $id && Uuid::isValid($id) ? $mouvements->findPourFormulaire($id) : null;
-        if (null !== $id && (null === $sejour || null === $mouvementExistant || $mouvementExistant->getSejour() !== $sejour)) {
+        if (null !== $id && (null === $sejour || null === $mouvementExistant || $mouvementExistant->getSejour() !== $sejour || $mouvementExistant->isAnnule())) {
             throw $this->createNotFoundException('Mouvement de stock introuvable.');
         }
         $ligneDemandee = $request->query->getString('ligne');
@@ -228,6 +311,7 @@ final class MouvementStockController extends AbstractController
             'conditionnements' => $request->request->all('conditionnements'),
         ];
         $erreurs = [];
+        $motifAudit = trim($request->request->getString('motif_audit'));
         $lignesValeurs = [];
         if ($request->isMethod('POST') && $request->request->has('lignes')) {
             $lignesValeurs = $request->request->all('lignes');
@@ -259,7 +343,7 @@ final class MouvementStockController extends AbstractController
             $erreurs = $this->enregistrerMouvementMultiple(
                 $request, $sejour, $denreesActives, $originesActives, $groupesActifs,
                 $fournisseursActifs, $referencesParDenree, $conditionnementsParReference, $conditionnementsSortieParDenree,
-                $types, $conversion, $em, $mouvementExistant, $lignes, $lignesConditionnements,
+                $types, $conversion, $em, $mouvementExistant, $lignes, $lignesConditionnements, $audit, $motifAudit,
             );
             if ([] === $erreurs) {
                 return $this->redirectToRoute('app_mouvements_stock');
@@ -269,6 +353,9 @@ final class MouvementStockController extends AbstractController
         if ($request->isMethod('POST') && null !== $sejour && !$request->request->has('lignes')) {
             if (!$this->isCsrfTokenValid('mouvement_stock', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            }
+            if (null !== $mouvementExistant && ('' === $motifAudit || mb_strlen($motifAudit) > 1000)) {
+                $erreurs[] = 'Le motif de modification est obligatoire et limité à 1 000 caractères.';
             }
 
             $typeCode = in_array($valeurs['type'], ['ENTREE', 'SORTIE'], true) ? $valeurs['type'] : '';
@@ -343,6 +430,7 @@ final class MouvementStockController extends AbstractController
                 $utilisateur = $this->getUser();
                 if (!$utilisateur instanceof Utilisateur) throw new \LogicException('Utilisateur connecté invalide.');
 
+                $avant = null === $mouvementExistant ? null : $audit->instantane($mouvementExistant);
                 $em->wrapInTransaction(function () use (
                     $em,
                     $mouvementExistant,
@@ -364,6 +452,9 @@ final class MouvementStockController extends AbstractController
                     $quantitesConditionnements,
                     $conversion,
                     $valeurs,
+                    $audit,
+                    $avant,
+                    $motifAudit,
                 ): void {
                     $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
                     $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
@@ -405,6 +496,18 @@ final class MouvementStockController extends AbstractController
                             }
                         }
                     }
+                    if (null !== $avant) {
+                        $em->flush();
+                        $audit->enregistrer(
+                            $mouvement,
+                            $sejour,
+                            $utilisateur,
+                            AuditMouvementStock::MODIFICATION,
+                            $motifAudit,
+                            $avant,
+                            $audit->instantane($mouvement),
+                        );
+                    }
                 });
                 $this->addFlash('success', sprintf('Mouvement de stock %s pour « %s ».', null === $mouvementExistant ? 'enregistré' : 'modifié', $denree->getNom()));
 
@@ -415,7 +518,7 @@ final class MouvementStockController extends AbstractController
         return $this->render('mouvement_stock/index.html.twig', compact(
             'sejour', 'denreesActives', 'originesActives', 'groupesActifs', 'fournisseursActifs',
             'referencesParDenree', 'conditionnementsParReference', 'conditionnementsSortieParDenree', 'catalogueMouvement',
-            'valeurs', 'lignesValeurs', 'erreurs', 'mouvementExistant',
+            'valeurs', 'lignesValeurs', 'erreurs', 'mouvementExistant', 'motifAudit',
         ));
     }
 
@@ -462,8 +565,13 @@ final class MouvementStockController extends AbstractController
         ?MouvementStock $mouvementExistant,
         MouvementStockLigneRepository $lignes,
         MouvementStockLigneConditionnementRepository $lignesConditionnements,
+        AuditMouvementStock $audit,
+        string $motifAudit,
     ): array {
         $erreurs = [];
+        if (null !== $mouvementExistant && ('' === $motifAudit || mb_strlen($motifAudit) > 1000)) {
+            $erreurs[] = 'Le motif de modification est obligatoire et limité à 1 000 caractères.';
+        }
         $typeCode = in_array($request->request->getString('type'), ['ENTREE', 'SORTIE'], true) ? $request->request->getString('type') : '';
         $type = '' !== $typeCode ? $types->findOneBy(['code' => $typeCode, 'actif' => true]) : null;
         $origine = $this->selectionner($request->request->getString('origine'), $originesActives);
@@ -567,7 +675,8 @@ final class MouvementStockController extends AbstractController
 
         $utilisateur = $this->getUser();
         if (!$utilisateur instanceof Utilisateur) throw new \LogicException('Utilisateur connecté invalide.');
-        $em->wrapInTransaction(function () use ($em, $sejour, $utilisateur, $type, $origine, $groupe, $request, $lignesValides, $typeCode, $conversion, $conditionnementsParReference, $mouvementExistant, $lignes, $lignesConditionnements): void {
+        $avant = null === $mouvementExistant ? null : $audit->instantane($mouvementExistant);
+        $em->wrapInTransaction(function () use ($em, $sejour, $utilisateur, $type, $origine, $groupe, $request, $lignesValides, $typeCode, $conversion, $conditionnementsParReference, $mouvementExistant, $lignes, $lignesConditionnements, $audit, $avant, $motifAudit): void {
             $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
             $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
             if (null === $mouvementExistant) {
@@ -598,6 +707,18 @@ final class MouvementStockController extends AbstractController
                         }
                     }
                 }
+            }
+            if (null !== $avant) {
+                $em->flush();
+                $audit->enregistrer(
+                    $mouvement,
+                    $sejour,
+                    $utilisateur,
+                    AuditMouvementStock::MODIFICATION,
+                    $motifAudit,
+                    $avant,
+                    $audit->instantane($mouvement),
+                );
             }
         });
         $this->addFlash('success', sprintf('Mouvement de stock %s avec %d denrée%s.', null === $mouvementExistant ? 'enregistré' : 'modifié', count($lignesValides), count($lignesValides) > 1 ? 's' : ''));

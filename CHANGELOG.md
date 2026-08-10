@@ -6,7 +6,13 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
-Aucun changement pour le moment.
+### Ajouté
+
+- audit des modifications, annulations et suppressions de mouvements de stock,
+  avec conservation de l’état avant et après, de l’auteur, de la date et du
+  motif ;
+- annulation non destructive d’un mouvement, qui conserve son historique tout
+  en retirant son effet du calcul du stock.
 
 ## [1.1.3] - 2026-08-10
 
