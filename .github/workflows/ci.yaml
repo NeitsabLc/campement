@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSE_PROJECT_NAME: campement-ci-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  tests:
+    name: Qualite et tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Preparer la configuration de CI
+        run: cp .env.example .env
+
+      - name: Valider la configuration Docker Compose
+        run: docker compose config --quiet
+
+      - name: Construire l'image PHP
+        run: docker compose build --pull php
+
+      - name: Installer les dependances PHP
+        run: >-
+          docker compose run --rm php composer install
+          --no-interaction
+          --prefer-dist
+          --no-progress
+
+      - name: Demarrer les services de test
+        run: docker compose up --detach database php
+
+      - name: Valider Composer
+        run: docker compose exec --no-TTY php composer validate --strict --no-check-publish
+
+      - name: Valider les changelogs Liquibase
+        run: docker compose --profile tools run --rm liquibase validate
+
+      - name: Valider les mappings Doctrine
+        run: >-
+          docker compose exec --no-TTY php
+          php bin/console doctrine:schema:validate --skip-sync
+
+      - name: Compiler les assets
+        run: >-
+          docker compose exec --no-TTY php
+          php bin/console asset-map:compile
+
+      - name: Reinitialiser la base de tests
+        run: |
+          docker compose exec --no-TTY database sh -c \
+            'dropdb --username="$POSTGRES_USER" --force --if-exists campement_test'
+          docker compose exec --no-TTY database sh -c \
+            'createdb --username="$POSTGRES_USER" --owner="$POSTGRES_USER" campement_test'
+          docker compose --profile tools run --rm \
+            -e LIQUIBASE_COMMAND_URL=jdbc:postgresql://database:5432/campement_test \
+            liquibase update --context-filter=dev
+
+      - name: Executer les tests
+        run: docker compose exec --no-TTY php php bin/phpunit
+
+      - name: Afficher les journaux en cas d'echec
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --no-color --tail=200 database php
+
+      - name: Arreter les services
+        if: always()
+        run: docker compose down --volumes --remove-orphans
