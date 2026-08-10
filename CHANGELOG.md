@@ -8,6 +8,12 @@ suivent le versionnement sémantique.
 
 Aucun changement pour le moment.
 
+## [1.1.2] - 2026-08-10
+
+### Corrigé
+
+- le pied de page affiche désormais la version applicative `1.1`.
+
 ## [1.1.1] - 2026-08-10
 
 ### Corrigé

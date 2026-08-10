@@ -8,7 +8,7 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 10 août 2026 :
 
-- version applicative de référence : `v1.1.1` ;
+- version applicative de référence : `v1.1.2` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V031` ;
