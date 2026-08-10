@@ -131,6 +131,25 @@ make test
 contexte `dev`, puis exécute PHPUnit. Il ne doit jamais pointer vers une base
 contenant des données à conserver.
 
+### Intégration continue
+
+Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
+
+- sur chaque pull request visant `main`, afin de valider le changement avant
+  son merge ;
+- sur chaque push dans `main`, notamment après un merge ;
+- manuellement depuis l'onglet Actions de GitHub.
+
+La CI valide la configuration Docker Compose, Composer, les changelogs
+Liquibase et les mappings Doctrine. Elle compile aussi les assets, recrée une
+base PostgreSQL de test isolée, puis exécute PHPUnit. Elle utilise uniquement
+les valeurs locales non sensibles de `.env.example`, ne requiert aucun secret
+GitHub et ne déploie rien.
+
+La livraison continue pourra être ajoutée dans un workflow séparé, déclenché
+après le succès de cette CI sur `main` ou lors de la création d'un tag de
+version.
+
 ## Règles de persistance
 
 Liquibase est l’unique source de vérité du schéma. Doctrine assure le mapping et
