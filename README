@@ -66,6 +66,7 @@ PostgreSQL ou Liquibase installé directement sur la machine n’est nécessaire
 
 ```bash
 cp .env.example .env
+cp app/.env.example app/.env
 make install
 ```
 
@@ -73,9 +74,9 @@ L’application locale est ensuite disponible sur l’adresse définie par
 `NGINX_HOST_PORT` dans `.env`, soit `http://localhost:8080` avec la valeur par
 défaut.
 
-Le fichier `.env` est local et ignoré par Git. Les valeurs `change-me` de
-`.env.example` doivent être remplacées avant tout usage contenant des données
-réelles.
+Les fichiers `.env` sont locaux et ignorés par Git. Avant `make install`, une
+valeur locale doit être définie pour `POSTGRES_PASSWORD` dans le `.env` racine.
+Les fichiers `.env.example` servent uniquement de modèles sans secret.
 
 ## Commandes locales
 
@@ -142,9 +143,9 @@ Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
 
 La CI valide la configuration Docker Compose, Composer, les changelogs
 Liquibase et les mappings Doctrine. Elle compile aussi les assets, recrée une
-base PostgreSQL de test isolée, puis exécute PHPUnit. Elle utilise uniquement
-les valeurs locales non sensibles de `.env.example`, ne requiert aucun secret
-GitHub et ne déploie rien.
+base PostgreSQL de test isolée, puis exécute PHPUnit. Elle copie les modèles
+`.env.example`, génère un mot de passe PostgreSQL éphémère à chaque exécution,
+ne requiert aucun secret GitHub et ne déploie rien.
 
 La livraison continue pourra être ajoutée dans un workflow séparé, déclenché
 après le succès de cette CI sur `main` ou lors de la création d'un tag de

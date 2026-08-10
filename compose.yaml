@@ -7,6 +7,8 @@ services:
       args:
         PHP_VERSION: "${PHP_VERSION}"
     working_dir: /var/www/app
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?serverVersion=18&charset=utf8"
     volumes:
       - ./app:/var/www/app
       - documents_participants:/var/www/app/var/documents_participants
