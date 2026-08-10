@@ -21,10 +21,11 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 10 août 2026 : version de référence `v1.0`, branche de travail
-`dev`, schéma Liquibase `V031`, 97 tests et 482 assertions. Le projet est
-fonctionnel. Toute évolution doit préserver les données existantes et rester
-compatible avec les schémas déjà appliqués.
+État vérifié le 10 août 2026 : version de référence `v1.1` (`1.1.0`), branche
+stable `main`, branche de développement `dev`, schéma Liquibase `V031`, 97
+tests et 482 assertions. Le projet est fonctionnel. Toute évolution doit
+préserver les données existantes et rester compatible avec les schémas déjà
+appliqués.
 
 ## 2. Organisation du dépôt
 
@@ -634,6 +635,15 @@ doit jamais être forcé dans un commit.
 
 ## 17. Règles de collaboration
 
+Le dépôt suit désormais ce cycle de publication :
+
+* `dev` est la branche d’intégration des évolutions ;
+* `main` est la branche stable utilisée pour les livraisons ;
+* une publication passe de `dev` vers `main` après validation de la suite de
+  tests et reçoit un tag `vX.Y` sur le commit livré ;
+* tout correctif réalisé sur `main` doit être reporté dans `dev` afin d’éviter
+  une divergence durable.
+
 * Présenter les changements structurants avant leur réalisation lorsqu’un choix
   métier ou technique reste nécessaire.
 * Préserver les modifications locales et les données existantes.
@@ -659,8 +669,8 @@ doit jamais être forcé dans un commit.
 3. augmenter la couverture fonctionnelle des parcours sensibles ;
 4. renforcer la traçabilité des corrections et suppressions de mouvements ;
 5. poursuivre l’ergonomie mobile et l’accessibilité ;
-6. formaliser une stratégie de versions et de branches sans exposer le détail
-   des environnements exploités.
+6. mettre en place des protections de branches adaptées lorsque la plateforme
+   et le niveau d’abonnement le permettent.
 
 ## 19. Décisions restant à préciser
 
@@ -672,5 +682,4 @@ Les points suivants restent à arbitrer :
 * la rotation périodique ou uniquement manuelle des jetons publics ;
 * la fréquence des tests de restauration des sauvegardes ;
 * la politique de modification et de suppression des mouvements de stock ;
-* la stratégie de publication des versions ;
 * le niveau de couverture de tests attendu pour chaque module.

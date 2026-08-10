@@ -6,6 +6,10 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
+Aucun changement pour le moment.
+
+## [1.1.0] - 2026-08-10
+
 ### Ajouté
 
 - réconciliation entre les documents référencés en base et les fichiers du
@@ -29,7 +33,9 @@ suivent le versionnement sémantique.
   libellé explicitement non sensible ;
 - sous-réseau Docker et chemin du fichier HBA rendus configurables ;
 - mappings Doctrine JSONB, valeurs temporelles et jointure multi-séjour alignés
-  avec la version actuelle de Doctrine.
+  avec la version actuelle de Doctrine ;
+- adoption de `main` comme branche stable de livraison et conservation de
+  `dev` comme branche d’intégration des développements.
 
 ### Sécurité
 

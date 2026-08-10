@@ -8,7 +8,8 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 10 août 2026 :
 
-- version applicative de référence : `v1.0` ;
+- version applicative de référence : `v1.1` (`1.1.0`) ;
+- branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V031` ;
 - suite automatisée : 97 tests et 482 assertions ;
@@ -19,6 +20,18 @@ dossiers administratifs et le suivi du séjour.
 Les changements en cours sont détaillés dans [CHANGELOG.md](CHANGELOG.md). Le
 contexte fonctionnel et les conventions de développement sont décrits dans
 [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
+
+## Cycle des branches
+
+- `main` contient exclusivement l’état stable destiné aux livraisons ;
+- `dev` reçoit les évolutions validées pendant le développement ;
+- une version est préparée par une pull request de `dev` vers `main`, validée
+  par les tests, puis identifiée par un tag `vX.Y` créé sur `main` ;
+- les correctifs appliqués exceptionnellement sur `main` doivent être reportés
+  dans `dev`.
+
+Les procédures et paramètres propres à la production ne sont volontairement
+pas documentés dans ce dépôt.
 
 ## Fonctionnalités
 
