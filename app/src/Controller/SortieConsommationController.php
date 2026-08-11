@@ -256,7 +256,11 @@ final class SortieConsommationController extends AbstractController
         return ['menu' => $menu, 'lignes' => $resultat];
     }
 
-    /** @template T of object @param list<T> $items @return T|null */
+    /**
+     * @template T of object
+     * @param list<T> $items
+     * @return T|null
+     */
     private function selection(string $id, array $items): ?object
     {
         if (!Uuid::isValid($id)) {

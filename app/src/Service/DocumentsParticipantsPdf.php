@@ -13,7 +13,10 @@ final class DocumentsParticipantsPdf
 {
     public function __construct(private readonly StockageDocumentParticipant $stockage) {}
 
-    /** @param list<Participant> $participants @param list<string> $types */
+    /**
+     * @param list<Participant> $participants
+     * @param list<string> $types
+     */
     public function generer(array $participants, array $types): string
     {
         $pdf = new Fpdi();
@@ -50,7 +53,10 @@ final class DocumentsParticipantsPdf
         return $pdf->Output('S');
     }
 
-    /** @param list<string> $types @param array<string, list<DocumentParticipant>> $documents */
+    /**
+     * @param list<string> $types
+     * @param array<string, list<DocumentParticipant>> $documents
+     */
     private function ajouterIntercalaire(Fpdi $pdf, Participant $participant, array $types, array $documents): void
     {
         $libelles = [

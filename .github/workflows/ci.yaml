@@ -3,9 +3,11 @@ name: CI
 on:
   push:
     branches:
+      - dev
       - main
   pull_request:
     branches:
+      - dev
       - main
   workflow_dispatch:
 
@@ -69,6 +71,9 @@ jobs:
       - name: Valider Composer
         run: docker compose exec --no-TTY php composer validate --strict --no-check-publish
 
+      - name: Auditer les dependances Composer
+        run: docker compose exec --no-TTY php composer audit --locked --no-interaction
+
       - name: Valider les changelogs Liquibase
         run: docker compose --profile tools run --rm liquibase validate
 
@@ -81,6 +86,27 @@ jobs:
         run: >-
           docker compose exec --no-TTY php
           php bin/console asset-map:compile
+
+      - name: Analyser statiquement le code PHP
+        run: |
+          docker compose exec --no-TTY php php bin/console cache:warmup --env=dev
+          docker compose exec --no-TTY php vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+      - name: Preparer l'image PHP pour l'analyse de vulnerabilites
+        run: |
+          docker tag "$(docker compose images --quiet php)" campement-php-ci:scan
+          docker save campement-php-ci:scan --output /tmp/campement-php.tar
+
+      - name: Analyser les vulnerabilites de l'image PHP
+        run: >-
+          docker run --rm
+          --volume /tmp:/scan:ro
+          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+          image --input /scan/campement-php.tar
+          --scanners vuln
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
 
       - name: Reinitialiser la base de tests
         run: |

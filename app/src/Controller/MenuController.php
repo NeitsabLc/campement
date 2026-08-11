@@ -72,11 +72,11 @@ final class MenuController extends AbstractController
         $date = $this->date($request, $sejour->getDateDebut(), $sejour->getDateFin());
         $repasSelectionne = $this->repas($request->query->getString('repas'), $repas);
 
-        if ($lectureSeule) {
-            if ($request->isMethod('POST')) {
-                throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
-            }
+        if ($lectureSeule && $request->isMethod('POST')) {
+            throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
+        }
 
+        if ($lectureSeule) {
             return $this->render('menu/groupe.html.twig', [
                 'sejour' => $sejour,
                 'date_selectionnee' => $date,
@@ -94,9 +94,6 @@ final class MenuController extends AbstractController
         $avecCategories = null === $special && $this->avecCategories($repasSelectionne->getTypeRepas()->getCode());
 
         if ($request->isMethod('POST')) {
-            if ($lectureSeule) {
-                throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
-            }
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException();
             }

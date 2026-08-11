@@ -22,7 +22,7 @@ final class StockageDocumentParticipant
     public function valider(UploadedFile $fichier): ?string
     {
         if (!$fichier->isValid()) return 'Le transfert du fichier a échoué.';
-        if (($fichier->getSize() ?? 0) > self::TAILLE_MAXIMALE) return 'Chaque fichier doit peser au maximum 10 Mo.';
+        if ($fichier->getSize() > self::TAILLE_MAXIMALE) return 'Chaque fichier doit peser au maximum 10 Mo.';
         if (!isset(self::EXTENSIONS_PAR_MIME[$fichier->getMimeType() ?? ''])) return 'Seuls les fichiers PDF, JPG, JPEG et PNG sont acceptés.';
 
         return null;

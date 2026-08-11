@@ -196,7 +196,10 @@ final class SituationParticuliereController extends AbstractController
             'participants' => array_values(array_filter($request->request->all('participants'), 'is_string')),
         ];
     }
-    /** @param array{libelle: string, date: string, informations: list<string>, participants: list<string>} $donnees @param list<string> $erreurs */
+    /**
+     * @param array{libelle: string, date: string, informations: list<string>, participants: list<string>} $donnees
+     * @param list<string> $erreurs
+     */
     private function validerSituation(array $donnees, \DateTimeImmutable $debut, \DateTimeImmutable $fin, array &$erreurs): ?\DateTimeImmutable
     {
         if ('' === $donnees['libelle'] || mb_strlen($donnees['libelle']) > 200) $erreurs[] = 'Le libellé est obligatoire et limité à 200 caractères.';
@@ -228,7 +231,10 @@ final class SituationParticuliereController extends AbstractController
         if (!$sejour || !$situation instanceof SituationParticuliere || $situation->getSejour() !== $sejour) throw $this->createNotFoundException('Situation particulière introuvable pour le séjour actif.');
         return $situation;
     }
-    /** @param array{libelle: string, date: string, informations: list<string>, participants: list<string>} $donnees @param list<string> $erreurs */
+    /**
+     * @param array{libelle: string, date: string, informations: list<string>, participants: list<string>} $donnees
+     * @param list<string> $erreurs
+     */
     private function formulaire(mixed $sejour, ?SituationParticuliere $situation, array $donnees, array $erreurs, ParticipantRepository $participants): Response
     {
         return $this->render('situation_particuliere/formulaire.html.twig', [
