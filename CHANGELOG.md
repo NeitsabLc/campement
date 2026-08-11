@@ -6,6 +6,12 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
+### Corrigé
+
+- chaque service de production utilise explicitement le login et le secret
+  PostgreSQL correspondant à son rôle ; la CI valide également cette
+  configuration avant livraison.
+
 ## [1.2.0] - 2026-08-11
 
 ### Ajouté

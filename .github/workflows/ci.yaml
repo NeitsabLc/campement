@@ -34,9 +34,15 @@ jobs:
           cp .env.example .env
           cp app/.env.example app/.env
           echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "POSTGRES_APP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "POSTGRES_MIGRATOR_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "POSTGRES_BACKUP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
 
       - name: Valider la configuration Docker Compose
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
+          POSTGRES_HEALTHCHECK_USER=campement_admin \
+            docker compose -f compose.yaml -f compose.prod.yaml config --quiet
 
       - name: Construire l'image PHP
         run: docker compose build --pull php

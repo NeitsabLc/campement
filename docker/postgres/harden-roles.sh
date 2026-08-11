@@ -9,64 +9,85 @@ if [ "$mode" != "prepare" ] && [ "$mode" != "finalize" ]; then
     exit 2
 fi
 
-for variable in POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD; do
+for variable in \
+    POSTGRES_APP_USER POSTGRES_APP_PASSWORD \
+    POSTGRES_MIGRATOR_USER POSTGRES_MIGRATOR_PASSWORD \
+    POSTGRES_BACKUP_USER POSTGRES_BACKUP_PASSWORD \
+    POSTGRES_HEALTHCHECK_USER
+do
     case "$variable" in
+        POSTGRES_APP_USER) valeur=${POSTGRES_APP_USER:-} ;;
         POSTGRES_APP_PASSWORD) valeur=${POSTGRES_APP_PASSWORD:-} ;;
+        POSTGRES_MIGRATOR_USER) valeur=${POSTGRES_MIGRATOR_USER:-} ;;
         POSTGRES_MIGRATOR_PASSWORD) valeur=${POSTGRES_MIGRATOR_PASSWORD:-} ;;
+        POSTGRES_BACKUP_USER) valeur=${POSTGRES_BACKUP_USER:-} ;;
         POSTGRES_BACKUP_PASSWORD) valeur=${POSTGRES_BACKUP_PASSWORD:-} ;;
+        POSTGRES_HEALTHCHECK_USER) valeur=${POSTGRES_HEALTHCHECK_USER:-} ;;
     esac
     if [ -z "$valeur" ] || [ "$valeur" = "change-me" ]; then
-        echo "$variable doit contenir un secret fort avant le durcissement." >&2
+        echo "$variable doit être renseignée avant le durcissement." >&2
         exit 2
     fi
 done
 
+if [ "$POSTGRES_APP_USER" = "$POSTGRES_MIGRATOR_USER" ] \
+    || [ "$POSTGRES_APP_USER" = "$POSTGRES_BACKUP_USER" ] \
+    || [ "$POSTGRES_APP_USER" = "$POSTGRES_HEALTHCHECK_USER" ] \
+    || [ "$POSTGRES_MIGRATOR_USER" = "$POSTGRES_BACKUP_USER" ] \
+    || [ "$POSTGRES_MIGRATOR_USER" = "$POSTGRES_HEALTHCHECK_USER" ] \
+    || [ "$POSTGRES_BACKUP_USER" = "$POSTGRES_HEALTHCHECK_USER" ] \
+    || [ "$POSTGRES_USER" = "$POSTGRES_APP_USER" ] \
+    || [ "$POSTGRES_USER" = "$POSTGRES_MIGRATOR_USER" ] \
+    || [ "$POSTGRES_USER" = "$POSTGRES_BACKUP_USER" ] \
+    || [ "$POSTGRES_USER" = "$POSTGRES_HEALTHCHECK_USER" ]; then
+    echo "Les rôles PostgreSQL d’amorçage et de production doivent être distincts." >&2
+    exit 2
+fi
+
 psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --set=ON_ERROR_STOP=1 \
     --set=database_name="$POSTGRES_DB" \
+    --set=app_user="$POSTGRES_APP_USER" \
     --set=app_password="$POSTGRES_APP_PASSWORD" \
+    --set=migrator_user="$POSTGRES_MIGRATOR_USER" \
     --set=migrator_password="$POSTGRES_MIGRATOR_PASSWORD" \
-    --set=backup_password="$POSTGRES_BACKUP_PASSWORD" <<'SQL'
-SELECT format('CREATE ROLE campement_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'app_password')
-WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'campement_app') \gexec
-SELECT format('CREATE ROLE campement_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'migrator_password')
-WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'campement_migrator') \gexec
-SELECT format('CREATE ROLE campement_backup LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'backup_password')
-WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'campement_backup') \gexec
-SELECT 'CREATE ROLE campement_admin WITH LOGIN SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS'
-WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'campement_admin') \gexec
+    --set=backup_user="$POSTGRES_BACKUP_USER" \
+    --set=backup_password="$POSTGRES_BACKUP_PASSWORD" \
+    --set=admin_user="$POSTGRES_HEALTHCHECK_USER" <<'SQL'
+SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'app_user', :'app_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'app_user') \gexec
+SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'migrator_user', :'migrator_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'migrator_user') \gexec
+SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'backup_user', :'backup_password')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'backup_user') \gexec
+SELECT format('CREATE ROLE %I WITH LOGIN SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS', :'admin_user')
+WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'admin_user') \gexec
 
-SELECT format('ALTER ROLE campement_app PASSWORD %L', :'app_password') \gexec
-SELECT format('ALTER ROLE campement_migrator PASSWORD %L', :'migrator_password') \gexec
-SELECT format('ALTER ROLE campement_backup PASSWORD %L', :'backup_password') \gexec
-ALTER ROLE campement_admin SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS PASSWORD NULL;
+SELECT format('ALTER ROLE %I PASSWORD %L', :'app_user', :'app_password') \gexec
+SELECT format('ALTER ROLE %I PASSWORD %L', :'migrator_user', :'migrator_password') \gexec
+SELECT format('ALTER ROLE %I PASSWORD %L', :'backup_user', :'backup_password') \gexec
+SELECT format('ALTER ROLE %I SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS PASSWORD NULL', :'admin_user') \gexec
 
-SELECT format('GRANT CONNECT ON DATABASE %I TO campement_app, campement_migrator, campement_backup', :'database_name') \gexec
-GRANT USAGE ON SCHEMA campement TO campement_app;
-GRANT USAGE ON SCHEMA campement, public TO campement_backup;
-GRANT USAGE, CREATE ON SCHEMA campement, public TO campement_migrator;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA campement TO campement_app;
-GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA campement TO campement_app;
-GRANT SELECT ON ALL TABLES IN SCHEMA campement, public TO campement_backup;
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA campement, public TO campement_backup;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA campement, public TO campement_migrator;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA campement, public TO campement_migrator;
+SELECT format('GRANT CONNECT ON DATABASE %I TO %I, %I, %I', :'database_name', :'app_user', :'migrator_user', :'backup_user') \gexec
+SELECT format('GRANT USAGE ON SCHEMA campement TO %I', :'app_user') \gexec
+SELECT format('GRANT USAGE ON SCHEMA campement, public TO %I', :'backup_user') \gexec
+SELECT format('GRANT USAGE, CREATE ON SCHEMA campement, public TO %I', :'migrator_user') \gexec
+SELECT format('GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA campement TO %I', :'app_user') \gexec
+SELECT format('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA campement TO %I', :'app_user') \gexec
+SELECT format('GRANT SELECT ON ALL TABLES IN SCHEMA campement, public TO %I', :'backup_user') \gexec
+SELECT format('GRANT SELECT ON ALL SEQUENCES IN SCHEMA campement, public TO %I', :'backup_user') \gexec
+SELECT format('GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA campement, public TO %I', :'migrator_user') \gexec
+SELECT format('GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA campement, public TO %I', :'migrator_user') \gexec
 
-ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO campement_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
-    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO campement_app;
-ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
-    GRANT SELECT ON TABLES TO campement_backup;
-ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA campement
-    GRANT SELECT ON SEQUENCES TO campement_backup;
-ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA public
-    GRANT SELECT ON TABLES TO campement_backup;
-ALTER DEFAULT PRIVILEGES FOR ROLE campement_migrator IN SCHEMA public
-    GRANT SELECT ON SEQUENCES TO campement_backup;
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA campement GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO %I', :'migrator_user', :'app_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA campement GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO %I', :'migrator_user', :'app_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA campement GRANT SELECT ON TABLES TO %I', :'migrator_user', :'backup_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA campement GRANT SELECT ON SEQUENCES TO %I', :'migrator_user', :'backup_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT SELECT ON TABLES TO %I', :'migrator_user', :'backup_user') \gexec
+SELECT format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT SELECT ON SEQUENCES TO %I', :'migrator_user', :'backup_user') \gexec
 
-SELECT format('ALTER ROLE campement_app IN DATABASE %I SET search_path TO campement, public', :'database_name') \gexec
-SELECT format('ALTER ROLE campement_migrator IN DATABASE %I SET search_path TO campement, public', :'database_name') \gexec
-SELECT format('ALTER ROLE campement_backup IN DATABASE %I SET search_path TO campement, public', :'database_name') \gexec
+SELECT format('ALTER ROLE %I IN DATABASE %I SET search_path TO campement, public', :'app_user', :'database_name') \gexec
+SELECT format('ALTER ROLE %I IN DATABASE %I SET search_path TO campement, public', :'migrator_user', :'database_name') \gexec
+SELECT format('ALTER ROLE %I IN DATABASE %I SET search_path TO campement, public', :'backup_user', :'database_name') \gexec
 SELECT pg_reload_conf();
 SQL
 
@@ -76,15 +97,17 @@ if [ "$mode" = "prepare" ]; then
 fi
 
 psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --set=ON_ERROR_STOP=1 \
-    --set=database_name="$POSTGRES_DB" <<'SQL'
-SELECT format('ALTER DATABASE %I OWNER TO campement_migrator', :'database_name') \gexec
-ALTER SCHEMA campement OWNER TO campement_migrator;
+    --set=database_name="$POSTGRES_DB" \
+    --set=bootstrap_user="$POSTGRES_USER" \
+    --set=migrator_user="$POSTGRES_MIGRATOR_USER" <<'SQL'
+SELECT format('ALTER DATABASE %I OWNER TO %I', :'database_name', :'migrator_user') \gexec
+SELECT format('ALTER SCHEMA campement OWNER TO %I', :'migrator_user') \gexec
 
 -- Le compte créé par l'image PostgreSQL peut posséder des objets système
 -- protégés. On transfère donc uniquement les objets de l'application et les
 -- tables de suivi Liquibase, sans REASSIGN OWNED global.
 SELECT format(
-    'ALTER %s %I.%I OWNER TO campement_migrator',
+    'ALTER %s %I.%I OWNER TO %I',
     CASE classe.relkind
         WHEN 'S' THEN 'SEQUENCE'
         WHEN 'v' THEN 'VIEW'
@@ -93,50 +116,54 @@ SELECT format(
         ELSE 'TABLE'
     END,
     espace.nspname,
-    classe.relname
+    classe.relname,
+    :'migrator_user'
 )
 FROM pg_class classe
 JOIN pg_namespace espace ON espace.oid = classe.relnamespace
 WHERE espace.nspname IN ('campement', 'public')
   AND classe.relkind IN ('r', 'p', 'S', 'v', 'm', 'f')
-  AND pg_get_userbyid(classe.relowner) = 'campement'
+  AND pg_get_userbyid(classe.relowner) = :'bootstrap_user'
 ORDER BY espace.nspname, classe.relkind, classe.relname
 \gexec
 
 SELECT format(
-    'ALTER %s %I.%I(%s) OWNER TO campement_migrator',
+    'ALTER %s %I.%I(%s) OWNER TO %I',
     CASE procedure.prokind WHEN 'p' THEN 'PROCEDURE' WHEN 'a' THEN 'AGGREGATE' ELSE 'FUNCTION' END,
     espace.nspname,
     procedure.proname,
-    pg_get_function_identity_arguments(procedure.oid)
+    pg_get_function_identity_arguments(procedure.oid),
+    :'migrator_user'
 )
 FROM pg_proc procedure
 JOIN pg_namespace espace ON espace.oid = procedure.pronamespace
 WHERE espace.nspname IN ('campement', 'public')
-  AND pg_get_userbyid(procedure.proowner) = 'campement'
+  AND pg_get_userbyid(procedure.proowner) = :'bootstrap_user'
 ORDER BY espace.nspname, procedure.proname
 \gexec
 
-SELECT format('ALTER %s %I.%I OWNER TO campement_migrator',
+SELECT format(
+    'ALTER %s %I.%I OWNER TO %I',
     CASE type.typtype WHEN 'd' THEN 'DOMAIN' ELSE 'TYPE' END,
     espace.nspname,
-    type.typname
+    type.typname,
+    :'migrator_user'
 )
 FROM pg_type type
 JOIN pg_namespace espace ON espace.oid = type.typnamespace
 WHERE espace.nspname IN ('campement', 'public')
   AND type.typrelid = 0
   AND type.typtype IN ('d', 'e', 'm', 'r')
-  AND pg_get_userbyid(type.typowner) = 'campement'
+  AND pg_get_userbyid(type.typowner) = :'bootstrap_user'
 ORDER BY espace.nspname, type.typname
 \gexec
 
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA campement, public FROM campement;
-REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA campement, public FROM campement;
-REVOKE ALL ON SCHEMA campement FROM campement;
+SELECT format('REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA campement, public FROM %I', :'bootstrap_user') \gexec
+SELECT format('REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA campement, public FROM %I', :'bootstrap_user') \gexec
+SELECT format('REVOKE ALL ON SCHEMA campement FROM %I', :'bootstrap_user') \gexec
 -- PostgreSQL interdit de retirer SUPERUSER au rôle d'amorçage. NOLOGIN le rend
 -- inutilisable par l'application et par le réseau, sans contourner cette garde.
-ALTER ROLE campement NOLOGIN NOCREATEDB NOCREATEROLE NOREPLICATION;
+SELECT format('ALTER ROLE %I NOLOGIN NOCREATEDB NOCREATEROLE NOREPLICATION', :'bootstrap_user') \gexec
 SQL
 
-echo "Durcissement finalisé : la connexion au rôle historique campement est désactivée."
+echo "Durcissement finalisé : la connexion au rôle historique $POSTGRES_USER est désactivée."
