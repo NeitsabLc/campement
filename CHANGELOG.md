@@ -6,6 +6,8 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
+## [1.2.0] - 2026-08-11
+
 ### Ajouté
 
 - audit des modifications, annulations et suppressions de mouvements de stock,

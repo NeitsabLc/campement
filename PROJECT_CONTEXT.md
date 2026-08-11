@@ -21,7 +21,7 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 10 août 2026 : version de référence `v1.1.3`, branche
+État vérifié le 11 août 2026 : version de référence `v1.2.0`, branche
 stable `main`, branche de développement `dev`, schéma Liquibase `V032`. Le
 projet est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
@@ -39,7 +39,7 @@ campement/
 │   └── changelog/
 │       ├── db.changelog-master.yaml
 │       ├── versioned/        # changements communs à tous les environnements
-│       │   └── V001...V031
+│       │   └── V001...V032
 │       └── dev/              # données réservées au développement et aux tests
 │           └── D000...D004
 └── app/
