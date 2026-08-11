@@ -10,6 +10,21 @@ use RecursiveIteratorIterator;
 
 final class TemplateAccessibilityTest extends TestCase
 {
+    public function testLeLienDEvitementCibleLeContenuPrincipal(): void
+    {
+        $contenu = file_get_contents(dirname(__DIR__, 3).'/templates/base.html.twig');
+
+        self::assertIsString($contenu);
+        self::assertStringContainsString(
+            '<a class="skip-link" href="#contenu-principal">Aller au contenu</a>',
+            $contenu,
+        );
+        self::assertStringContainsString(
+            '<div id="contenu-principal" tabindex="-1"',
+            $contenu,
+        );
+    }
+
     public function testChaqueDialoguePossedeUnNomAccessible(): void
     {
         $repertoire = dirname(__DIR__, 3).'/templates';

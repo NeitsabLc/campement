@@ -684,6 +684,28 @@ body {
     background: var(--surface-muted);
 }
 
+.skip-link {
+    position: fixed;
+    z-index: 1000;
+    top: .75rem;
+    left: .75rem;
+    padding: .7rem 1rem;
+    border-radius: .35rem;
+    color: #fff;
+    background: var(--sgdf-blue);
+    box-shadow: var(--shadow);
+    font-weight: 800;
+    text-decoration: none;
+    transform: translateY(calc(-100% - 1.5rem));
+    transition: transform 150ms ease;
+}
+
+.skip-link:focus {
+    outline: 3px solid var(--sgdf-mint);
+    outline-offset: 3px;
+    transform: translateY(0);
+}
+
 a {
     color: inherit;
 }

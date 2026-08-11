@@ -21,6 +21,7 @@
         {% endif %}
     </head>
     <body class="{% block body_class %}{{ app.user ? 'app-shell' : 'auth-shell' }}{% endblock %}">
+        <a class="skip-link" href="#contenu-principal">Aller au contenu</a>
         {% set afficher_navigation = app.user and app.current_route != 'app_sortie_consommation' %}
         {% if afficher_navigation %}
             <button class="mobile-nav-toggle" type="button" data-sidebar-toggle aria-label="Ouvrir le menu">☰</button>
@@ -72,7 +73,7 @@
             </aside><div class="sidebar-backdrop" data-sidebar-toggle></div>
         {% endif %}
 
-        <div{% if afficher_navigation %} class="page-content"{% endif %}>
+        <div id="contenu-principal" tabindex="-1"{% if afficher_navigation %} class="page-content"{% endif %}>
             {% block body %}{% endblock %}
         </div>
         <footer class="legal-footer{{ afficher_navigation ? ' legal-footer--with-sidebar' : '' }}">
