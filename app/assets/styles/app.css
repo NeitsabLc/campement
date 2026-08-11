@@ -558,7 +558,7 @@ body.app-shell { padding-left: 14.5rem; }
 .sidebar__user strong,
 .sidebar__user small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar__user strong { font-size: .95rem; }
-.sidebar__avatar { width: 2.8rem; height: 2.8rem; flex-basis: 2.8rem; color: #fff; background: var(--sgdf-mint); font-size: 1rem; }
+.sidebar__avatar { width: 2.8rem; height: 2.8rem; flex-basis: 2.8rem; color: var(--sgdf-blue); background: var(--sgdf-mint); font-size: 1rem; }
 .sidebar__logout-form { width: auto; margin: 0; }
 .sidebar__logout { width: 2.5rem; height: 2.5rem; justify-content: center; padding: .5rem; border-radius: .5rem; color: #ff7fa3; }
 .sidebar__logout:hover { color: #ffacc1; background: rgb(255 255 255 / 8%); }
@@ -2113,8 +2113,11 @@ body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25re
 .stays-list-card .management-card{padding:1.35rem 0;border:0;border-radius:0;box-shadow:none}
 .stays-list-card .management-card+.management-card{border-top:1px solid var(--border)}
 .stays-list-card .management-card--inactive{opacity:1}
-.stays-list-card .management-card--inactive .management-card__main{opacity:.62}
+.stays-list-card .management-card--inactive .management-card__main{opacity:1}
 .stays-list-card .management-card h2{margin:.4rem 0;font-size:1.2rem}
+.stays-list-card .stay-title-link{color:inherit;text-decoration:none}
+.stays-list-card .stay-title-link:hover{text-decoration:underline}
+.stays-list-card .module-pill--off{color:var(--text-muted);background:#e7ecef;opacity:1}
 .stays-list-card .status-pill{font-size:.75rem}
 .stays-list-card .module-pills{margin-top:.65rem}
 @media(max-width:48rem){.stays-heading{align-items:stretch;flex-direction:column}.stays-heading .food-add-button{display:none!important}.stays-card-heading{padding-inline:1.25rem}.stays-list-card .management-list{padding-inline:1.25rem}.stays-list-card .management-card{cursor:pointer}.stays-list-card .management-card__actions{width:100%;flex-wrap:wrap}.stays-list-card .edit-group-button,.stays-list-card .stay-status-form{display:none}.stays-list-card .stay-selection-form{width:100%;flex:0 0 100%}.stays-list-card .stay-selection-form .button{width:100%}}

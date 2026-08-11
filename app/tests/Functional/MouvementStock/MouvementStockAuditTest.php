@@ -136,8 +136,11 @@ final class MouvementStockAuditTest extends WebTestCase
         self::assertInstanceOf(TypeMouvement::class, $type);
         self::assertInstanceOf(OrigineMouvement::class, $origine);
         self::assertInstanceOf(Unite::class, $unite);
-        $sejour = $utilisateur->getSejoursGeres()->first();
+        $sejour = $utilisateur->getSejoursGeres()->filter(
+            static fn (Sejour $sejour): bool => $sejour->isActif(),
+        )->first();
         self::assertInstanceOf(Sejour::class, $sejour);
+        $utilisateur->setDernierSejour($sejour);
 
         $denree = (new Denree($sejour))
             ->setNom('Audit '.bin2hex(random_bytes(5)))

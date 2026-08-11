@@ -13,10 +13,10 @@
         <header class="object-list-summary stays-card-heading"><p>{{ sejours|length }} séjour{{ sejours|length > 1 ? 's' : '' }}</p></header>
         <div class="management-list">
         {% for sejour in sejours %}
-            <article class="management-card object-detail-row clickable-row{{ not sejour.actif ? ' management-card--inactive' : '' }}" role="button" tabindex="0" data-controller="clickable-row" data-click-target=".edit-group-button" data-action="click->clickable-row#open keydown->clickable-row#open">
+            <article class="management-card object-detail-row clickable-row{{ not sejour.actif ? ' management-card--inactive' : '' }}" data-controller="clickable-row" data-click-target=".stay-title-link" data-action="click->clickable-row#open">
                 <div class="management-card__main">
                     <span class="status-pill {{ sejour.actif ? 'status-pill--active' : '' }}">{{ sejour.actif ? 'Actif' : 'Désactivé' }}</span>
-                    <h2>{{ sejour.nom }}</h2>
+                    <h2><a class="stay-title-link" href="{{ path('app_sejour_modifier', {id: sejour.id}) }}">{{ sejour.nom }}</a></h2>
                     <p>{{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }}</p>
                     <div class="module-pills"><span class="module-pill{{ not sejour.moduleIntendanceActif ? ' module-pill--off' : '' }}">Intendance</span><span class="module-pill{{ not sejour.moduleAdministratifActif ? ' module-pill--off' : '' }}">Administratif</span></div>
                 </div>
