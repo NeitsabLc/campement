@@ -90,34 +90,23 @@ final class MouvementStockAuditTest extends WebTestCase
         }
     }
 
-    public function testUneSuppressionConserveUneTraceIndependanteDuMouvement(): void
+    public function testLaListeProposeLAnnulationAuGlissementMaisPasLaSuppression(): void
     {
         $client = static::createClient();
         $fixture = $this->creerMouvement();
         $client->loginUser($fixture['utilisateur']);
 
         try {
-            $crawler = $client->request('GET', '/stocks/mouvement/'.$fixture['mouvement'].'/supprimer');
+            $client->request('GET', '/stocks');
             self::assertResponseIsSuccessful();
-            $client->submit($crawler->selectButton('Confirmer la suppression')->form([
-                'motif' => 'Mouvement créé sur le mauvais séjour.',
-            ]));
-            self::assertResponseRedirects('/stocks');
-
-            $connexion = static::getContainer()->get(Connection::class);
-            self::assertSame(0, (int) $connexion->fetchOne(
-                'SELECT COUNT(*) FROM campement.mouvement_stock WHERE id = :id',
-                ['id' => $fixture['mouvement']],
-            ));
-            $audit = $connexion->fetchAssociative(
-                'SELECT action, motif, etat_avant, etat_apres FROM campement.audit_mouvement_stock WHERE mouvement_stock_id = :id',
-                ['id' => $fixture['mouvement']],
+            self::assertSelectorTextSame(
+                sprintf('a.stock-swipe-action[href="/stocks/mouvement/%s/annuler"]', $fixture['mouvement']),
+                'Annuler',
             );
-            self::assertIsArray($audit);
-            self::assertSame('SUPPRESSION', $audit['action']);
-            self::assertSame('Mouvement créé sur le mauvais séjour.', $audit['motif']);
-            self::assertNotNull($audit['etat_avant']);
-            self::assertNull($audit['etat_apres']);
+            self::assertSelectorNotExists('a[href*="/supprimer"]');
+
+            $client->request('GET', '/stocks/mouvement/'.$fixture['mouvement'].'/supprimer');
+            self::assertResponseStatusCodeSame(404);
         } finally {
             $this->supprimerFixture($fixture);
         }

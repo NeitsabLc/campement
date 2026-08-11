@@ -79,54 +79,6 @@ final class MouvementStockController extends AbstractController
         ]);
     }
 
-    #[Route('/stocks/mouvement/{id}/supprimer', name: 'app_mouvement_stock_supprimer', methods: ['GET', 'POST'])]
-    public function supprimer(
-        string $id,
-        Request $request,
-        ContexteSejour $sejours,
-        MouvementStockRepository $mouvements,
-        EntityManagerInterface $em,
-        AuditMouvementStock $audit,
-    ): Response {
-        $sejour = $sejours->actif();
-        $mouvement = Uuid::isValid($id) ? $mouvements->findPourFormulaire($id) : null;
-        if (null === $sejour || null === $mouvement || $mouvement->getSejour() !== $sejour) {
-            throw $this->createNotFoundException('Mouvement de stock introuvable.');
-        }
-        if (!$request->isMethod('POST')) {
-            return $this->render('mouvement_stock/confirmer_action.html.twig', [
-                'mouvement' => $mouvement,
-                'action' => 'suppression',
-                'erreur' => null,
-            ]);
-        }
-        if (!$this->isCsrfTokenValid('supprimer_mouvement_stock_'.$id, $request->request->getString('_token'))) {
-            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
-        }
-        $motif = trim($request->request->getString('motif'));
-        if ('' === $motif || mb_strlen($motif) > 1000) {
-            return $this->render('mouvement_stock/confirmer_action.html.twig', [
-                'mouvement' => $mouvement,
-                'action' => 'suppression',
-                'erreur' => 'Le motif est obligatoire et limité à 1 000 caractères.',
-            ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
-        }
-        $utilisateur = $this->getUser();
-        if (!$utilisateur instanceof Utilisateur) {
-            throw new \LogicException('Utilisateur connecté invalide.');
-        }
-        $avant = $audit->instantane($mouvement);
-
-        $em->wrapInTransaction(function () use ($em, $audit, $mouvement, $sejour, $utilisateur, $motif, $avant): void {
-            $audit->enregistrer($mouvement, $sejour, $utilisateur, AuditMouvementStock::SUPPRESSION, $motif, $avant, null);
-            $em->remove($mouvement);
-            $em->flush();
-        });
-        $this->addFlash('success', 'Le mouvement de stock a bien été supprimé.');
-
-        return $this->redirectToRoute('app_mouvements_stock');
-    }
-
     #[Route('/stocks/mouvement/{id}/annuler', name: 'app_mouvement_stock_annuler', methods: ['GET', 'POST'])]
     public function annuler(
         string $id,
@@ -144,7 +96,6 @@ final class MouvementStockController extends AbstractController
         if (!$request->isMethod('POST')) {
             return $this->render('mouvement_stock/confirmer_action.html.twig', [
                 'mouvement' => $mouvement,
-                'action' => 'annulation',
                 'erreur' => null,
             ]);
         }
@@ -155,7 +106,6 @@ final class MouvementStockController extends AbstractController
         if ('' === $motif || mb_strlen($motif) > 1000) {
             return $this->render('mouvement_stock/confirmer_action.html.twig', [
                 'mouvement' => $mouvement,
-                'action' => 'annulation',
                 'erreur' => 'Le motif est obligatoire et limité à 1 000 caractères.',
             ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
         }

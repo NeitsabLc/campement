@@ -6,6 +6,12 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
+### Supprimé
+
+- l’action de suppression définitive des mouvements de stock ; une erreur de
+  saisie doit désormais être traitée par l’annulation non destructive, y compris
+  depuis l’action de glissement sur mobile.
+
 ## [1.2.1] - 2026-08-11
 
 ### Corrigé

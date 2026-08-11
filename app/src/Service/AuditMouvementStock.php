@@ -15,9 +15,8 @@ final class AuditMouvementStock
 {
     public const MODIFICATION = 'MODIFICATION';
     public const ANNULATION = 'ANNULATION';
-    public const SUPPRESSION = 'SUPPRESSION';
 
-    private const ACTIONS = [self::MODIFICATION, self::ANNULATION, self::SUPPRESSION];
+    private const ACTIONS = [self::MODIFICATION, self::ANNULATION];
 
     public function __construct(private readonly Connection $connexion)
     {
@@ -102,7 +101,7 @@ final class AuditMouvementStock
         if ('' === $motif) {
             throw new \InvalidArgumentException('Le motif de l’opération est obligatoire.');
         }
-        if (self::SUPPRESSION !== $action && null === $apres) {
+        if (null === $apres) {
             throw new \InvalidArgumentException('L’état après opération est obligatoire.');
         }
 
