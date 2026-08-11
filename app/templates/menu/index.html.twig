@@ -15,8 +15,8 @@
 {% block body %}
 <main class="menus-page{{ avec_categories|default(false) ? ' menus-page--categorized' : '' }}" data-controller="menu-editor" data-public-count="{{ publicsCibles|default([])|length }}">
     <header class="menus-heading"><h1>Menus</h1>{% if lecture_seule|default(false) %}<span class="stay-badge"><strong>Lecture seule</strong></span>{% endif %}</header>
-    {% for m in app.flashes('success') %}<div class="flash flash--success">{{ m }}</div>{% endfor %}
-    {% for m in app.flashes('error') %}<div class="flash flash--error">{{ m }}</div>{% endfor %}
+    {% for m in app.flashes('success') %}<div class="flash flash--success" role="status">{{ m }}</div>{% endfor %}
+    {% for m in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ m }}</div>{% endfor %}
     {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2></section>
     {% elseif repas is empty %}<section class="empty-state"><h2>Aucun repas disponible</h2></section>
     {% else %}

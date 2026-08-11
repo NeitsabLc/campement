@@ -21,9 +21,9 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 10 août 2026 : version de référence `v1.1.3`, branche
-stable `main`, branche de développement `dev`, schéma Liquibase `V031`, 99
-tests et 492 assertions. Le projet est fonctionnel. Toute évolution doit
+État vérifié le 11 août 2026 : version de référence `v1.2.0`, branche
+stable `main`, branche de développement `dev`, schéma Liquibase `V032`. Le
+projet est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
@@ -39,7 +39,7 @@ campement/
 │   └── changelog/
 │       ├── db.changelog-master.yaml
 │       ├── versioned/        # changements communs à tous les environnements
-│       │   └── V001...V031
+│       │   └── V001...V032
 │       └── dev/              # données réservées au développement et aux tests
 │           └── D000...D004
 └── app/
@@ -435,7 +435,12 @@ propre au séjour :
 ```
 
 Le gestionnaire peut consulter le lien absolu, afficher son QR code et régénérer
-le jeton. Toute régénération invalide immédiatement l’ancien lien.
+le jeton. Toute régénération invalide immédiatement l’ancien lien. Le jeton est
+également renouvelé automatiquement lorsqu’un séjour désactivé est réactivé.
+
+Le lien public est fermé automatiquement après le dernier jour du séjour. Il
+reste utilisable pendant toute la date de fin, sous réserve que le séjour, le
+module intendance et la distribution publique soient actifs.
 
 Le séjour est toujours déduit du jeton. Il ne dépend ni de la session d’un
 utilisateur connecté ni d’un identifiant de séjour envoyé librement par le
@@ -456,6 +461,10 @@ Le premier formulaire génère une clé UUID de soumission, conservée pendant
 l’écran de confirmation. Une contrainte unique sur
 `mouvement_stock.cle_soumission` rend la confirmation idempotente et protège
 aussi contre deux requêtes concurrentes.
+
+Lorsque la distribution est indisponible, la page publique distingue l’absence
+de menu configuré de l’absence d’unité présente à la date du jour. Les dates et
+repas proposés sont uniquement ceux pour lesquels un menu actif existe.
 
 L’application ne combine pas automatiquement les effectifs, les publics cibles
 et les quantités individuelles du menu.
@@ -503,9 +512,13 @@ Chaque denrée doit appartenir au même séjour que le mouvement.
 Les quantités des lignes sont positives ; leur effet sur le stock dépend du type
 de mouvement. Une ligne peut détailler les conditionnements utilisés.
 
-Les mouvements peuvent actuellement être corrigés ou supprimés par un
-gestionnaire dans le périmètre du séjour. Toute opération doit rester protégée
-par CSRF et vérifier l’appartenance au séjour côté serveur.
+Les mouvements peuvent être modifiés, annulés ou supprimés par un gestionnaire
+dans le périmètre du séjour. Un motif est obligatoire. Une modification conserve
+l’état avant et après ; une annulation conserve le mouvement mais retire son
+effet du calcul du stock ; une suppression efface le mouvement tout en conservant
+une trace indépendante. L’audit enregistre l’auteur, la date et le motif. Toute
+opération reste protégée par CSRF et vérifie l’appartenance au séjour côté
+serveur.
 
 ## 13. Index et contraintes
 
@@ -542,6 +555,14 @@ Sont fonctionnels dans le dépôt actuel :
   orphelins ;
 * les tests PHPUnit utilisant une base dédiée ;
 * l’envoi d’e-mails applicatifs.
+
+Après anonymisation d’un séjour, les unités participantes et les données
+d’intendance — fournisseurs, denrées, menus, recettes et mouvements de stock —
+sont conservées sans échéance automatique afin de préserver l’historique
+opérationnel. Le séjour reste visible des administrateurs sous un statut
+désactivé. Les données personnelles des participants, leurs documents, leurs
+présences et les situations particulières restent soumises aux suppressions
+automatiques décrites ci-dessus.
 
 La validation du mapping Doctrine est fonctionnelle. Les types JSONB, les
 expressions temporelles et la jointure ManyToMany multi-séjour utilisent les
@@ -667,19 +688,12 @@ Le dépôt suit désormais ce cycle de publication :
    suivis et, après validation, dans l’historique Git distant ;
 2. tester périodiquement la restauration des sauvegardes ;
 3. augmenter la couverture fonctionnelle des parcours sensibles ;
-4. renforcer la traçabilité des corrections et suppressions de mouvements ;
-5. poursuivre l’ergonomie mobile et l’accessibilité ;
-6. mettre en place des protections de branches adaptées lorsque la plateforme
-   et le niveau d’abonnement le permettent.
+4. poursuivre l’accessibilité de l’interface.
 
 ## 19. Décisions restant à préciser
 
 Les points suivants restent à arbitrer :
 
 * les droits détaillés de consultation du journal pour `ROLE_GROUPE` ;
-* le comportement exact lorsqu’aucun menu n’existe pour le jour et le repas ;
-* la politique d’archivage et de conservation des séjours ;
-* la rotation périodique ou uniquement manuelle des jetons publics ;
 * la fréquence des tests de restauration des sauvegardes ;
-* la politique de modification et de suppression des mouvements de stock ;
 * le niveau de couverture de tests attendu pour chaque module.

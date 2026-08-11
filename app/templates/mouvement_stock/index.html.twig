@@ -44,6 +44,10 @@
                 </div>
             </section>
 
+            {% if mouvementExistant %}
+                <section class="stock-movement-card food-form-card"><h2>Traçabilité</h2><label>Motif de la modification <b>*</b><textarea name="motif_audit" maxlength="1000" rows="3" required>{{ motifAudit }}</textarea><small>L’état avant et après, votre identité et la date seront conservés dans l’historique d’audit.</small></label></section>
+            {% endif %}
+
             <template data-stock-movement-target="lineTemplate">{% include 'mouvement_stock/_ligne.html.twig' with {index: '__INDEX__', ligneValeurs: {}, modifiable: false} %}</template>
             <div class="stock-movement-actions"><a class="food-secondary" href="{{ path('app_mouvements_stock') }}">Annuler</a><button class="food-primary" type="submit">{{ mouvementExistant ? 'Enregistrer les modifications' : 'Enregistrer le mouvement' }}</button></div>
         </form>

@@ -18,16 +18,16 @@
         {% embed 'components/list_table.html.twig' with {variant: 'suppliers', headings: ['Nom', 'Téléphone', 'E-mail', 'Actions'], card_class: 'entity-list-card'} %}
             {% block tools %}<div class="foods-tools supplier-list-tools"><label class="food-search"><span aria-hidden="true">⌕</span><span class="visually-hidden">Rechercher</span><input type="search" placeholder="Rechercher un fournisseur…" data-food-catalog-target="search" data-action="input->food-catalog#filter"></label><nav class="food-tabs"><a href="{{ path('app_fournisseurs') }}"{{ not afficher_inactifs ? ' aria-current="page"' : '' }}>Actifs</a><a class="food-tabs__inactive" href="{{ path('app_fournisseurs',{inactifs:1}) }}"{{ afficher_inactifs ? ' aria-current="page"' : '' }}>Désactivés</a></nav></div>{% endblock %}
             {% block rows %}
-            {% if fournisseurs is empty %}<div class="shared-list-empty">Aucun fournisseur.</div>{% else %}
+            {% if fournisseurs is empty %}<div class="shared-list-empty" role="row"><span role="cell">Aucun fournisseur.</span></div>{% else %}
                     {% for fournisseur in fournisseurs %}<div data-food-catalog-target="row" data-name="{{ fournisseur.nom|lower }}">
-                        <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_fournisseur_modifier',{id:fournisseur.id}) }}"><form class="foods-swipe-action{{ fournisseur.actif ? '' : ' foods-swipe-action--reactivate' }}" method="post" action="{{ fournisseur.actif ? path('app_fournisseur_desactiver',{id:fournisseur.id}) : path('app_fournisseur_reactiver',{id:fournisseur.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token((fournisseur.actif ? 'desactiver_fournisseur_' : 'reactiver_fournisseur_')~fournisseur.id) }}"><button type="submit">{{ fournisseur.actif ? 'Désactiver' : 'Réactiver' }}</button></form><article class="shared-list-row supplier-row{{ fournisseur.actif ? ' clickable-row' : ' supplier-row--inactive' }}" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate keydown->swipe-actions#activate">
-                            <div class="supplier-row__identity">
+                        <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_fournisseur_modifier',{id:fournisseur.id}) }}"><form class="foods-swipe-action{{ fournisseur.actif ? '' : ' foods-swipe-action--reactivate' }}" method="post" action="{{ fournisseur.actif ? path('app_fournisseur_desactiver',{id:fournisseur.id}) : path('app_fournisseur_reactiver',{id:fournisseur.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token((fournisseur.actif ? 'desactiver_fournisseur_' : 'reactiver_fournisseur_')~fournisseur.id) }}"><button type="submit">{{ fournisseur.actif ? 'Désactiver' : 'Réactiver' }}</button></form><article class="shared-list-row supplier-row{{ fournisseur.actif ? ' clickable-row' : ' supplier-row--inactive' }}" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
+                            <div class="supplier-row__identity" role="cell">
                                 <h3>{{ fournisseur.nom }}{% if not fournisseur.actif %} <span class="inactive-supplier-badge">Inactif</span>{% endif %}</h3>
                             </div>
-                            <div class="supplier-contact"><span>{{ fournisseur.telephone ?: 'Non renseigné' }}</span></div>
-                            <div class="supplier-contact">{% if fournisseur.email %}<a href="mailto:{{ fournisseur.email }}">{{ fournisseur.email }}</a>{% else %}<span>Non renseigné</span>{% endif %}</div>
+                            <div class="supplier-contact" role="cell"><span>{{ fournisseur.telephone ?: 'Non renseigné' }}</span></div>
+                            <div class="supplier-contact" role="cell">{% if fournisseur.email %}<a href="mailto:{{ fournisseur.email }}">{{ fournisseur.email }}</a>{% else %}<span>Non renseigné</span>{% endif %}</div>
                             {% if fournisseur.actif %}
-                                <div class="supplier-actions">
+                                <div class="supplier-actions" role="cell">
                                 <a class="edit-supplier-button" href="{{ path('app_fournisseur_modifier', {id: fournisseur.id}) }}" aria-label="Modifier {{ fournisseur.nom }}" title="Modifier {{ fournisseur.nom }}"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                                 <button class="delete-supplier-button" type="button" aria-label="Désactiver {{ fournisseur.nom }}" title="Désactiver {{ fournisseur.nom }}"
                                     data-action="supplier-dialog#openDelete"
@@ -37,7 +37,7 @@
                                 ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Désactiver</span></button>
                                 </div>
                             {% else %}
-                                <form class="supplier-actions reactivate-supplier-form" method="post" action="{{ path('app_fournisseur_reactiver', {id: fournisseur.id}) }}">
+                                <form class="supplier-actions reactivate-supplier-form" role="cell" method="post" action="{{ path('app_fournisseur_reactiver', {id: fournisseur.id}) }}">
                                     <input type="hidden" name="_token" value="{{ csrf_token('reactiver_fournisseur_' ~ fournisseur.id) }}">
                                     <button class="reactivate-supplier-button" type="submit" aria-label="Réactiver {{ fournisseur.nom }}" title="Réactiver {{ fournisseur.nom }}">
                                         <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M20 6v5h-5M19 11a7.5 7.5 0 1 0 .2 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -50,8 +50,8 @@
             {% endif %}{% endblock %}
         {% endembed %}
 
-        <dialog class="supplier-dialog" data-supplier-dialog-target="dialog" data-action="click->supplier-dialog#closeOnBackdrop">
-            <section class="supplier-dialog__content" aria-labelledby="supplier-dialog-title">
+        <dialog class="supplier-dialog" aria-labelledby="supplier-dialog-title" data-supplier-dialog-target="dialog" data-action="click->supplier-dialog#closeOnBackdrop">
+            <section class="supplier-dialog__content">
                 <header class="supplier-dialog__header">
                     <div><h2 id="supplier-dialog-title" data-supplier-dialog-target="title">{{ donnees.fournisseur_id ? 'Modifier le fournisseur' : 'Ajouter un fournisseur' }}</h2><p>Renseignez les coordonnées du fournisseur.</p></div>
                     <button class="supplier-dialog__close" type="button" aria-label="Fermer" data-action="supplier-dialog#close">×</button>
@@ -74,8 +74,8 @@
             </section>
         </dialog>
 
-        <dialog class="delete-supplier-dialog" data-supplier-dialog-target="deleteDialog" data-action="click->supplier-dialog#closeDeleteOnBackdrop">
-            <section class="delete-supplier-dialog__content" aria-labelledby="delete-supplier-dialog-title">
+        <dialog class="delete-supplier-dialog" aria-labelledby="delete-supplier-dialog-title" data-supplier-dialog-target="deleteDialog" data-action="click->supplier-dialog#closeDeleteOnBackdrop">
+            <section class="delete-supplier-dialog__content">
                 <div class="delete-supplier-dialog__icon" aria-hidden="true">!</div>
                 <h2 id="delete-supplier-dialog-title">Désactiver ce fournisseur ?</h2>
                 <p>Le fournisseur <strong data-supplier-dialog-target="deleteName"></strong> ne sera plus proposé dans les listes.</p>

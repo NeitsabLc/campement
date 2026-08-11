@@ -25,20 +25,20 @@
     <div class="users-layout users-layout--list">
         {% embed 'components/list_table.html.twig' with {variant: 'users', headings: ['Utilisateur', 'Rôle', 'Séjours', 'Groupe', 'Actions'], card_class: 'entity-list-card'} %}
             {% block rows %}
-            {% if utilisateurs is empty %}<div class="shared-list-empty">Aucun utilisateur.</div>{% else %}
+            {% if utilisateurs is empty %}<div class="shared-list-empty" role="row"><span role="cell">Aucun utilisateur.</span></div>{% else %}
                     {% for utilisateur in utilisateurs|filter(utilisateur => utilisateur.role != constant('App\\Entity\\Utilisateur::ROLE_TECHNIQUE')) %}
-                    <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_utilisateur_modifier',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_utilisateurs_statut',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_'~utilisateur.id) }}"><button type="submit">Supprimer</button></form><article class="shared-list-row user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate keydown->swipe-actions#activate">
-                        <div><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
-                        <span class="role-pill">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
-                        <span class="user-assignment">
+                    <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_utilisateur_modifier',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_utilisateurs_statut',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_'~utilisateur.id) }}"><button type="submit">Supprimer</button></form><article class="shared-list-row user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
+                        <div role="cell"><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
+                        <span class="role-pill" role="cell">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
+                        <span class="user-assignment" role="cell">
                             {% if utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GESTIONNAIRE') %}
                                 {{ utilisateur.sejoursGeres|map(sejour => sejour.nom)|join(', ') }}
                             {% elseif utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GROUPE') and utilisateur.groupe %}
                                 {{ utilisateur.groupe.sejour.nom }}
                             {% else %}Tous les séjours{% endif %}
                         </span>
-                        <span class="user-group">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
-                        <div class="user-actions">
+                        <span class="user-group" role="cell">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
+                        <div class="user-actions" role="cell">
                             <a class="edit-group-button" href="{{ path('app_utilisateur_modifier', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}" aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
                             {% if utilisateur.actif %}
                                 <button class="delete-group-button" type="button" aria-label="Désactiver {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Désactiver"
@@ -59,9 +59,9 @@
         {% endembed %}
     </div>
 
-    <dialog class="user-dialog" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>
+    <dialog class="user-dialog" aria-labelledby="user-dialog-title" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>
         <section class="users-card users-create">
-            <header class="user-dialog__header"><div><h2 data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un lien d’invitation lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
+            <header class="user-dialog__header"><div><h2 id="user-dialog-title" data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un lien d’invitation lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
             {% if erreurs %}<div class="flash flash--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
             <form method="post">
                 <input type="hidden" name="_token" value="{{ csrf_token('creer_utilisateur') }}">
@@ -107,10 +107,10 @@
         </section>
     </dialog>
 
-    <dialog class="user-status-dialog" data-user-status-dialog>
+    <dialog class="user-status-dialog" aria-labelledby="user-status-dialog-title" data-user-status-dialog>
         <section>
             <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
-            <h2>Désactiver cet utilisateur ?</h2>
+            <h2 id="user-status-dialog-title">Désactiver cet utilisateur ?</h2>
             <p>Le compte de <strong data-user-disable-name></strong> ne pourra plus se connecter.</p>
             <form method="post" data-user-disable-form>
                 <input type="hidden" name="_token" data-user-disable-token>

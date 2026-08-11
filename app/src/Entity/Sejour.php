@@ -153,6 +153,12 @@ class Sejour
     public function setModuleSituationsParticulieresActif(bool $actif): self { $this->moduleSituationsParticulieresActif = $actif; $this->touch(); return $this; }
     public function isDistributionPubliqueActive(): bool { return $this->distributionPubliqueActive; }
     public function setDistributionPubliqueActive(bool $actif): self { $this->distributionPubliqueActive = $actif; $this->touch(); return $this; }
+    public function isDistributionPubliqueOuverte(?\DateTimeImmutable $date = null): bool
+    {
+        $date = ($date ?? new \DateTimeImmutable('today'))->setTime(0, 0);
+
+        return $this->distributionPubliqueActive && $this->dateFin >= $date;
+    }
     public function isDistribuerGouterDejeuner(): bool { return $this->distribuerGouterDejeuner; }
     public function setDistribuerGouterDejeuner(bool $valeur): self { $this->distribuerGouterDejeuner = $valeur; $this->touch(); return $this; }
     public function getJetonDistributionPublique(): Uuid { return $this->jetonDistributionPublique; }

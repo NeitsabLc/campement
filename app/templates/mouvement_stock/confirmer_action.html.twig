@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+{% set annulation = action == 'annulation' %}
+{% block title %}{{ annulation ? 'Annuler' : 'Supprimer' }} un mouvement | Campement{% endblock %}
+{% block body %}
+<main class="stock-movement-page food-form-page">
+    <nav class="food-breadcrumb"><a href="{{ path('app_mouvements_stock') }}">Mouvements de stock</a><span>/</span><span>{{ annulation ? 'Annulation' : 'Suppression' }}</span></nav>
+    <header class="stock-movement-heading food-form-heading"><div><h1>{{ annulation ? 'Annuler le mouvement' : 'Supprimer définitivement le mouvement' }}</h1></div></header>
+    {% if erreur %}<div class="stock-movement-errors" role="alert"><p>{{ erreur }}</p></div>{% endif %}
+    <section class="stock-movement-card food-form-card">
+        <h2>Mouvement du {{ mouvement.dateMouvement|date('d/m/Y H:i') }}</h2>
+        <p>{{ mouvement.typeMouvement.libelle }} · {{ mouvement.origineMouvement.libelle }}</p>
+        <p>{{ annulation
+            ? 'Le mouvement restera visible dans le journal, mais son effet sera retiré du calcul du stock.'
+            : 'Le mouvement et ses lignes seront supprimés. La trace d’audit restera conservée.' }}</p>
+        <form method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token((annulation ? 'annuler' : 'supprimer') ~ '_mouvement_stock_' ~ mouvement.id) }}">
+            <label>Motif <b>*</b><textarea name="motif" maxlength="1000" rows="4" required autofocus>{{ app.request.request.get('motif') }}</textarea><small>Ce motif sera conservé dans l’historique d’audit.</small></label>
+            <div class="stock-movement-actions"><a class="food-secondary" href="{{ path('app_mouvements_stock') }}">Retour</a><button class="{{ annulation ? 'food-primary' : 'button button--danger-outline' }}" type="submit">{{ annulation ? 'Confirmer l’annulation' : 'Confirmer la suppression' }}</button></div>
+        </form>
+    </section>
+</main>
+{% endblock %}

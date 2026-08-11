@@ -6,17 +6,17 @@
         <div><h1>{{ est_administrateur ? 'Séjours' : 'Mes séjours' }}</h1></div>
         {% if est_administrateur %}<a class="food-primary food-add-button" href="{{ path('app_sejour_ajouter') }}" aria-label="Créer un séjour"><span aria-hidden="true">＋</span><span class="food-add-button__label">Créer un séjour</span></a>{% endif %}
     </header>
-    {% for message in app.flashes('success') %}<div class="flash flash--success">{{ message }}</div>{% endfor %}
-    {% for message in app.flashes('error') %}<div class="flash flash--error">{{ message }}</div>{% endfor %}
-    {% for erreur in erreurs %}<div class="flash flash--error">{{ erreur }}</div>{% endfor %}
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
+    {% for erreur in erreurs %}<div class="flash flash--error" role="alert">{{ erreur }}</div>{% endfor %}
     <section class="stays-list-card object-list-card object-detail-list-card">
         <header class="object-list-summary stays-card-heading"><p>{{ sejours|length }} séjour{{ sejours|length > 1 ? 's' : '' }}</p></header>
         <div class="management-list">
         {% for sejour in sejours %}
-            <article class="management-card object-detail-row clickable-row{{ not sejour.actif ? ' management-card--inactive' : '' }}" role="button" tabindex="0" data-controller="clickable-row" data-click-target=".edit-group-button" data-action="click->clickable-row#open keydown->clickable-row#open">
+            <article class="management-card object-detail-row clickable-row{{ not sejour.actif ? ' management-card--inactive' : '' }}" data-controller="clickable-row" data-click-target=".stay-title-link" data-action="click->clickable-row#open">
                 <div class="management-card__main">
                     <span class="status-pill {{ sejour.actif ? 'status-pill--active' : '' }}">{{ sejour.actif ? 'Actif' : 'Désactivé' }}</span>
-                    <h2>{{ sejour.nom }}</h2>
+                    <h2><a class="stay-title-link" href="{{ path('app_sejour_modifier', {id: sejour.id}) }}">{{ sejour.nom }}</a></h2>
                     <p>{{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }}</p>
                     <div class="module-pills"><span class="module-pill{{ not sejour.moduleIntendanceActif ? ' module-pill--off' : '' }}">Intendance</span><span class="module-pill{{ not sejour.moduleAdministratifActif ? ' module-pill--off' : '' }}">Administratif</span></div>
                 </div>
@@ -32,8 +32,8 @@
                 </div>
             </article>
             {% if sejour.actif %}
-            <dialog id="stay-delete-{{ sejour.id }}" class="delete-group-dialog stay-delete-dialog">
-                <section class="delete-group-dialog__content" aria-labelledby="stay-delete-title-{{ sejour.id }}">
+            <dialog id="stay-delete-{{ sejour.id }}" class="delete-group-dialog stay-delete-dialog" aria-labelledby="stay-delete-title-{{ sejour.id }}">
+                <section class="delete-group-dialog__content">
                     <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
                     <h2 id="stay-delete-title-{{ sejour.id }}">Désactiver ce séjour ?</h2>
                     <p>Les participants, leurs documents, le registre de présence et les situations particulières seront définitivement supprimés.</p>

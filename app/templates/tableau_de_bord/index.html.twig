@@ -4,7 +4,7 @@
 
 {% block body %}
     <main class="home-dashboard">
-        {% for message in app.flashes('error') %}<div class="flash flash--error">{{ message }}</div>{% endfor %}
+        {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
         {% for message in app.flashes('error_auto_dismiss') %}<div class="flash flash--error" role="alert" data-auto-dismiss>{{ message }}</div>{% endfor %}
         <header class="page-heading home-dashboard__heading">
             <div><h1>Bonjour {{ app.user.prenom }}</h1><p>Bienvenue sur l’application Campement. Voici l’essentiel de {{ vue_groupe ? 'votre séjour' : 'vos séjours' }}.</p></div>
@@ -87,13 +87,14 @@
                         <section class="home-panel" aria-labelledby="documents-title">
                             <header class="home-panel__header"><div><span class="home-panel__icon">▤</span><div><h2 id="documents-title">Documents administratifs</h2><p>{{ vue_groupe ? 'Suivi des dossiers de votre unité' : 'Suivi des dossiers participants' }}</p></div></div><a href="{{ path('app_participants') }}">Voir les participants</a></header>
                             {% set total = suivi_documents.total %}
+                            {% set progression = total > 0 ? (suivi_documents.complets / total * 100)|round : 0 %}
                             <div class="home-document-stats">
                                 <div><span class="home-document-dot home-document-dot--complete"></span><strong>{{ suivi_documents.complets }}</strong><span>Complets</span></div>
                                 <div><span class="home-document-dot home-document-dot--partial"></span><strong>{{ suivi_documents.incomplets }}</strong><span>Incomplets</span></div>
                                 <div><span class="home-document-dot home-document-dot--empty"></span><strong>{{ suivi_documents.aucun }}</strong><span>Aucun document</span></div>
                             </div>
-                            <div class="home-progress" aria-label="{{ suivi_documents.complets }} dossiers complets sur {{ total }}"><span style="width: {{ total > 0 ? (suivi_documents.complets / total * 100)|round : 0 }}%"></span></div>
-                            <p class="home-progress-label">{{ total > 0 ? (suivi_documents.complets / total * 100)|round : 0 }} % des dossiers sont complets</p>
+                            <div class="home-progress" role="progressbar" aria-label="Dossiers complets" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ progression }}" aria-valuetext="{{ suivi_documents.complets }} dossiers complets sur {{ total }}"><span style="width: {{ progression }}%"></span></div>
+                            <p class="home-progress-label">{{ progression }} % des dossiers sont complets</p>
                         </section>
                     {% endif %}
                 {% endif %}
