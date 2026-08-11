@@ -6,6 +6,7 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         git \
         unzip \

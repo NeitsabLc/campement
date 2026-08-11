@@ -320,7 +320,11 @@ final class ParticipantController extends AbstractController
         ];
     }
 
-    /** @param array<string, mixed> $donnees @param list<string> $erreurs @return array{naissance: ?DateTimeImmutable, debut: ?DateTimeImmutable, fin: ?DateTimeImmutable} */
+    /**
+     * @param array<string, mixed> $donnees
+     * @param list<string> $erreurs
+     * @return array{naissance: ?DateTimeImmutable, debut: ?DateTimeImmutable, fin: ?DateTimeImmutable}
+     */
     private function validerFiche(array $donnees, mixed $sejour, array &$erreurs): array
     {
         foreach (['nom' => 'Le nom', 'prenom' => 'Le prénom'] as $champ => $libelle) {

@@ -24,7 +24,10 @@ final class ListeParticipantsPdf
 
     public function __construct(#[Autowire('%kernel.project_dir%')] private readonly string $projectDir) {}
 
-    /** @param list<Groupe> $groupes @param list<Participant> $participants */
+    /**
+     * @param list<Groupe> $groupes
+     * @param list<Participant> $participants
+     */
     public function generer(Sejour $sejour, array $groupes, array $participants): string
     {
         $parGroupe = [];
@@ -47,7 +50,10 @@ final class ListeParticipantsPdf
         return $dompdf->output();
     }
 
-    /** @param list<Groupe> $groupes @param array<string, array<string, list<Participant>>> $parGroupe */
+    /**
+     * @param list<Groupe> $groupes
+     * @param array<string, array<string, list<Participant>>> $parGroupe
+     */
     private function html(Sejour $sejour, array $groupes, array $parGroupe): string
     {
         $pages = [];

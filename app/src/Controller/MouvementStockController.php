@@ -271,7 +271,7 @@ final class MouvementStockController extends AbstractController
                 $lignesValeurs[] = [
                     'denree' => (string) $ligneMouvement->getDenree()->getId(),
                     'reference' => (string) ($ligneMouvement->getReferenceFournisseur()?->getId() ?? ''),
-                    'conditionnement_sortie' => (string) ($conditionnementLigne?->getId() ?? ''),
+                    'conditionnement_sortie' => (string) $conditionnementLigne->getId(),
                     'numero_lot' => $ligneMouvement->getNumeroLot() ?? '',
                     'quantite' => null !== $ligneMouvement->getReferenceFournisseur()
                         ? $ligneMouvement->getQuantiteUniteReference()
@@ -395,7 +395,6 @@ final class MouvementStockController extends AbstractController
                     $denree,
                     $quantiteReference,
                     $reference,
-                    $typeCode,
                     $entreeFournisseur,
                     $conditionnementSortie,
                     $conditionnementsParReference,
@@ -494,6 +493,7 @@ final class MouvementStockController extends AbstractController
      * @param list<object> $denreesActives
      * @param list<object> $originesActives
      * @param list<object> $groupesActifs
+     * @param list<object> $fournisseursActifs
      * @param array<string, list<object>> $referencesParDenree
      * @param array<string, list<object>> $conditionnementsParReference
      * @param array<string, list<object>> $conditionnementsSortieParDenree
@@ -626,7 +626,7 @@ final class MouvementStockController extends AbstractController
         $utilisateur = $this->getUser();
         if (!$utilisateur instanceof Utilisateur) throw new \LogicException('Utilisateur connecté invalide.');
         $avant = null === $mouvementExistant ? null : $audit->instantane($mouvementExistant);
-        $em->wrapInTransaction(function () use ($em, $sejour, $utilisateur, $type, $origine, $groupe, $request, $lignesValides, $typeCode, $conversion, $conditionnementsParReference, $mouvementExistant, $lignes, $lignesConditionnements, $audit, $avant, $motifAudit): void {
+        $em->wrapInTransaction(function () use ($em, $sejour, $utilisateur, $type, $origine, $groupe, $request, $lignesValides, $conversion, $conditionnementsParReference, $mouvementExistant, $lignes, $lignesConditionnements, $audit, $avant, $motifAudit): void {
             $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
             $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
             if (null === $mouvementExistant) {
@@ -685,7 +685,11 @@ final class MouvementStockController extends AbstractController
         }
     }
 
-    /** @template T of object @param list<T> $entites @return T|null */
+    /**
+     * @template T of object
+     * @param list<T> $entites
+     * @return T|null
+     */
     private function selectionner(string $id, array $entites): ?object
     {
         if (!Uuid::isValid($id)) return null;

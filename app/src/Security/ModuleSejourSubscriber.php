@@ -7,6 +7,7 @@ namespace App\Security;
 use App\Service\ContexteSejour;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -36,7 +37,10 @@ final class ModuleSejourSubscriber
             || ('intendance' === $module && !$sejour->isModuleIntendanceActif())
             || ('administratif' === $module && !$sejour->isModuleAdministratifActif())
             || ('situations_particulieres' === $module && !$sejour->isModuleSituationsParticulieresActif())) {
-            $request->getSession()->getFlashBag()->add('error', null === $sejour ? 'Sélectionnez d’abord un séjour.' : 'Ce module n’est pas actif pour le séjour sélectionné.');
+            $session = $request->getSession();
+            if ($session instanceof FlashBagAwareSessionInterface) {
+                $session->getFlashBag()->add('error', null === $sejour ? 'Sélectionnez d’abord un séjour.' : 'Ce module n’est pas actif pour le séjour sélectionné.');
+            }
             $url = $this->urls->generate('app_tableau_de_bord');
             $event->setController(static fn () => new RedirectResponse($url));
         }

@@ -84,6 +84,7 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
     private DateTimeImmutable $updatedAt;
 
+    /** @var Collection<int, Sejour> */
     #[ORM\ManyToMany(targetEntity: Sejour::class, inversedBy: 'gestionnaires')]
     #[ORM\JoinTable(name: 'utilisateur_sejour', schema: 'campement')]
     #[ORM\JoinColumn(name: 'utilisateur_id', referencedColumnName: 'id', onDelete: 'CASCADE')]

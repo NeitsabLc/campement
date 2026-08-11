@@ -63,15 +63,17 @@ final class SejourController extends AbstractController
                 throw $this->createAccessDeniedException('Ce séjour ne peut pas être modifié.');
             }
             $nom = trim($request->request->getString('nom'));
+            $datesValides = true;
             try {
                 $debut = new \DateTimeImmutable($request->request->getString('date_debut'));
                 $fin = new \DateTimeImmutable($request->request->getString('date_fin'));
             } catch (\Throwable) {
-                $debut = $fin = null;
+                $datesValides = false;
+                $debut = $fin = new \DateTimeImmutable();
             }
             $publicIds = array_filter($request->request->all('publics'), 'is_string');
             if ('' === $nom || mb_strlen($nom) > 150) { $erreurs[] = 'Le nom est obligatoire et limité à 150 caractères.'; }
-            if (!$debut instanceof \DateTimeImmutable || !$fin instanceof \DateTimeImmutable || $fin < $debut) { $erreurs[] = 'Les dates du séjour sont invalides.'; }
+            if (!$datesValides || $fin < $debut) { $erreurs[] = 'Les dates du séjour sont invalides.'; }
             if ([] === $publicIds) { $erreurs[] = 'Sélectionnez au moins un type de public.'; }
             if ([] === $erreurs) {
                 $sejour ??= new Sejour($nom, $debut, $fin);
