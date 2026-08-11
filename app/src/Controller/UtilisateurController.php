@@ -248,7 +248,7 @@ final class UtilisateurController extends AbstractController
             ? 'utilisateur/index.html.twig'
             : 'utilisateur/formulaire.html.twig';
 
-        $reponseValidation = $request->isMethod('POST') && [] !== $erreurs
+        $reponseValidation = $request->isMethod('POST')
             ? new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY)
             : null;
 

@@ -56,6 +56,7 @@ class Sejour
     #[ORM\Column(name: 'jeton_distribution_publique', type: 'uuid', unique: true)]
     private Uuid $jetonDistributionPublique;
 
+    /** @var Collection<int, Utilisateur> */
     #[ORM\ManyToMany(targetEntity: Utilisateur::class, mappedBy: 'sejoursGeres')]
     private Collection $gestionnaires;
 

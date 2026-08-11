@@ -6,6 +6,22 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
+## [1.2.2] - 2026-08-12
+
+### Supprimé
+
+- l’action de suppression définitive des mouvements de stock ; une erreur de
+  saisie doit désormais être traitée par l’annulation non destructive, y compris
+  depuis l’action de glissement sur mobile.
+
+### Sécurité
+
+- l’analyse statique PHPStan, l’audit des dépendances Composer et le contrôle
+  Trivy des vulnérabilités élevées ou critiques de l’image PHP sont exécutés
+  dans la CI ;
+- l’image PHP de base est épinglée par digest afin de maîtriser les mises à jour
+  utilisées lors des reconstructions.
+
 ## [1.2.1] - 2026-08-11
 
 ### Corrigé

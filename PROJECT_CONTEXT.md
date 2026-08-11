@@ -512,13 +512,13 @@ Chaque denrée doit appartenir au même séjour que le mouvement.
 Les quantités des lignes sont positives ; leur effet sur le stock dépend du type
 de mouvement. Une ligne peut détailler les conditionnements utilisés.
 
-Les mouvements peuvent être modifiés, annulés ou supprimés par un gestionnaire
-dans le périmètre du séjour. Un motif est obligatoire. Une modification conserve
-l’état avant et après ; une annulation conserve le mouvement mais retire son
-effet du calcul du stock ; une suppression efface le mouvement tout en conservant
-une trace indépendante. L’audit enregistre l’auteur, la date et le motif. Toute
-opération reste protégée par CSRF et vérifie l’appartenance au séjour côté
-serveur.
+Les mouvements peuvent être modifiés ou annulés par un gestionnaire dans le
+périmètre du séjour. Ils ne peuvent pas être supprimés. Un motif est obligatoire.
+Une modification conserve l’état avant et après ; une annulation conserve le
+mouvement mais retire son effet du calcul du stock. L’audit enregistre l’auteur,
+la date et le motif. Toute opération reste protégée par CSRF et vérifie
+l’appartenance au séjour côté serveur. Sur mobile, le glissement vers la gauche
+propose l’annulation du mouvement.
 
 ## 13. Index et contraintes
 

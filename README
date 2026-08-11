@@ -6,13 +6,13 @@ dossiers administratifs et le suivi du séjour.
 
 ## État du projet
 
-État vérifié le 11 août 2026 :
+État vérifié le 12 août 2026 :
 
-- version applicative de référence : `v1.2.1` ;
+- version applicative de référence : `v1.2.2` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
-- suite automatisée : 109 tests et 719 assertions, complétée par 4 scénarios
+- suite automatisée : 109 tests et 715 assertions, complétée par 4 scénarios
   d’accessibilité dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
@@ -137,16 +137,19 @@ contenant des données à conserver.
 
 Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
 
-- sur chaque pull request visant `main`, afin de valider le changement avant
-  son merge ;
-- sur chaque push dans `main`, notamment après un merge ;
+- sur chaque pull request visant `dev` ou `main`, afin de valider le changement
+  avant son merge ;
+- sur chaque push dans `dev` ou `main`, notamment après un merge ;
 - manuellement depuis l'onglet Actions de GitHub.
 
 La CI valide la configuration Docker Compose, Composer, les changelogs
-Liquibase et les mappings Doctrine. Elle compile aussi les assets, recrée une
-base PostgreSQL de test isolée, puis exécute PHPUnit. Elle copie les modèles
-`.env.example`, génère un mot de passe PostgreSQL éphémère à chaque exécution,
-ne requiert aucun secret GitHub et ne déploie rien.
+Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
+analyse le code avec PHPStan et contrôle avec Trivy les vulnérabilités élevées
+ou critiques de l'image PHP. Elle compile aussi les assets, recrée une base
+PostgreSQL de test isolée, exécute PHPUnit et les scénarios d'accessibilité dans
+le navigateur. Elle copie les modèles `.env.example`, génère des secrets
+PostgreSQL éphémères à chaque exécution, ne requiert aucun secret GitHub et ne
+déploie rien.
 
 La livraison continue pourra être ajoutée dans un workflow séparé, déclenché
 après le succès de cette CI sur `main` ou lors de la création d'un tag de

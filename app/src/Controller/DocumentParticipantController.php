@@ -32,7 +32,6 @@ final class DocumentParticipantController extends AbstractController
         if (!$this->isCsrfTokenValid('ajouter_document_'.$participant->getId().'_'.$type, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
 
         $fichiers = $request->files->all('documents');
-        if (!is_array($fichiers)) $fichiers = [$fichiers];
         $fichiers = array_values(array_filter($fichiers, static fn (mixed $fichier): bool => $fichier instanceof UploadedFile));
         if ([] === $fichiers) {
             $this->addFlash('error', 'Sélectionnez au moins un fichier.');

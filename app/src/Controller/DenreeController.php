@@ -221,6 +221,7 @@ final class DenreeController extends AbstractController
         return $this->render('denree/form.html.twig', ['denree' => $denree, 'creation' => $creation, 'donnees' => $donnees, 'erreurs' => $erreurs, 'erreurs_unite_inventaire' => $erreursUniteInventaire, 'conditionnements' => array_filter($unites->findActifs(), static fn ($u) => $u->isUtilisableConditionnement()), 'fournisseurs' => $fournisseurs->findActifsPourSejour($denree->getSejour()), 'references_archivees' => $referencesArchivees], $response);
     }
 
+    /** @return array<string, mixed> */
     private function donneesInitiales(Denree $denree, ReferenceFournisseurRepository $references, ReferenceFournisseurConditionnementRepository $conditionnements): array
     {
         $resultat = ['nom' => '', 'unite' => null, 'unite_inventaire' => null, 'stock_min' => '', 'fournisseurs' => []];
