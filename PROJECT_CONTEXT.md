@@ -687,6 +687,8 @@ exécute `scripts/ci-production-smoke.sh` dans un projet Compose jetable : const
 des images finales, base vierge, migrations, transition des rôles PostgreSQL,
 requête Doctrine avec le rôle applicatif, refus d'en-têtes `Host` et
 `X-Forwarded-Host` hostiles,
+sous-réseau HBA limité aux rôles attendus et refus effectif d'un rôle réseau
+non autorisé,
 sauvegarde chiffrée, déchiffrement et restauration effective de la base et d'un
 document témoin, maintenance et vérification du durcissement et des limites de
 ressources. Les secrets et clés éphémères générés par la CI sont masqués avant

@@ -118,6 +118,11 @@ compose exec --no-TTY database sh -ec '
         exit 1
     fi
     grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -q "scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+campement[[:space:]]+campement_app[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+campement[[:space:]]+campement_migrator[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+campement[[:space:]]+campement_backup[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+all[[:space:]]+campement_admin[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+all[[:space:]]+all[[:space:]]+0[.]0[.]0[.]0/0[[:space:]]+reject"
 
     app=$(PGPASSWORD="$POSTGRES_APP_PASSWORD" psql --host=127.0.0.1 --username="$POSTGRES_APP_USER" --dbname="$POSTGRES_DB" \
         --tuples-only --no-align --set=ON_ERROR_STOP=1 \
@@ -137,6 +142,18 @@ compose exec --no-TTY database sh -ec '
     test "$migrator" = "t"
     test "$backup" = "t|t"
 '
+
+compose exec --no-TTY --env PGPASSWORD="$POSTGRES_PASSWORD" database \
+    psql --host=127.0.0.1 --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" \
+    --set=ON_ERROR_STOP=1 \
+    --command="CREATE ROLE role_interdit LOGIN PASSWORD 'mot-de-passe'"
+if docker run --rm --network "${COMPOSE_PROJECT_NAME}_campement" \
+    --entrypoint psql campement-postgres-production:"${APP_IMAGE_TAG:-local}" \
+    "postgresql://role_interdit:mot-de-passe@database:5432/${POSTGRES_DB}" \
+    --command='SELECT 1'; then
+    echo "Le HBA accepte un rôle PostgreSQL non autorisé." >&2
+    exit 1
+fi
 
 compose exec --no-TTY php sh -ec \
     'printf "document de contrôle\n" > var/documents_participants/ci-restauration.txt'

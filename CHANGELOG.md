@@ -55,6 +55,8 @@ suivent le versionnement sémantique.
   caractères pour les commentaires de tâche.
 - authentification SCRAM obligatoire pour les connexions PostgreSQL locales et
   réseau, y compris le rôle de contrôle de santé ;
+- vérification des règles HBA propres à chaque rôle et refus effectif d'un rôle
+  réseau valide mais non autorisé ;
 - refus d'en-têtes `Host` et `X-Forwarded-Host` hostiles vérifié par le smoke test ;
 - chiffrement Age des sauvegardes avant leur écriture sur le stockage, sans
   conservation d'un dump ou d'une archive documentaire en clair ;
