@@ -16,6 +16,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_tache_situation_particuliere_statut_echeance', columns: ['statut', 'date_echeance'])]
 class TacheSituationParticuliere
 {
+    public const COMMENTAIRE_LONGUEUR_MAX = 2000;
+
     use EntityIdTrait;
     use TimestampableTrait;
 
@@ -92,7 +94,16 @@ class TacheSituationParticuliere
     public function getDateEcheance(): ?\DateTimeImmutable { return $this->dateEcheance; }
     public function getDateRealisation(): ?\DateTimeImmutable { return $this->dateRealisation; }
     public function getCommentaire(): ?string { return $this->commentaire; }
-    public function setCommentaire(?string $commentaire): self { $this->commentaire = null === $commentaire || '' === trim($commentaire) ? null : trim($commentaire); $this->touch(); return $this; }
+    public function setCommentaire(?string $commentaire): self
+    {
+        $commentaire = null === $commentaire || '' === trim($commentaire) ? null : trim($commentaire);
+        if (null !== $commentaire && mb_strlen($commentaire) > self::COMMENTAIRE_LONGUEUR_MAX) {
+            throw new \InvalidArgumentException('Le commentaire ne peut pas dépasser 2 000 caractères.');
+        }
+        $this->commentaire = $commentaire;
+        $this->touch();
+        return $this;
+    }
     public function setDateEcheance(?\DateTimeImmutable $date): self { $this->dateEcheance = $date; $this->touch(); return $this; }
     public function setStatut(string $statut, ?\DateTimeImmutable $dateRealisation = null): self
     {

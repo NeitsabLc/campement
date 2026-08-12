@@ -16,6 +16,8 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: "uq_fournisseur_nom", columns: ["sejour_id", "nom"])]
 class Fournisseur
 {
+    public const ADRESSE_LONGUEUR_MAX = 1000;
+
     use EntityIdTrait;
     use TimestampableTrait;
     use ActivableTrait;
@@ -92,6 +94,9 @@ class Fournisseur
 
     public function setAdresse(?string $adresse): self
     {
+        if (null !== $adresse && mb_strlen($adresse) > self::ADRESSE_LONGUEUR_MAX) {
+            throw new \InvalidArgumentException('L’adresse ne peut pas dépasser 1 000 caractères.');
+        }
         $this->adresse = $adresse;
         $this->touch();
         return $this;

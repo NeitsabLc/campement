@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     image: "nginx:${NGINX_VERSION}@${NGINX_IMAGE_DIGEST:-sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de}"
     ports:
-      - "${NGINX_HOST_PORT:-8080}:8080"
+      - "${NGINX_BIND_ADDRESS:-127.0.0.1}:${NGINX_HOST_PORT:-8080}:8080"
     volumes:
       - ./app:/var/www/app:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -55,7 +55,14 @@ services:
       - campement
 
   liquibase:
-    image: "liquibase:${LIQUIBASE_VERSION}@${LIQUIBASE_IMAGE_DIGEST:-sha256:25328ef2d762e15d02c733b43b6f142ab4a5071ffd985ad002ba9010a20fb2af}"
+    image: "campement-liquibase:${APP_IMAGE_TAG:-local}"
+    build:
+      context: .
+      dockerfile: docker/liquibase/Dockerfile
+      target: liquibase-runtime
+      args:
+        LIQUIBASE_VERSION: "${LIQUIBASE_VERSION}"
+        LIQUIBASE_IMAGE_DIGEST: "${LIQUIBASE_IMAGE_DIGEST:-sha256:dfe136c26d39088d87d1bd27f833d6ac5b738a180d7c960b065c7be525725d01}"
     profiles:
       - tools
     working_dir: /liquibase/changelog

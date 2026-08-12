@@ -31,7 +31,11 @@ appliqués.
 
 ```text
 campement/
-├── .github/workflows/ci.yaml
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/
+│       ├── ci.yaml
+│       └── publish-images.yaml
 ├── .dockerignore
 ├── compose.yaml
 ├── compose.prod.yaml
@@ -42,6 +46,7 @@ campement/
 │   └── ci-production-smoke.sh
 ├── docker/
 │   ├── nginx/
+│   ├── liquibase/
 │   ├── php/
 │   └── postgres/
 ├── database/
@@ -655,11 +660,14 @@ Le dépôt ne documente que les invariants nécessaires au développement :
 * les secrets et fichiers d’environnement restent hors Git ;
 * les images amont PHP, Nginx, PostgreSQL, Liquibase, Composer et Trivy sont
   épinglées par digest ;
-* les images applicatives de production embarquent le code, les dépendances
-  sans `require-dev` et les assets compilés, sans bind mount du dépôt ;
+* les images finales PHP, Nginx, PostgreSQL et Liquibase embarquent les artefacts
+  livrés — code, dépendances, assets, scripts ou changelogs — sans bind mount du
+  dépôt pour ces éléments ;
 * les conteneurs de production utilisent un utilisateur non-root explicite, une
   racine en lecture seule, `cap_drop: ALL`, `no-new-privileges` et uniquement
   les volumes ou tmpfs nécessaires en écriture ;
+* chaque service possède des plafonds CPU, mémoire et PID vérifiés par le smoke
+  test, et Nginx n'est publié que sur `127.0.0.1` par défaut ;
 * les hôtes et proxies de confiance sont configurés explicitement ;
 * les rôles de lecture, d’écriture et de migration doivent être séparés ;
 * une sauvegarde restaurable précède toute migration de données ;
@@ -668,14 +676,27 @@ Le dépôt ne documente que les invariants nécessaires au développement :
 * aucune commande destructive ne doit cibler un environnement contenant des
   données à conserver.
 
-La CI générale s'exécute sur `dev` et `main` et audite Composer, Importmap et
-npm. Pour les événements concernant `main` uniquement, elle exécute en plus
+La CI générale s'exécute sur `dev` et `main`, audite Composer, Importmap et npm,
+puis construit et analyse avec Trivy les quatre images finales PHP, Nginx,
+PostgreSQL et Liquibase ; le scan PHP couvre aussi `vendor/` réellement livré.
+Pour les événements concernant `main` uniquement, elle exécute en plus
 `scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
 des images finales, base vierge, migrations, transition des rôles PostgreSQL,
 requête Doctrine avec le rôle applicatif, sauvegarde, maintenance, contrôles
-HTTP et vérification du durcissement. Les images finales PHP et Nginx sont
-ensuite analysées par Trivy ; le scan PHP couvre aussi `vendor/` réellement
-livré.
+HTTP et vérification du durcissement et des limites de ressources. Les secrets
+éphémères générés par la CI sont masqués avant leur export.
+
+Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les quatre
+bases Docker. Un tag `v*` n'est publiable que si son commit provient de `main` ;
+les images correspondantes sont envoyées dans GHCR avec SBOM, provenance,
+attestation GitHub et signature keyless Cosign. Ce workflow publie des artefacts
+mais n'effectue aucun déploiement.
+
+La logique applicative complexe n'est pas conservée dans les contrôleurs : les
+formulaires participants, la présentation des menus, les invitations et
+périmètres utilisateurs et l'enregistrement multi-lignes des stocks disposent
+de services dédiés. Les limites de longueur doivent être vérifiées côté serveur
+et, pour les invariants métier, dans les entités.
 
 Le runbook opérationnel est maintenu localement dans
 `.local/PRODUCTION_RUNBOOK.md`. Le répertoire `.local/` est ignoré par Git et ne

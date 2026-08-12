@@ -11,7 +11,11 @@ suivent le versionnement sémantique.
 - smoke test de la surcharge Compose de production sur les événements GitHub
   Actions concernant `main`, avec base vierge, migrations, rôles PostgreSQL,
   sauvegarde, maintenance et contrôles HTTP ;
-- audits des dépendances Importmap et npm dans la CI.
+- audits des dépendances Importmap et npm dans la CI ;
+- suivi hebdomadaire des dépendances Composer, npm, GitHub Actions et Docker par
+  Dependabot ;
+- publication sur les tags issus de `main` des quatre images GHCR avec SBOM,
+  provenance, attestation GitHub et signature keyless Cosign.
 
 ### Modifié
 
@@ -19,17 +23,28 @@ suivent le versionnement sémantique.
   dépendances sans outils de développement et assets compilés intégrés à
   l'image au lieu d'un bind mount du dépôt ;
 - scénario d'initialisation de la base vierge aligné sur la migration historique
-  V001, avant préparation et validation des rôles PostgreSQL limités.
+  V001, avant préparation et validation des rôles PostgreSQL limités ;
+- passage à Liquibase 5.0.3 avec pilote PostgreSQL 42.7.12 vérifié par somme de
+  contrôle et retrait du gestionnaire de paquets inutilisé de l'image finale ;
+- extraction dans des services dédiés de la logique de formulaire participant,
+  de présentation des menus, d'invitation et de périmètre utilisateurs et de
+  l'enregistrement multi-lignes des stocks.
 
 ### Sécurité
 
 - épinglage par digest des images PHP, Nginx, PostgreSQL et Liquibase ;
 - exécution non-root et en lecture seule des services de production, avec
   suppression des capabilities et `no-new-privileges` ;
-- analyse Trivy des images PHP et Nginx finales réellement livrées, y compris
-  les dépendances Composer embarquées ;
+- analyse Trivy des images PHP, Nginx, PostgreSQL et Liquibase, y compris leurs
+  artefacts finaux réellement livrés ;
 - mise à niveau des paquets Alpine de l'image Nginx pendant sa construction
-  afin d'intégrer les correctifs de sécurité publiés.
+  afin d'intégrer les correctifs de sécurité publiés ;
+- validation silencieuse de Compose, masquage des secrets éphémères de CI et
+  publication locale de Nginx sur `127.0.0.1` par défaut ;
+- plafonds CPU, mémoire et PID sur tous les services de production, contrôlés
+  sur les conteneurs créés par le smoke test ;
+- limites serveur de 1 000 caractères pour les adresses fournisseur et de 2 000
+  caractères pour les commentaires de tâche.
 
 ## [1.2.2] - 2026-08-12
 

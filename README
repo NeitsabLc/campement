@@ -12,7 +12,7 @@ dossiers administratifs et le suivi du séjour.
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
-- suite automatisée : 109 tests et 715 assertions, complétée par 4 scénarios
+- suite automatisée : 111 tests et 719 assertions, complétée par 4 scénarios
   d’accessibilité dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
@@ -60,9 +60,11 @@ L’image PHP de production est construite en plusieurs étapes : le code, les
 dépendances Composer sans les outils de développement et les assets compilés
 sont intégrés à l’image. Nginx reçoit uniquement le répertoire public compilé.
 La production ne monte donc plus le code source de l’hôte dans les conteneurs.
-Les images amont sont épinglées par digest et les services de production sont
-exécutés sans privilège root, avec une racine en lecture seule, toutes les
-capabilities supprimées et `no-new-privileges`.
+Les images amont sont épinglées par digest. Les quatre images finales PHP,
+Nginx, PostgreSQL et Liquibase embarquent leurs artefacts propres au projet. Les
+services de production sont exécutés sans privilège root, avec une racine en
+lecture seule, toutes les capabilities supprimées, `no-new-privileges` et des
+plafonds CPU, mémoire et PID adaptés à leur rôle.
 
 ## Installation locale
 
@@ -80,8 +82,9 @@ make install
 ```
 
 L’application locale est ensuite disponible sur l’adresse définie par
-`NGINX_HOST_PORT` dans `.env`, soit `http://localhost:8080` avec la valeur par
-défaut.
+`NGINX_BIND_ADDRESS` et `NGINX_HOST_PORT` dans `.env`, soit
+`http://127.0.0.1:8080` avec les valeurs par défaut. Une exposition sur une
+autre interface doit être choisie explicitement.
 
 Les fichiers `.env` sont locaux et ignorés par Git. Avant `make install`, une
 valeur locale doit être définie pour `POSTGRES_PASSWORD` dans le `.env` racine.
@@ -98,7 +101,11 @@ make down
 make restart
 make ps
 make logs
+make prod-config
 ```
+
+`make prod-config` valide silencieusement la surcharge de production : la
+configuration résolue et ses secrets ne sont jamais affichés.
 
 ### Dépendances et cache
 
@@ -153,7 +160,8 @@ Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
 La CI valide la configuration Docker Compose, Composer, les changelogs
 Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
 Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
-vulnérabilités élevées ou critiques des images. Elle compile aussi les assets,
+vulnérabilités élevées ou critiques des quatre images finales PHP, Nginx,
+PostgreSQL et Liquibase sur chaque événement. Elle compile aussi les assets,
 recrée une base PostgreSQL de test isolée, exécute PHPUnit et les scénarios
 d'accessibilité dans le navigateur.
 
@@ -161,15 +169,25 @@ Uniquement pour un push sur `main` ou une pull request visant `main`, la même
 tâche requise construit puis démarre la surcharge Compose de production. Ce
 smoke test initialise une base vierge, applique Liquibase, vérifie les rôles
 PostgreSQL limités, la connexion applicative, une sauvegarde ponctuelle, les
-commandes de maintenance, les propriétés de durcissement des conteneurs et
-l'accès HTTP avant et après la désactivation du rôle d'amorçage. Trivy analyse
-ensuite les images PHP et Nginx finales, qui contiennent réellement le code et
-les dépendances livrés. Les secrets utilisés sont éphémères ; la CI ne déploie
-rien.
+commandes de maintenance, les propriétés de durcissement et les limites de
+ressources des conteneurs, puis l'accès HTTP avant et après la désactivation du
+rôle d'amorçage. Les secrets utilisés sont éphémères et masqués dans les
+journaux ; la CI ne déploie rien.
 
-La livraison continue pourra être ajoutée dans un workflow séparé, déclenché
-après le succès de cette CI sur `main` ou lors de la création d'un tag de
-version.
+Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
+et Docker vers `dev`. Lorsqu’un tag `v*` désigne un commit issu de `main`, le
+workflow `publish-images.yaml` publie les quatre images dans GHCR avec SBOM et
+provenance BuildKit, ajoute une attestation GitHub et les signe sans clé
+persistante avec Sigstore Cosign. Cette publication ne déploie pas l’application.
+
+## Organisation du code applicatif
+
+Les contrôleurs traduisent les requêtes HTTP, appliquent les autorisations et
+choisissent les réponses. La validation et le remplissage des participants, la
+présentation des menus, l’invitation et le périmètre utilisateurs ainsi que
+l’enregistrement multi-lignes des stocks sont portés par des services dédiés.
+Les limites des champs texte sensibles sont imposées côté serveur et dans les
+entités, indépendamment des attributs HTML.
 
 ## Règles de persistance
 

@@ -42,13 +42,15 @@ jobs:
           cp .env.example .env
           cp app/.env.example app/.env
           APP_SECRET_CI="$(openssl rand -hex 32)"
+          echo "::add-mask::${APP_SECRET_CI}"
           sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
           sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
           echo "APP_SECRET=${APP_SECRET_CI}" >> "$GITHUB_ENV"
-          echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-          echo "POSTGRES_APP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-          echo "POSTGRES_MIGRATOR_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-          echo "POSTGRES_BACKUP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::${valeur}"
+            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
+          done
           echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
 
       - name: Valider la configuration Docker Compose
@@ -97,21 +99,27 @@ jobs:
           docker compose exec --no-TTY php php bin/console cache:warmup --env=dev
           docker compose exec --no-TTY php vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
-      - name: Preparer l'image PHP pour l'analyse de vulnerabilites
+      - name: Preparer les images pour l'analyse de vulnerabilites
         run: |
-          docker tag "$(docker compose images --quiet php)" campement-php-ci:scan
-          docker save campement-php-ci:scan --output /tmp/campement-php.tar
+          docker compose -f compose.yaml -f compose.prod.yaml build php nginx database liquibase
+          docker save campement-php-production:local --output /tmp/campement-php.tar
+          docker save campement-nginx-production:local --output /tmp/campement-nginx.tar
+          docker save campement-postgres-production:local --output /tmp/campement-postgres.tar
+          docker save campement-liquibase-production:local --output /tmp/campement-liquibase.tar
 
-      - name: Analyser les vulnerabilites de l'image PHP
-        run: >-
-          docker run --rm
-          --volume /tmp:/scan:ro
-          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-          image --input /scan/campement-php.tar
-          --scanners vuln
-          --severity HIGH,CRITICAL
-          --ignore-unfixed
-          --exit-code 1
+      - name: Analyser les vulnerabilites des images d'execution
+        run: |
+          for archive in php nginx postgres liquibase; do
+            docker run --rm \
+              --volume /tmp:/scan:ro \
+              --volume campement-trivy-cache:/root/.cache/trivy \
+              ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c \
+              image --input "/scan/campement-${archive}.tar" \
+              --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1
+          done
 
       - name: Reinitialiser la base de tests
         run: |
@@ -151,30 +159,6 @@ jobs:
       - name: Tester la configuration de production
         if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
         run: ./scripts/ci-production-smoke.sh
-
-      - name: Analyser l'image PHP finale de production
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: >-
-          docker run --rm
-          --volume /tmp:/scan:ro
-          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-          image --input /scan/campement-php-production.tar
-          --scanners vuln
-          --severity HIGH,CRITICAL
-          --ignore-unfixed
-          --exit-code 1
-
-      - name: Analyser l'image Nginx finale de production
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: >-
-          docker run --rm
-          --volume /tmp:/scan:ro
-          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-          image --input /scan/campement-nginx-production.tar
-          --scanners vuln
-          --severity HIGH,CRITICAL
-          --ignore-unfixed
-          --exit-code 1
 
       - name: Afficher les journaux en cas d'echec
         if: failure()

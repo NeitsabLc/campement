@@ -84,6 +84,9 @@ final class FournisseurController extends AbstractController
             } elseif ('' !== $donnees['email'] && false === filter_var($donnees['email'], FILTER_VALIDATE_EMAIL)) {
                 $erreurs[] = 'L’adresse e-mail n’est pas valide.';
             }
+            if (mb_strlen($donnees['adresse']) > Fournisseur::ADRESSE_LONGUEUR_MAX) {
+                $erreurs[] = 'L’adresse ne peut pas dépasser 1 000 caractères.';
+            }
 
             if ([] === $erreurs) {
                 $creation = null === $fournisseur;

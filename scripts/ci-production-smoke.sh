@@ -21,13 +21,19 @@ export POSTGRES_USER POSTGRES_PASSWORD
 assert_container_hardened() {
     service=$1
     expected_user=$2
-    container_id=$(compose ps --quiet "$service")
+    expected_memory=$3
+    expected_nano_cpus=$4
+    expected_pids=$5
+    container_id=$(compose ps --quiet --all "$service")
 
     test -n "$container_id"
     test "$(docker inspect --format '{{.Config.User}}' "$container_id")" = "$expected_user"
     test "$(docker inspect --format '{{.HostConfig.ReadonlyRootfs}}' "$container_id")" = "true"
     docker inspect --format '{{json .HostConfig.CapDrop}}' "$container_id" | grep -q 'ALL'
     docker inspect --format '{{json .HostConfig.SecurityOpt}}' "$container_id" | grep -q 'no-new-privileges:true'
+    test "$(docker inspect --format '{{.HostConfig.Memory}}' "$container_id")" = "$expected_memory"
+    test "$(docker inspect --format '{{.HostConfig.NanoCpus}}' "$container_id")" = "$expected_nano_cpus"
+    test "$(docker inspect --format '{{.HostConfig.PidsLimit}}' "$container_id")" = "$expected_pids"
 }
 
 export BACKUP_DIR="${BACKUP_DIR:-/tmp/campement-production-smoke-${COMPOSE_PROJECT_NAME}}"
@@ -35,7 +41,7 @@ mkdir -p "$BACKUP_DIR"
 chmod 0777 "$BACKUP_DIR"
 
 compose config --quiet
-compose build php nginx
+compose build php nginx database liquibase
 compose up --detach --wait --wait-timeout 60 database
 compose --profile tools run --rm \
     --env LIQUIBASE_COMMAND_USERNAME="$POSTGRES_USER" \
@@ -59,9 +65,13 @@ compose exec --no-TTY php php bin/console cache:warmup --env=prod --no-debug
 compose exec --no-TTY php php bin/console dbal:run-sql \
     "SELECT current_database(), current_user, current_schema()"
 
-assert_container_hardened php www-data
-assert_container_hardened nginx nginx
-assert_container_hardened database postgres
+compose --profile tools create maintenance backup liquibase
+assert_container_hardened php www-data 536870912 1000000000 128
+assert_container_hardened nginx nginx 134217728 500000000 64
+assert_container_hardened database postgres 1073741824 2000000000 256
+assert_container_hardened maintenance www-data 268435456 500000000 64
+assert_container_hardened backup postgres 536870912 1000000000 128
+assert_container_hardened liquibase liquibase 536870912 1000000000 128
 
 compose exec --no-TTY database sh -ec '
     app=$(psql --username="$POSTGRES_APP_USER" --dbname="$POSTGRES_DB" \
@@ -104,8 +114,3 @@ compose exec --no-TTY database sh -ec '
 curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors \
     --output /dev/null \
     "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login"
-
-docker save campement-php-production:"${APP_IMAGE_TAG:-local}" \
-    --output /tmp/campement-php-production.tar
-docker save campement-nginx-production:"${APP_IMAGE_TAG:-local}" \
-    --output /tmp/campement-nginx-production.tar
