@@ -8,7 +8,7 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 12 août 2026 :
 
-- version applicative préparée : `v1.3.0` ;
+- version applicative publiée : `v1.3.0` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
@@ -90,6 +90,12 @@ Les fichiers `.env` sont locaux et ignorés par Git. Avant `make install`, une
 valeur locale doit être définie pour `POSTGRES_PASSWORD` dans le `.env` racine.
 Les fichiers `.env.example` servent uniquement de modèles sans secret.
 
+Les dépendances Composer sont conservées dans le volume Docker nommé
+`composer_dependencies`, séparé du montage du code source. Ce volume évite les
+erreurs de lecture intermittentes de Docker Desktop sur macOS. Il est alimenté
+par `make composer-install` et supprimé, comme les autres volumes locaux, par
+`make reset`.
+
 ## Commandes locales
 
 ### Cycle de développement
@@ -169,9 +175,12 @@ PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi
 les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit et les
 scénarios d'accessibilité dans le navigateur.
 
-Sur chaque push et chaque pull request visant `dev` ou `main`, un job requis et
-indépendant construit puis démarre la surcharge Compose de production. Ce smoke
-test initialise une base vierge, applique Liquibase, vérifie les rôles
+Sur chaque push et chaque pull request visant `dev` ou `main`, un job indépendant
+construit puis démarre la surcharge Compose de production. Le ruleset de `main`
+exige uniquement le contrôle `Qualite et tests` : le smoke test reste un signal
+complémentaire volontairement non bloquant, et aucun contrôle n'est imposé à
+`dev`, afin de conserver un cycle de développement léger. Ce smoke test initialise
+une base vierge, applique Liquibase, vérifie les rôles
 PostgreSQL limités et authentifiés en SCRAM, la connexion applicative, le refus
 d'en-têtes `Host` et `X-Forwarded-Host` hostiles, puis une sauvegarde chiffrée
 ponctuelle. Cette sauvegarde de la base et des documents est déchiffrée et
@@ -183,7 +192,10 @@ Les secrets et clés utilisés sont éphémères et masqués dans les journaux ;
 ne déploie rien.
 
 Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
-et Docker vers `dev`. Chaque commit intégré à `main` produit une seule fois les
+et Docker vers `dev`. Les mises à jour mineures et correctives sont regroupées
+pour Symfony, pour les outils de test navigateur Playwright/Axe et pour les
+GitHub Actions ; les mises à jour majeures restent proposées séparément. Chaque
+commit intégré à `main` produit une seule fois les
 cinq images candidates dans GHCR sous une étiquette immuable
 `sha-<commit>`, avec SBOM, provenance BuildKit et attestation GitHub signée via
 Sigstore. Lorsqu'un tag `v*` désigne ce commit, le

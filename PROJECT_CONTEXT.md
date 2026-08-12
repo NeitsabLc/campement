@@ -21,9 +21,9 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 12 août 2026 : version `v1.3.0` préparée sur la branche de
-développement `dev`, branche stable `main`, schéma Liquibase `V032`. Le projet
-est fonctionnel. Toute évolution doit
+État vérifié le 12 août 2026 : version `v1.3.0` publiée depuis la branche stable
+`main`, branche de développement `dev`, schéma Liquibase `V032`. Le projet est
+fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 

@@ -13,6 +13,10 @@ services:
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?serverVersion=18&charset=utf8"
     volumes:
       - ./app:/var/www/app
+      # Les dépendances Composer restent dans le système de fichiers Linux de
+      # Docker. Cela évite les erreurs de lecture intermittentes des bind mounts
+      # Docker Desktop sur macOS, tout en conservant le code source synchronisé.
+      - composer_dependencies:/var/www/app/vendor
       - documents_participants:/var/www/app/var/documents_participants
     depends_on:
       database:
@@ -82,6 +86,7 @@ services:
 
 volumes:
   database_data:
+  composer_dependencies:
   documents_participants:
 
 networks:
