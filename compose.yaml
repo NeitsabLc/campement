@@ -4,8 +4,10 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      target: php-development
       args:
         PHP_VERSION: "${PHP_VERSION}"
+        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7}"
     working_dir: /var/www/app
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?serverVersion=18&charset=utf8"
@@ -20,9 +22,9 @@ services:
 
   nginx:
     restart: unless-stopped
-    image: "nginx:${NGINX_VERSION}"
+    image: "nginx:${NGINX_VERSION}@${NGINX_IMAGE_DIGEST:-sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de}"
     ports:
-      - "${NGINX_HOST_PORT:-8080}:80"
+      - "${NGINX_HOST_PORT:-8080}:8080"
     volumes:
       - ./app:/var/www/app:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -33,7 +35,7 @@ services:
 
   database:
     restart: unless-stopped
-    image: "postgres:${POSTGRES_VERSION}"
+    image: "postgres:${POSTGRES_VERSION}@${POSTGRES_IMAGE_DIGEST:-sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15}"
     environment:
       POSTGRES_DB: "${POSTGRES_DB}"
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -53,7 +55,7 @@ services:
       - campement
 
   liquibase:
-    image: "liquibase:${LIQUIBASE_VERSION}"
+    image: "liquibase:${LIQUIBASE_VERSION}@${LIQUIBASE_IMAGE_DIGEST:-sha256:25328ef2d762e15d02c733b43b6f142ab4a5071ffd985ad002ba9010a20fb2af}"
     profiles:
       - tools
     working_dir: /liquibase/changelog

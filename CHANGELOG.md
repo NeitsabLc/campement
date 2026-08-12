@@ -6,6 +6,31 @@ suivent le versionnement sémantique.
 
 ## [Non publié]
 
+### Ajouté
+
+- smoke test de la surcharge Compose de production sur les événements GitHub
+  Actions concernant `main`, avec base vierge, migrations, rôles PostgreSQL,
+  sauvegarde, maintenance et contrôles HTTP ;
+- audits des dépendances Importmap et npm dans la CI.
+
+### Modifié
+
+- construction multi-stage des images PHP et Nginx de production, avec code,
+  dépendances sans outils de développement et assets compilés intégrés à
+  l'image au lieu d'un bind mount du dépôt ;
+- scénario d'initialisation de la base vierge aligné sur la migration historique
+  V001, avant préparation et validation des rôles PostgreSQL limités.
+
+### Sécurité
+
+- épinglage par digest des images PHP, Nginx, PostgreSQL et Liquibase ;
+- exécution non-root et en lecture seule des services de production, avec
+  suppression des capabilities et `no-new-privileges` ;
+- analyse Trivy des images PHP et Nginx finales réellement livrées, y compris
+  les dépendances Composer embarquées ;
+- mise à niveau des paquets Alpine de l'image Nginx pendant sa construction
+  afin d'intégrer les correctifs de sécurité publiés.
+
 ## [1.2.2] - 2026-08-12
 
 ### Supprimé

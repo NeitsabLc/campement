@@ -56,6 +56,14 @@ pas documentés dans ce dépôt.
 - Twig, AssetMapper, Turbo et Stimulus ;
 - PHPUnit.
 
+L’image PHP de production est construite en plusieurs étapes : le code, les
+dépendances Composer sans les outils de développement et les assets compilés
+sont intégrés à l’image. Nginx reçoit uniquement le répertoire public compilé.
+La production ne monte donc plus le code source de l’hôte dans les conteneurs.
+Les images amont sont épinglées par digest et les services de production sont
+exécutés sans privilège root, avec une racine en lecture seule, toutes les
+capabilities supprimées et `no-new-privileges`.
+
 ## Installation locale
 
 > Toutes les commandes de ce README concernent exclusivement une installation
@@ -144,12 +152,20 @@ Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
 
 La CI valide la configuration Docker Compose, Composer, les changelogs
 Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
-analyse le code avec PHPStan et contrôle avec Trivy les vulnérabilités élevées
-ou critiques de l'image PHP. Elle compile aussi les assets, recrée une base
-PostgreSQL de test isolée, exécute PHPUnit et les scénarios d'accessibilité dans
-le navigateur. Elle copie les modèles `.env.example`, génère des secrets
-PostgreSQL éphémères à chaque exécution, ne requiert aucun secret GitHub et ne
-déploie rien.
+Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
+vulnérabilités élevées ou critiques des images. Elle compile aussi les assets,
+recrée une base PostgreSQL de test isolée, exécute PHPUnit et les scénarios
+d'accessibilité dans le navigateur.
+
+Uniquement pour un push sur `main` ou une pull request visant `main`, la même
+tâche requise construit puis démarre la surcharge Compose de production. Ce
+smoke test initialise une base vierge, applique Liquibase, vérifie les rôles
+PostgreSQL limités, la connexion applicative, une sauvegarde ponctuelle, les
+commandes de maintenance, les propriétés de durcissement des conteneurs et
+l'accès HTTP avant et après la désactivation du rôle d'amorçage. Trivy analyse
+ensuite les images PHP et Nginx finales, qui contiennent réellement le code et
+les dépendances livrés. Les secrets utilisés sont éphémères ; la CI ne déploie
+rien.
 
 La livraison continue pourra être ajoutée dans un workflow séparé, déclenché
 après le succès de cette CI sur `main` ou lors de la création d'un tag de
@@ -180,3 +196,9 @@ php bin/console doctrine:migrations:migrate
 Le runbook de livraison et les paramètres d’infrastructure sont volontairement
 absents du dépôt. Une copie locale peut être conservée dans
 `.local/PRODUCTION_RUNBOOK.md` ; ce répertoire est ignoré par Git.
+
+Le chiffrement applicatif des sauvegardes n'est pas encore implémenté. Il reste
+une tâche future prioritaire : chiffrer et authentifier les dumps et documents
+avant leur sortie de l'hôte, conserver la clé dans un gestionnaire de secrets
+séparé, envoyer une copie hors site versionnée ou immuable, puis tester
+régulièrement une restauration complète.
