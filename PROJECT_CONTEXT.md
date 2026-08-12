@@ -21,9 +21,9 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 12 août 2026 : version de référence `v1.2.2`, branche
-stable `main`, branche de développement `dev`, schéma Liquibase `V032`. Le
-projet est fonctionnel. Toute évolution doit
+État vérifié le 12 août 2026 : version `v1.3.0` préparée sur la branche de
+développement `dev`, branche stable `main`, schéma Liquibase `V032`. Le projet
+est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
@@ -695,10 +695,18 @@ ressources. Les secrets et clés éphémères générés par la CI sont masqués
 leur export.
 
 Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les bases
-Docker. Un tag `v*` n'est publiable que si son commit provient de `main` ;
-les images correspondantes sont envoyées dans GHCR avec SBOM, provenance,
-attestation GitHub et signature keyless Cosign. Ce workflow publie des artefacts
-mais n'effectue aucun déploiement.
+Docker. Chaque commit de `main` construit une seule fois les cinq images et les
+publie dans GHCR sous `sha-<commit>`, avec SBOM, provenance, attestation GitHub
+et signature keyless Cosign. Un tag `v*` n'est publiable que si son commit
+provient de `main` et si ces images candidates existent ; les étiquettes
+sémantiques sont alors ajoutées aux mêmes digests, sans reconstruction.
+
+La livraison reste manuelle et n'utilise aucun runner de production. Le fichier
+local `.env.release` contient uniquement les cinq références GHCR immuables par
+digest. La surcharge `compose.release.yaml` retire toutes les constructions
+locales ; les commandes `make release-*` vérifient signatures et attestations,
+téléchargent les images, exécutent Liquibase et démarrent les services sans que
+GitHub se connecte au serveur.
 
 La logique applicative complexe n'est pas conservée dans les contrôleurs : les
 formulaires participants, la présentation des menus, les invitations et

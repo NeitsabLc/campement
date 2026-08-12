@@ -11,7 +11,11 @@ case "${COMPOSE_PROJECT_NAME:-}" in
 esac
 
 compose() {
-    docker compose -f compose.yaml -f compose.prod.yaml "$@"
+    if [ "${USE_RELEASE_IMAGES:-0}" = "1" ]; then
+        docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml "$@"
+    else
+        docker compose -f compose.yaml -f compose.prod.yaml "$@"
+    fi
 }
 
 : "${POSTGRES_USER:=campement}"
@@ -59,14 +63,20 @@ mkdir -p "$BACKUP_DIR"
 chmod 0777 "$BACKUP_DIR"
 
 compose config --quiet
-compose build php nginx database liquibase backup
+if [ "${USE_RELEASE_IMAGES:-0}" = "1" ]; then
+    compose --profile tools pull php nginx database liquibase backup
+else
+    compose build php nginx database liquibase backup
+fi
 
 fichier_identite="$repertoire_temporaire/identity.txt"
+backup_image=${SMOKE_BACKUP_IMAGE:-campement-backup:${APP_IMAGE_TAG:-local}}
+postgres_image=${SMOKE_POSTGRES_IMAGE:-campement-postgres-production:${APP_IMAGE_TAG:-local}}
 docker run --rm --user root --entrypoint age-keygen \
-    campement-backup:"${APP_IMAGE_TAG:-local}" >"$fichier_identite"
+    "$backup_image" >"$fichier_identite"
 BACKUP_AGE_RECIPIENT=$(docker run --rm --user root \
     --volume "$fichier_identite:/run/identity.txt:ro" \
-    --entrypoint age-keygen campement-backup:"${APP_IMAGE_TAG:-local}" \
+    --entrypoint age-keygen "$backup_image" \
     -y /run/identity.txt)
 export BACKUP_AGE_RECIPIENT
 
@@ -148,7 +158,7 @@ compose exec --no-TTY --env PGPASSWORD="$POSTGRES_PASSWORD" database \
     --set=ON_ERROR_STOP=1 \
     --command="CREATE ROLE role_interdit LOGIN PASSWORD 'mot-de-passe'"
 if docker run --rm --network "${COMPOSE_PROJECT_NAME}_campement" \
-    --entrypoint psql campement-postgres-production:"${APP_IMAGE_TAG:-local}" \
+    --entrypoint psql "$postgres_image" \
     "postgresql://role_interdit:mot-de-passe@database:5432/${POSTGRES_DB}" \
     --command='SELECT 1'; then
     echo "Le HBA accepte un rôle PostgreSQL non autorisé." >&2
