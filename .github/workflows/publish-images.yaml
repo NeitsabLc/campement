@@ -60,7 +60,18 @@ jobs:
       - name: Se connecter a GHCR
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        shell: bash
+        run: |
+          for tentative in 1 2 3; do
+            if printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin; then
+              exit 0
+            fi
+            if [ "$tentative" -eq 3 ]; then
+              echo "Connexion a GHCR impossible apres ${tentative} tentatives." >&2
+              exit 1
+            fi
+            sleep $((tentative * 5))
+          done
 
       - name: Construire et publier le candidat avec SBOM et provenance
         id: build
@@ -214,6 +225,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         image:
           - php
@@ -239,16 +251,58 @@ jobs:
       - name: Se connecter a GHCR
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+        shell: bash
+        run: |
+          for tentative in 1 2 3; do
+            if printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin; then
+              exit 0
+            fi
+            if [ "$tentative" -eq 3 ]; then
+              echo "Connexion a GHCR impossible apres ${tentative} tentatives." >&2
+              exit 1
+            fi
+            sleep $((tentative * 5))
+          done
 
       - name: Promouvoir exactement le digest candidat
         shell: bash
         run: |
+          resoudre_digest() {
+            local reference="$1"
+            local digest=""
+            local tentative
+
+            for tentative in 1 2 3 4 5; do
+              digest=$(docker buildx imagetools inspect "$reference" 2>/dev/null | awk '$1 == "Digest:" { print $2; exit }') || true
+              if printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+                printf '%s\n' "$digest"
+                return 0
+              fi
+              sleep $((tentative * 3))
+            done
+
+            echo "Digest indisponible apres ${tentative} tentatives : ${reference}" >&2
+            return 1
+          }
+
           candidat="${REGISTRY_IMAGE}:${CANDIDATE_TAG}"
-          digest=$(docker buildx imagetools inspect "$candidat" | awk '$1 == "Digest:" { print $2; exit }')
-          if ! printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+          if ! digest=$(resoudre_digest "$candidat"); then
             echo "Image candidate absente ou digest invalide : ${candidat}" >&2
             exit 1
+          fi
+
+          deja_promu=true
+          for etiquette in "$VERSION" "$MINOR_VERSION" "$MAJOR_VERSION"; do
+            digest_promu=$(resoudre_digest "${REGISTRY_IMAGE}:${etiquette}") || digest_promu=""
+            if [ "$digest_promu" != "$digest" ]; then
+              deja_promu=false
+              break
+            fi
+          done
+
+          if [ "$deja_promu" = true ]; then
+            echo "${REGISTRY_IMAGE}:${VERSION} deja promue vers ${digest}"
+            exit 0
           fi
 
           source_immuable="${REGISTRY_IMAGE}@${digest}"
@@ -260,8 +314,11 @@ jobs:
             "$source_immuable"
 
           for etiquette in "$VERSION" "$MINOR_VERSION" "$MAJOR_VERSION"; do
-            digest_promu=$(docker buildx imagetools inspect "${REGISTRY_IMAGE}:${etiquette}" | awk '$1 == "Digest:" { print $2; exit }')
-            test "$digest_promu" = "$digest"
+            digest_promu=$(resoudre_digest "${REGISTRY_IMAGE}:${etiquette}")
+            if [ "$digest_promu" != "$digest" ]; then
+              echo "Digest promu incorrect pour ${REGISTRY_IMAGE}:${etiquette}" >&2
+              exit 1
+            fi
           done
 
           echo "${REGISTRY_IMAGE}:${VERSION} -> ${digest}"
