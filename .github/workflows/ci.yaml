@@ -44,10 +44,12 @@ jobs:
           APP_SECRET_CI="$(openssl rand -hex 32)"
           sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
           sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
+          echo "APP_SECRET=${APP_SECRET_CI}" >> "$GITHUB_ENV"
           echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
           echo "POSTGRES_APP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
           echo "POSTGRES_MIGRATOR_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
           echo "POSTGRES_BACKUP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
 
       - name: Valider la configuration Docker Compose
         run: |
@@ -73,6 +75,9 @@ jobs:
 
       - name: Auditer les dependances Composer
         run: docker compose exec --no-TTY php composer audit --locked --no-interaction
+
+      - name: Auditer les dependances Importmap
+        run: docker compose exec --no-TTY php php bin/console importmap:audit
 
       - name: Valider les changelogs Liquibase
         run: docker compose --profile tools run --rm liquibase validate
@@ -127,6 +132,9 @@ jobs:
       - name: Installer les dependances d'accessibilite
         run: npm ci
 
+      - name: Auditer les dependances npm
+        run: npm audit --package-lock-only --audit-level=high
+
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
 
@@ -135,6 +143,38 @@ jobs:
 
       - name: Executer les controles d'accessibilite
         run: npm run test:accessibility
+
+      - name: Arreter l'environnement de developpement avant le test de production
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: docker compose down --volumes --remove-orphans
+
+      - name: Tester la configuration de production
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: ./scripts/ci-production-smoke.sh
+
+      - name: Analyser l'image PHP finale de production
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: >-
+          docker run --rm
+          --volume /tmp:/scan:ro
+          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+          image --input /scan/campement-php-production.tar
+          --scanners vuln
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
+
+      - name: Analyser l'image Nginx finale de production
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: >-
+          docker run --rm
+          --volume /tmp:/scan:ro
+          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+          image --input /scan/campement-nginx-production.tar
+          --scanners vuln
+          --severity HIGH,CRITICAL
+          --ignore-unfixed
+          --exit-code 1
 
       - name: Afficher les journaux en cas d'echec
         if: failure()
