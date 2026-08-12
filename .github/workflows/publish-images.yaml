@@ -1,6 +1,7 @@
 name: Publication des images
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -56,32 +57,33 @@ jobs:
           echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-${{ matrix.image }}" >> "$GITHUB_ENV"
           echo "CANDIDATE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
 
-      - name: Configurer Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-
       - name: Se connecter a GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
 
       - name: Construire et publier le candidat avec SBOM et provenance
         id: build
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        with:
-          context: .
-          file: ${{ matrix.file }}
-          target: ${{ matrix.target }}
-          push: true
-          tags: ${{ env.REGISTRY_IMAGE }}:${{ env.CANDIDATE_TAG }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          sbom: true
-          provenance: mode=max
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+        shell: bash
+        run: |
+          docker buildx create --name campement-builder --use
+          docker buildx build \
+            --file "${{ matrix.file }}" \
+            --target "${{ matrix.target }}" \
+            --tag "${REGISTRY_IMAGE}:${CANDIDATE_TAG}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --sbom=true \
+            --provenance=mode=max \
+            --push \
+            --metadata-file /tmp/build-metadata.json \
+            .
+          digest=$(jq -r '."containerimage.digest"' /tmp/build-metadata.json)
+          if ! printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "Digest construit invalide : ${digest}" >&2
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Attester le candidat
         uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
@@ -89,14 +91,6 @@ jobs:
           subject-name: ${{ env.REGISTRY_IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
-
-      - name: Installer Cosign
-        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
-
-      - name: Signer le candidat sans cle persistante
-        env:
-          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
-        run: cosign sign --yes "${REGISTRY_IMAGE}@${IMAGE_DIGEST}"
 
       - name: Afficher la reference immuable
         env:
@@ -117,11 +111,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Se connecter a GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
 
       - name: Resoudre les cinq digests candidats
         shell: bash
@@ -139,10 +131,7 @@ jobs:
             echo "${variable}=${depot}@${digest}" >> "$GITHUB_ENV"
           done
 
-      - name: Installer Cosign
-        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
-
-      - name: Verifier les signatures et attestations
+      - name: Verifier les attestations signees
         run: ./scripts/verify-release-images.sh
 
       - name: Preparer la configuration isolee
@@ -245,15 +234,10 @@ jobs:
           echo "MINOR_VERSION=${mineure}" >> "$GITHUB_ENV"
           echo "MAJOR_VERSION=${majeure}" >> "$GITHUB_ENV"
 
-      - name: Configurer Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-
       - name: Se connecter a GHCR
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
 
       - name: Promouvoir exactement le digest candidat
         shell: bash

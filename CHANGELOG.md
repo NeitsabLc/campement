@@ -15,11 +15,11 @@ suivent le versionnement sémantique.
 - suivi hebdomadaire des dépendances Composer, npm, GitHub Actions et Docker par
   Dependabot ;
 - publication sur les tags issus de `main` des cinq images GHCR avec SBOM,
-  provenance, attestation GitHub et signature keyless Cosign ;
+  provenance et attestation GitHub signée via Sigstore ;
 - publication préalable des images candidates sous `sha-<commit>` sur `main`,
   puis promotion des mêmes digests lors du tag sans reconstruction ;
 - surcharge Compose et commandes manuelles de livraison par digest, avec
-  vérification Cosign et des attestations GitHub avant téléchargement ;
+  vérification des attestations GitHub signées avant téléchargement ;
 - sauvegarde Age de la base PostgreSQL et des documents, avec restauration réelle
   dans le smoke test de production ;
 - commande locale `make backup-restore-test` pour vérifier le chiffrement et la

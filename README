@@ -185,8 +185,8 @@ ne déploie rien.
 Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
 et Docker vers `dev`. Chaque commit intégré à `main` produit une seule fois les
 cinq images candidates dans GHCR sous une étiquette immuable
-`sha-<commit>`, avec SBOM, provenance BuildKit, attestation GitHub et signature
-sans clé persistante Sigstore Cosign. Lorsqu'un tag `v*` désigne ce commit, le
+`sha-<commit>`, avec SBOM, provenance BuildKit et attestation GitHub signée via
+Sigstore. Lorsqu'un tag `v*` désigne ce commit, le
 workflow `publish-images.yaml` ajoute les étiquettes sémantiques sans
 reconstruire les images et contrôle que leurs digests restent identiques.
 
@@ -210,9 +210,9 @@ et un token limité à `read:packages`, transmis avec `docker login
 --password-stdin`. Ce token reste hors de `.env`, `.env.release`, Git et des
 journaux de commande.
 
-`release-verify` exige Docker Buildx, Cosign et GitHub CLI. Il vérifie chaque
-digest, la signature keyless émise par le workflow de `main` et l'attestation
-GitHub stockée dans GHCR. La surcharge `compose.release.yaml` supprime les
+`release-verify` exige Docker Buildx et GitHub CLI. Il vérifie chaque digest et
+l'attestation signée émise par le workflow de `main` et stockée dans GHCR. La
+surcharge `compose.release.yaml` supprime les
 instructions `build` : une livraison ne peut donc pas reconstruire localement
 une image différente de celle qui a été attestée et testée.
 
