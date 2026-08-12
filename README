@@ -6,14 +6,14 @@ dossiers administratifs et le suivi du séjour.
 
 ## État du projet
 
-État vérifié le 12 août 2026 :
+État vérifié le 13 août 2026 :
 
 - version applicative publiée : `v1.3.0` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
-- suite automatisée : 111 tests et 719 assertions, complétée par 4 scénarios
-  d’accessibilité dans le navigateur ;
+- suite automatisée : 112 tests PHPUnit et 737 assertions, complétée par 4 scénarios
+  d’accessibilité et 13 scénarios E2E dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
   du schéma.
@@ -151,6 +151,7 @@ make analyse-statique
 make style
 make test
 make test-accessibility
+make test-e2e
 make backup-restore-test
 ```
 
@@ -172,8 +173,8 @@ Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
 Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
 vulnérabilités élevées ou critiques des cinq images finales PHP, Nginx,
 PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi
-les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit et les
-scénarios d'accessibilité dans le navigateur.
+les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit, les
+scénarios d'accessibilité et les parcours E2E dans le navigateur.
 
 Sur chaque push et chaque pull request visant `dev` ou `main`, un job indépendant
 construit puis démarre la surcharge Compose de production. Le ruleset de `main`

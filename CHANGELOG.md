@@ -4,6 +4,25 @@ Ce fichier suit les évolutions fonctionnelles, techniques et de sécurité du
 projet. Le format s’inspire de *Keep a Changelog* et les versions publiées
 suivent le versionnement sémantique.
 
+## [Non publié]
+
+### Ajouté
+
+- suite Playwright E2E couvrant l’authentification, les restrictions par rôle,
+  l’isolation multi-séjour et les CRUD des unités, fournisseurs, denrées,
+  recettes, menus, situations particulières et présences, exécutée dans la CI ;
+- fixture Liquibase de navigation avec un séjour actif, ses trois modules
+  activés et un participant utilisable par le registre de présence.
+
+### Modifié
+
+- les comptes groupe sans séjour accessible arrivent sur un accueil explicite,
+  sans liens dans le menu métier, et sont invités à contacter leurs responsables ;
+- les lignes du registre de présence utilisent un lien unique au lieu de cibles
+  interactives imbriquées ;
+- le contrôle d’accessibilité vérifie que chaque URL attendue n’a pas été
+  remplacée silencieusement par une redirection.
+
 ## [1.3.0] - 2026-08-12
 
 ### Ajouté
