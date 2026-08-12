@@ -58,6 +58,14 @@ jobs:
           docker compose config --quiet
           POSTGRES_HEALTHCHECK_USER=campement_admin \
             docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+          digest="sha256:$(printf '0%.0s' {1..64})"
+          export CAMP_RELEASE_PHP_IMAGE="ghcr.io/neitsablc/campement-php@${digest}"
+          export CAMP_RELEASE_NGINX_IMAGE="ghcr.io/neitsablc/campement-nginx@${digest}"
+          export CAMP_RELEASE_POSTGRES_IMAGE="ghcr.io/neitsablc/campement-postgres@${digest}"
+          export CAMP_RELEASE_LIQUIBASE_IMAGE="ghcr.io/neitsablc/campement-liquibase@${digest}"
+          export CAMP_RELEASE_BACKUP_IMAGE="ghcr.io/neitsablc/campement-backup@${digest}"
+          docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --quiet
+          test -z "$(docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --format json | jq -r '.services[] | select(.build != null) | .image')"
 
       - name: Construire l'image PHP
         run: docker compose build --pull php
