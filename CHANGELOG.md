@@ -40,6 +40,8 @@ suivent le versionnement sémantique.
 
 ### Sécurité
 
+- mise à jour d'EasyAdmin vers `5.5.1` afin de corriger le contournement du
+  contrôle d'accès par le répartiteur d'actions personnalisées ;
 - épinglage par digest des images PHP, Nginx, PostgreSQL et Liquibase ;
 - exécution non-root et en lecture seule des services de production, avec
   suppression des capabilities et `no-new-privileges` ;

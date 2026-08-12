@@ -168,7 +168,7 @@ if find "$BACKUP_DIR" -type f \
     exit 1
 fi
 
-compose run --rm --no-deps --user root \
+compose run --rm --no-deps \
     --env BACKUP_AGE_IDENTITY_FILE=/run/identity.txt \
     --env POSTGRES_USER="$POSTGRES_HEALTHCHECK_USER" \
     --env POSTGRES_DB="$POSTGRES_DB" \
