@@ -4,7 +4,7 @@ Ce fichier suit les évolutions fonctionnelles, techniques et de sécurité du
 projet. Le format s’inspire de *Keep a Changelog* et les versions publiées
 suivent le versionnement sémantique.
 
-## [Non publié]
+## [1.3.0] - 2026-08-12
 
 ### Ajouté
 
@@ -15,11 +15,11 @@ suivent le versionnement sémantique.
 - suivi hebdomadaire des dépendances Composer, npm, GitHub Actions et Docker par
   Dependabot ;
 - publication sur les tags issus de `main` des cinq images GHCR avec SBOM,
-  provenance, attestation GitHub et signature keyless Cosign.
+  provenance, attestation GitHub et signature keyless Cosign ;
 - sauvegarde Age de la base PostgreSQL et des documents, avec restauration réelle
-  dans le smoke test de production.
+  dans le smoke test de production ;
 - commande locale `make backup-restore-test` pour vérifier le chiffrement et la
-  restauration de la base et des documents.
+  restauration de la base et des documents ;
 - commandes de qualité et d'exploitation alignées avec Bénévole Jambville :
   `make analyse-statique`, `make style`, `make style-fix`,
   `make test-accessibility` et `make maintenance-now`.
@@ -35,7 +35,7 @@ suivent le versionnement sémantique.
   contrôle et retrait du gestionnaire de paquets inutilisé de l'image finale ;
 - extraction dans des services dédiés de la logique de formulaire participant,
   de présentation des menus, d'invitation et de périmètre utilisateurs et de
-  l'enregistrement multi-lignes des stocks.
+  l'enregistrement multi-lignes des stocks ;
 - contrôle automatique du style PHP avec PHP-CS-Fixer.
 
 ### Sécurité
@@ -54,7 +54,7 @@ suivent le versionnement sémantique.
 - plafonds CPU, mémoire et PID sur tous les services de production, contrôlés
   sur les conteneurs créés par le smoke test ;
 - limites serveur de 1 000 caractères pour les adresses fournisseur et de 2 000
-  caractères pour les commentaires de tâche.
+  caractères pour les commentaires de tâche ;
 - authentification SCRAM obligatoire pour les connexions PostgreSQL locales et
   réseau, y compris le rôle de contrôle de santé ;
 - vérification des règles HBA propres à chaque rôle et refus effectif d'un rôle

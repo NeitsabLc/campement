@@ -21,9 +21,9 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 12 août 2026 : version de référence `v1.2.2`, branche
-stable `main`, branche de développement `dev`, schéma Liquibase `V032`. Le
-projet est fonctionnel. Toute évolution doit
+État vérifié le 12 août 2026 : version `v1.3.0` préparée sur la branche de
+développement `dev`, branche stable `main`, schéma Liquibase `V032`. Le projet
+est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
@@ -698,7 +698,9 @@ Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les bases
 Docker. Un tag `v*` n'est publiable que si son commit provient de `main` ;
 les images correspondantes sont envoyées dans GHCR avec SBOM, provenance,
 attestation GitHub et signature keyless Cosign. Ce workflow publie des artefacts
-mais n'effectue aucun déploiement.
+mais n'effectue aucun déploiement. La procédure d'exploitation actuelle
+reconstruit les images sur l'hôte depuis le tag livré et ne consomme donc pas
+encore les images GHCR publiées.
 
 La logique applicative complexe n'est pas conservée dans les contrôleurs : les
 formulaires participants, la présentation des menus, les invitations et

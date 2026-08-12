@@ -8,7 +8,7 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 12 août 2026 :
 
-- version applicative de référence : `v1.2.2` ;
+- version applicative préparée : `v1.3.0` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
@@ -60,11 +60,11 @@ L’image PHP de production est construite en plusieurs étapes : le code, les
 dépendances Composer sans les outils de développement et les assets compilés
 sont intégrés à l’image. Nginx reçoit uniquement le répertoire public compilé.
 La production ne monte donc plus le code source de l’hôte dans les conteneurs.
-Les images amont sont épinglées par digest. Les cinq images finales PHP,
-Nginx, PostgreSQL, Liquibase et sauvegarde embarquent leurs artefacts propres au projet. Les
-services de production sont exécutés sans privilège root, avec une racine en
-lecture seule, toutes les capabilities supprimées, `no-new-privileges` et des
-plafonds CPU, mémoire et PID adaptés à leur rôle.
+Les images amont sont épinglées par digest. Les cinq images finales PHP, Nginx,
+PostgreSQL, Liquibase et sauvegarde embarquent leurs artefacts propres au
+projet. Les services de production sont exécutés sans privilège root, avec une
+racine en lecture seule, toutes les capabilities supprimées,
+`no-new-privileges` et des plafonds CPU, mémoire et PID adaptés à leur rôle.
 
 ## Installation locale
 
@@ -165,18 +165,18 @@ La CI valide la configuration Docker Compose, Composer, les changelogs
 Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
 Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
 vulnérabilités élevées ou critiques des cinq images finales PHP, Nginx,
-PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi les assets,
-recrée une base PostgreSQL de test isolée, exécute PHPUnit et les scénarios
-d'accessibilité dans le navigateur.
+PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi
+les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit et les
+scénarios d'accessibilité dans le navigateur.
 
 Sur chaque push et chaque pull request visant `dev` ou `main`, un job requis et
 indépendant construit puis démarre la surcharge Compose de production. Ce smoke
 test initialise une base vierge, applique Liquibase, vérifie les rôles
 PostgreSQL limités et authentifiés en SCRAM, la connexion applicative, le refus
 d'en-têtes `Host` et `X-Forwarded-Host` hostiles, puis une sauvegarde chiffrée
-ponctuelle. Cette
-sauvegarde de la base et des documents est déchiffrée et restaurée dans une base
-jetable, dont le contenu est contrôlé. Le scénario vérifie également les
+ponctuelle. Cette sauvegarde de la base et des documents est déchiffrée et
+restaurée dans une base jetable, dont le contenu est contrôlé. Le scénario
+vérifie également les
 commandes de maintenance, les propriétés de durcissement et les limites de
 ressources des conteneurs avant et après la désactivation du rôle d'amorçage.
 Les secrets et clés utilisés sont éphémères et masqués dans les journaux ; la CI
@@ -186,7 +186,9 @@ Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Action
 et Docker vers `dev`. Lorsqu’un tag `v*` désigne un commit issu de `main`, le
 workflow `publish-images.yaml` publie les cinq images dans GHCR avec SBOM et
 provenance BuildKit, ajoute une attestation GitHub et les signe sans clé
-persistante avec Sigstore Cosign. Cette publication ne déploie pas l’application.
+persistante avec Sigstore Cosign. Cette publication ne déploie pas
+l’application. La procédure d'exploitation actuelle reconstruit les images sur
+l'hôte à partir du tag livré ; elle ne tire pas encore ces images GHCR.
 
 ## Organisation du code applicatif
 
@@ -238,7 +240,7 @@ privée correspondante ne doit jamais être placée dans ce dépôt, dans le fic
 secrets séparé. `make backup-now` déclenche une sauvegarde ponctuelle avec la
 surcharge de production. `make backup-restore-test` génère une paire de clés
 éphémère et vérifie localement le chiffrement et la restauration de la base et
-des documents contre les services de développement en cours d'exécution.
+des documents dans une pile Compose de production isolée et jetable.
 
 Le smoke test de production crée une paire de clés éphémère, sauvegarde puis
 restaure réellement la base et un document témoin. En exploitation, il reste à
