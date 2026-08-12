@@ -67,9 +67,7 @@ class Sejour
     public function __construct(string $nom, \DateTimeImmutable $dateDebut, \DateTimeImmutable $dateFin)
     {
         if ($dateFin < $dateDebut) {
-            throw new \InvalidArgumentException(
-                'La date de fin doit être postérieure ou égale à la date de début.',
-            );
+            throw new \InvalidArgumentException('La date de fin doit être postérieure ou égale à la date de début.');
         }
         $this->initializeId();
         $this->initializeTimestamps();
@@ -90,6 +88,7 @@ class Sejour
     {
         $this->nom = $nom;
         $this->touch();
+
         return $this;
     }
 
@@ -106,6 +105,7 @@ class Sejour
 
         $this->dateDebut = $dateDebut;
         $this->touch();
+
         return $this;
     }
 
@@ -122,15 +122,19 @@ class Sejour
 
         $this->dateFin = $dateFin;
         $this->touch();
+
         return $this;
     }
 
     public function setDates(\DateTimeImmutable $dateDebut, \DateTimeImmutable $dateFin): self
     {
-        if ($dateFin < $dateDebut) { throw new \InvalidArgumentException('Dates invalides.'); }
+        if ($dateFin < $dateDebut) {
+            throw new \InvalidArgumentException('Dates invalides.');
+        }
         $this->dateDebut = $dateDebut;
         $this->dateFin = $dateFin;
         $this->touch();
+
         return $this;
     }
 
@@ -143,48 +147,144 @@ class Sejour
     {
         $this->lieu = $lieu;
         $this->touch();
+
         return $this;
     }
 
-    public function isModuleIntendanceActif(): bool { return $this->moduleIntendanceActif; }
-    public function setModuleIntendanceActif(bool $actif): self { $this->moduleIntendanceActif = $actif; $this->touch(); return $this; }
-    public function isModuleAdministratifActif(): bool { return $this->moduleAdministratifActif; }
-    public function setModuleAdministratifActif(bool $actif): self { $this->moduleAdministratifActif = $actif; $this->touch(); return $this; }
-    public function isModuleSituationsParticulieresActif(): bool { return $this->moduleSituationsParticulieresActif; }
-    public function setModuleSituationsParticulieresActif(bool $actif): self { $this->moduleSituationsParticulieresActif = $actif; $this->touch(); return $this; }
-    public function isDistributionPubliqueActive(): bool { return $this->distributionPubliqueActive; }
-    public function setDistributionPubliqueActive(bool $actif): self { $this->distributionPubliqueActive = $actif; $this->touch(); return $this; }
+    public function isModuleIntendanceActif(): bool
+    {
+        return $this->moduleIntendanceActif;
+    }
+
+    public function setModuleIntendanceActif(bool $actif): self
+    {
+        $this->moduleIntendanceActif = $actif;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function isModuleAdministratifActif(): bool
+    {
+        return $this->moduleAdministratifActif;
+    }
+
+    public function setModuleAdministratifActif(bool $actif): self
+    {
+        $this->moduleAdministratifActif = $actif;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function isModuleSituationsParticulieresActif(): bool
+    {
+        return $this->moduleSituationsParticulieresActif;
+    }
+
+    public function setModuleSituationsParticulieresActif(bool $actif): self
+    {
+        $this->moduleSituationsParticulieresActif = $actif;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function isDistributionPubliqueActive(): bool
+    {
+        return $this->distributionPubliqueActive;
+    }
+
+    public function setDistributionPubliqueActive(bool $actif): self
+    {
+        $this->distributionPubliqueActive = $actif;
+        $this->touch();
+
+        return $this;
+    }
+
     public function isDistributionPubliqueOuverte(?\DateTimeImmutable $date = null): bool
     {
         $date = ($date ?? new \DateTimeImmutable('today'))->setTime(0, 0);
 
         return $this->distributionPubliqueActive && $this->dateFin >= $date;
     }
-    public function isDistribuerGouterDejeuner(): bool { return $this->distribuerGouterDejeuner; }
-    public function setDistribuerGouterDejeuner(bool $valeur): self { $this->distribuerGouterDejeuner = $valeur; $this->touch(); return $this; }
-    public function getJetonDistributionPublique(): Uuid { return $this->jetonDistributionPublique; }
-    public function renouvelerJetonDistributionPublique(): self { $this->jetonDistributionPublique = new UuidV7(); $this->touch(); return $this; }
-    public function getAnonymiseAt(): ?\DateTimeImmutable { return $this->anonymiseAt; }
-    public function marquerAnonymise(?\DateTimeImmutable $date = null): self { $this->anonymiseAt = $date ?? new \DateTimeImmutable(); $this->touch(); return $this; }
-    public function reinitialiserAnonymisation(): self { $this->anonymiseAt = null; $this->touch(); return $this; }
+
+    public function isDistribuerGouterDejeuner(): bool
+    {
+        return $this->distribuerGouterDejeuner;
+    }
+
+    public function setDistribuerGouterDejeuner(bool $valeur): self
+    {
+        $this->distribuerGouterDejeuner = $valeur;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function getJetonDistributionPublique(): Uuid
+    {
+        return $this->jetonDistributionPublique;
+    }
+
+    public function renouvelerJetonDistributionPublique(): self
+    {
+        $this->jetonDistributionPublique = new UuidV7();
+        $this->touch();
+
+        return $this;
+    }
+
+    public function getAnonymiseAt(): ?\DateTimeImmutable
+    {
+        return $this->anonymiseAt;
+    }
+
+    public function marquerAnonymise(?\DateTimeImmutable $date = null): self
+    {
+        $this->anonymiseAt = $date ?? new \DateTimeImmutable();
+        $this->touch();
+
+        return $this;
+    }
+
+    public function reinitialiserAnonymisation(): self
+    {
+        $this->anonymiseAt = null;
+        $this->touch();
+
+        return $this;
+    }
 
     /** @return Collection<int, SejourPublicCible> */
-    public function getPublicsCibles(): Collection { return $this->publicsCibles; }
+    public function getPublicsCibles(): Collection
+    {
+        return $this->publicsCibles;
+    }
 
     public function addPublicCible(PublicCible $publicCible): self
     {
         foreach ($this->publicsCibles as $association) {
-            if ($association->getPublicCible() === $publicCible) { $association->setActif(true); return $this; }
+            if ($association->getPublicCible() === $publicCible) {
+                $association->setActif(true);
+
+                return $this;
+            }
         }
         $this->publicsCibles->add(new SejourPublicCible($this, $publicCible));
+
         return $this;
     }
 
     public function removePublicCible(PublicCible $publicCible): self
     {
         foreach ($this->publicsCibles as $association) {
-            if ($association->getPublicCible() === $publicCible) { $association->setActif(false); }
+            if ($association->getPublicCible() === $publicCible) {
+                $association->setActif(false);
+            }
         }
+
         return $this;
     }
 

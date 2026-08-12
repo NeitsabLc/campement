@@ -21,9 +21,9 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 11 août 2026 : version de référence `v1.2.1`, branche
-stable `main`, branche de développement `dev`, schéma Liquibase `V032`. Le
-projet est fonctionnel. Toute évolution doit
+État vérifié le 12 août 2026 : version `v1.3.0` préparée sur la branche de
+développement `dev`, branche stable `main`, schéma Liquibase `V032`. Le projet
+est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
@@ -31,10 +31,24 @@ appliqués.
 
 ```text
 campement/
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/
+│       ├── ci.yaml
+│       └── publish-images.yaml
+├── .dockerignore
 ├── compose.yaml
+├── compose.prod.yaml
 ├── CHANGELOG.md
 ├── Makefile
 ├── PROJECT_CONTEXT.md
+├── scripts/
+│   └── ci-production-smoke.sh
+├── docker/
+│   ├── nginx/
+│   ├── liquibase/
+│   ├── php/
+│   └── postgres/
 ├── database/
 │   └── changelog/
 │       ├── db.changelog-master.yaml
@@ -115,10 +129,12 @@ sources et reflète immédiatement leurs modifications. Le conteneur PHP supprim
 automatiquement `app/public/assets` à son démarrage pour éviter qu’une ancienne
 compilation masque les sources à jour.
 
-En environnement compilé (`APP_ENV=prod`), le conteneur PHP exécute
-automatiquement `asset-map:compile` avant de démarrer PHP-FPM. Les URLs générées
-par `asset()` contiennent alors l’empreinte du contenu, sans suffixe de version
-manuel dans les gabarits.
+En environnement compilé (`APP_ENV=prod`), les assets sont installés et
+compilés pendant la construction multi-stage de l’image. Le démarrage de
+PHP-FPM n’effectue aucun téléchargement ni compilation. Le répertoire public
+compilé est copié dans l’image Nginx ; les URLs générées par `asset()`
+contiennent l’empreinte du contenu, sans suffixe de version manuel dans les
+gabarits.
 
 Pour contrôler un asset :
 
@@ -642,13 +658,61 @@ doivent pas figurer dans un document suivi par Git.
 Le dépôt ne documente que les invariants nécessaires au développement :
 
 * les secrets et fichiers d’environnement restent hors Git ;
+* les images amont PHP, Nginx, PostgreSQL, Liquibase, Composer et Trivy sont
+  épinglées par digest ;
+* les images finales PHP, Nginx, PostgreSQL, Liquibase et sauvegarde embarquent
+  les artefacts livrés — code, dépendances, assets, scripts ou changelogs — sans
+  bind mount du dépôt pour ces éléments ;
+* les conteneurs de production utilisent un utilisateur non-root explicite, une
+  racine en lecture seule, `cap_drop: ALL`, `no-new-privileges` et uniquement
+  les volumes ou tmpfs nécessaires en écriture ;
+* chaque service possède des plafonds CPU, mémoire et PID vérifiés par le smoke
+  test, et Nginx n'est publié que sur `127.0.0.1` par défaut ;
 * les hôtes et proxies de confiance sont configurés explicitement ;
 * les rôles de lecture, d’écriture et de migration doivent être séparés ;
-* une sauvegarde restaurable précède toute migration de données ;
+* une sauvegarde chiffrée et restaurable de la base et des documents précède
+  toute migration de données ; la clé privée Age reste séparée du dépôt, de
+  l'application et du stockage des sauvegardes ;
 * une livraison est suivie de contrôles applicatifs, de migration, de journaux
   et de restauration ;
 * aucune commande destructive ne doit cibler un environnement contenant des
   données à conserver.
+
+La CI générale s'exécute sur `dev` et `main`, audite Composer, Importmap et npm,
+puis construit et analyse avec Trivy les cinq images finales PHP, Nginx,
+PostgreSQL, Liquibase et sauvegarde ; le scan PHP couvre aussi `vendor/`
+réellement livré.
+Pour chaque push et pull request visant `dev` ou `main`, un job indépendant
+exécute `scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
+des images finales, base vierge, migrations, transition des rôles PostgreSQL,
+requête Doctrine avec le rôle applicatif, refus d'en-têtes `Host` et
+`X-Forwarded-Host` hostiles,
+sous-réseau HBA limité aux rôles attendus et refus effectif d'un rôle réseau
+non autorisé,
+sauvegarde chiffrée, déchiffrement et restauration effective de la base et d'un
+document témoin, maintenance et vérification du durcissement et des limites de
+ressources. Les secrets et clés éphémères générés par la CI sont masqués avant
+leur export.
+
+Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les bases
+Docker. Chaque commit de `main` construit une seule fois les cinq images et les
+publie dans GHCR sous `sha-<commit>`, avec SBOM, provenance, attestation GitHub
+et signature keyless Cosign. Un tag `v*` n'est publiable que si son commit
+provient de `main` et si ces images candidates existent ; les étiquettes
+sémantiques sont alors ajoutées aux mêmes digests, sans reconstruction.
+
+La livraison reste manuelle et n'utilise aucun runner de production. Le fichier
+local `.env.release` contient uniquement les cinq références GHCR immuables par
+digest. La surcharge `compose.release.yaml` retire toutes les constructions
+locales ; les commandes `make release-*` vérifient signatures et attestations,
+téléchargent les images, exécutent Liquibase et démarrent les services sans que
+GitHub se connecte au serveur.
+
+La logique applicative complexe n'est pas conservée dans les contrôleurs : les
+formulaires participants, la présentation des menus, les invitations et
+périmètres utilisateurs et l'enregistrement multi-lignes des stocks disposent
+de services dédiés. Les limites de longueur doivent être vérifiées côté serveur
+et, pour les invariants métier, dans les entités.
 
 Le runbook opérationnel est maintenu localement dans
 `.local/PRODUCTION_RUNBOOK.md`. Le répertoire `.local/` est ignoré par Git et ne
@@ -684,16 +748,20 @@ Le dépôt suit désormais ce cycle de publication :
 
 ## 18. Priorités recommandées
 
-1. assainir les informations d’infrastructure encore présentes dans les fichiers
+1. mettre en place une copie hors site versionnée ou immuable des sauvegardes
+   chiffrées, la rotation des clés Age et un exercice périodique de restauration
+   avec les clés réelles ;
+2. superviser l'âge et le succès des sauvegardes en exploitation ;
+3. assainir les informations d’infrastructure encore présentes dans les fichiers
    suivis et, après validation, dans l’historique Git distant ;
-2. tester périodiquement la restauration des sauvegardes ;
-3. augmenter la couverture fonctionnelle des parcours sensibles ;
-4. poursuivre l’accessibilité de l’interface.
+4. augmenter la couverture fonctionnelle des parcours sensibles ;
+5. poursuivre l’accessibilité de l’interface.
 
 ## 19. Décisions restant à préciser
 
 Les points suivants restent à arbitrer :
 
 * les droits détaillés de consultation du journal pour `ROLE_GROUPE` ;
+* le gestionnaire de clés Age et le stockage hors site des sauvegardes ;
 * la fréquence des tests de restauration des sauvegardes ;
 * le niveau de couverture de tests attendu pour chaque module.

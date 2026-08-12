@@ -39,6 +39,14 @@ final class TacheSituationParticuliereTest extends TestCase
         self::assertNull($tache->getDateRealisation());
     }
 
+    public function testLeCommentaireEstLimiteCoteMetier(): void
+    {
+        $tache = TacheSituationParticuliere::libre($this->situation(), 'Action libre');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('2 000 caractères');
+        $tache->setCommentaire(str_repeat('a', TacheSituationParticuliere::COMMENTAIRE_LONGUEUR_MAX + 1));
+    }
+
     private function situation(): SituationParticuliere
     {
         return new SituationParticuliere(

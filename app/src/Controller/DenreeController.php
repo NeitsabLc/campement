@@ -12,9 +12,9 @@ use App\Repository\DenreeRepository;
 use App\Repository\FournisseurRepository;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
+use App\Repository\UniteRepository;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
-use App\Repository\UniteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,6 +40,7 @@ final class DenreeController extends AbstractController
             );
         }
         unset($ligne);
+
         return $this->render('denree/index.html.twig', [
             'sejour' => $sejour,
             'actives' => $actives,
@@ -121,9 +122,13 @@ final class DenreeController extends AbstractController
                     }
                 }
             }
-            if ([] === $donnees['fournisseurs'] && !$possedeReferenceArchivee) { $erreurs[] = 'Ajoutez au moins un fournisseur.'; }
+            if ([] === $donnees['fournisseurs'] && !$possedeReferenceArchivee) {
+                $erreurs[] = 'Ajoutez au moins un fournisseur.';
+            }
             foreach ($donnees['fournisseurs'] as $index => $ligne) {
-                if (!is_array($ligne)) { continue; }
+                if (!is_array($ligne)) {
+                    continue;
+                }
                 $fournisseur = isset($ligne['fournisseur']) && Uuid::isValid((string) $ligne['fournisseur']) ? $fournisseurs->find($ligne['fournisseur']) : null;
                 $reference = trim((string) ($ligne['reference'] ?? ''));
                 $niveaux = is_array($ligne['niveaux'] ?? null) ? $ligne['niveaux'] : [];
@@ -155,19 +160,28 @@ final class DenreeController extends AbstractController
                         $erreurs[] = sprintf('Le niveau %d du fournisseur %s est incomplet.', $niveauIndex + 1, $fournisseur->getNom());
                     }
                     if ($dernier && null !== $conditionnement) {
-                        if (null === $uniteTerminale) { $uniteTerminale = $conditionnement; }
-                        elseif ($uniteTerminale !== $conditionnement) { $erreurs[] = 'Tous les fournisseurs doivent terminer par la même unité.'; }
+                        if (null === $uniteTerminale) {
+                            $uniteTerminale = $conditionnement;
+                        } elseif ($uniteTerminale !== $conditionnement) {
+                            $erreurs[] = 'Tous les fournisseurs doivent terminer par la même unité.';
+                        }
                     }
                 }
                 $fournisseursValides[] = [$ligne, $fournisseur, $reference, $niveaux];
             }
 
-            if (null === $uniteInventaire || !$uniteInventaire->isActif()) $erreurs[] = 'Sélectionnez une unité référence inventaire active.';
-            if (null === $uniteTerminale) $erreurs[] = 'Définissez l’unité terminale commune aux conditionnements.';
+            if (null === $uniteInventaire || !$uniteInventaire->isActif()) {
+                $erreurs[] = 'Sélectionnez une unité référence inventaire active.';
+            }
+            if (null === $uniteTerminale) {
+                $erreurs[] = 'Définissez l’unité terminale commune aux conditionnements.';
+            }
 
             if ([] === $erreurs && null !== $uniteTerminale && null !== $uniteInventaire) {
                 $denree->setNom($donnees['nom'])->setUniteReference($uniteTerminale)->setUniteInventaire($uniteInventaire)->setStockMin('' === $stockMinNormalise ? null : number_format((float) $stockMinNormalise, 3, '.', ''));
-                if ($creation) { $em->persist($denree); }
+                if ($creation) {
+                    $em->persist($denree);
+                }
                 $existantes = [];
                 foreach ($references->findPourDenree($denree) as $referenceExistante) {
                     // Une référence liée à un fournisseur désactivé reste intacte :
@@ -184,7 +198,9 @@ final class DenreeController extends AbstractController
                     $reference->setFournisseur($fournisseur)->setReference($referenceNormalisee)->setActif(true);
                     $em->persist($reference);
                     $niveauxExistants = [];
-                    foreach ($conditionnements->findPourReference($reference) as $niveauExistant) { $niveauxExistants[(string) $niveauExistant->getId()] = $niveauExistant; }
+                    foreach ($conditionnements->findPourReference($reference) as $niveauExistant) {
+                        $niveauxExistants[(string) $niveauExistant->getId()] = $niveauExistant;
+                    }
                     foreach (array_values($niveaux) as $ordre => $niveau) {
                         $niveauId = (string) ($niveau['id'] ?? '');
                         $dernier = $ordre === count($niveaux) - 1;
@@ -198,11 +214,16 @@ final class DenreeController extends AbstractController
                         $conditionnement->setOrdre($ordre + 1)->setConditionnement($typeConditionnement)->setQuantiteContenu($quantite)->setUniteContenu($uniteContenu)->setLibelleContenu($libelleContenu);
                         $em->persist($conditionnement);
                     }
-                    foreach ($niveauxExistants as $niveauExistant) { $em->remove($niveauExistant); }
+                    foreach ($niveauxExistants as $niveauExistant) {
+                        $em->remove($niveauExistant);
+                    }
                 }
-                foreach ($existantes as $referenceExistante) { $referenceExistante->setActif(false); }
+                foreach ($existantes as $referenceExistante) {
+                    $referenceExistante->setActif(false);
+                }
                 $em->flush();
                 $this->addFlash('success', sprintf('La denrée « %s » a bien été %s.', $denree->getNom(), $creation ? 'créée' : 'modifiée'));
+
                 return $this->redirectToRoute('app_denrees');
             }
         }
@@ -225,14 +246,27 @@ final class DenreeController extends AbstractController
     private function donneesInitiales(Denree $denree, ReferenceFournisseurRepository $references, ReferenceFournisseurConditionnementRepository $conditionnements): array
     {
         $resultat = ['nom' => '', 'unite' => null, 'unite_inventaire' => null, 'stock_min' => '', 'fournisseurs' => []];
-        try { $resultat['nom'] = $denree->getNom(); $resultat['unite'] = (string) $denree->getUniteReference()->getId(); $resultat['unite_inventaire'] = (string) $denree->getUniteInventaire()->getId(); $resultat['stock_min'] = $denree->getStockMin() ?? ''; } catch (\Error) {}
-        if ('' === $resultat['nom']) { return $resultat; }
+        try {
+            $resultat['nom'] = $denree->getNom();
+            $resultat['unite'] = (string) $denree->getUniteReference()->getId();
+            $resultat['unite_inventaire'] = (string) $denree->getUniteInventaire()->getId();
+            $resultat['stock_min'] = $denree->getStockMin() ?? '';
+        } catch (\Error) {
+        }
+        if ('' === $resultat['nom']) {
+            return $resultat;
+        }
         foreach ($references->findPourDenree($denree) as $reference) {
-            if (!$reference->isActif() || !$reference->getFournisseur()->isActif()) { continue; }
+            if (!$reference->isActif() || !$reference->getFournisseur()->isActif()) {
+                continue;
+            }
             $ligne = ['id' => (string) $reference->getId(), 'fournisseur' => (string) $reference->getFournisseur()->getId(), 'reference' => $reference->getReference(), 'niveaux' => []];
-            foreach ($conditionnements->findPourReference($reference) as $niveau) { $ligne['niveaux'][] = ['id' => (string) $niveau->getId(), 'conditionnement' => (string) $niveau->getConditionnement()->getId(), 'libelle' => $niveau->getLibelle(), 'quantite' => $niveau->getQuantiteContenu()]; }
+            foreach ($conditionnements->findPourReference($reference) as $niveau) {
+                $ligne['niveaux'][] = ['id' => (string) $niveau->getId(), 'conditionnement' => (string) $niveau->getConditionnement()->getId(), 'libelle' => $niveau->getLibelle(), 'quantite' => $niveau->getQuantiteContenu()];
+            }
             $resultat['fournisseurs'][] = $ligne;
         }
+
         return $resultat;
     }
 }

@@ -8,11 +8,11 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 12 août 2026 :
 
-- version applicative de référence : `v1.2.2` ;
+- version applicative préparée : `v1.3.0` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
-- suite automatisée : 109 tests et 715 assertions, complétée par 4 scénarios
+- suite automatisée : 111 tests et 719 assertions, complétée par 4 scénarios
   d’accessibilité dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
@@ -56,6 +56,16 @@ pas documentés dans ce dépôt.
 - Twig, AssetMapper, Turbo et Stimulus ;
 - PHPUnit.
 
+L’image PHP de production est construite en plusieurs étapes : le code, les
+dépendances Composer sans les outils de développement et les assets compilés
+sont intégrés à l’image. Nginx reçoit uniquement le répertoire public compilé.
+La production ne monte donc plus le code source de l’hôte dans les conteneurs.
+Les images amont sont épinglées par digest. Les cinq images finales PHP, Nginx,
+PostgreSQL, Liquibase et sauvegarde embarquent leurs artefacts propres au
+projet. Les services de production sont exécutés sans privilège root, avec une
+racine en lecture seule, toutes les capabilities supprimées,
+`no-new-privileges` et des plafonds CPU, mémoire et PID adaptés à leur rôle.
+
 ## Installation locale
 
 > Toutes les commandes de ce README concernent exclusivement une installation
@@ -72,8 +82,9 @@ make install
 ```
 
 L’application locale est ensuite disponible sur l’adresse définie par
-`NGINX_HOST_PORT` dans `.env`, soit `http://localhost:8080` avec la valeur par
-défaut.
+`NGINX_BIND_ADDRESS` et `NGINX_HOST_PORT` dans `.env`, soit
+`http://127.0.0.1:8080` avec les valeurs par défaut. Une exposition sur une
+autre interface doit être choisie explicitement.
 
 Les fichiers `.env` sont locaux et ignorés par Git. Avant `make install`, une
 valeur locale doit être définie pour `POSTGRES_PASSWORD` dans le `.env` racine.
@@ -90,7 +101,11 @@ make down
 make restart
 make ps
 make logs
+make prod-config
 ```
+
+`make prod-config` valide silencieusement la surcharge de production : la
+configuration résolue et ses secrets ne sont jamais affichés.
 
 ### Dépendances et cache
 
@@ -126,7 +141,11 @@ la base locale et ne doit être utilisée que lorsqu’elle peut être recréée
 
 ```bash
 make doctrine-validate
+make analyse-statique
+make style
 make test
+make test-accessibility
+make backup-restore-test
 ```
 
 `make test` recrée uniquement `campement_test`, applique les migrations avec le
@@ -144,16 +163,67 @@ Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
 
 La CI valide la configuration Docker Compose, Composer, les changelogs
 Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
-analyse le code avec PHPStan et contrôle avec Trivy les vulnérabilités élevées
-ou critiques de l'image PHP. Elle compile aussi les assets, recrée une base
-PostgreSQL de test isolée, exécute PHPUnit et les scénarios d'accessibilité dans
-le navigateur. Elle copie les modèles `.env.example`, génère des secrets
-PostgreSQL éphémères à chaque exécution, ne requiert aucun secret GitHub et ne
-déploie rien.
+Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
+vulnérabilités élevées ou critiques des cinq images finales PHP, Nginx,
+PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi
+les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit et les
+scénarios d'accessibilité dans le navigateur.
 
-La livraison continue pourra être ajoutée dans un workflow séparé, déclenché
-après le succès de cette CI sur `main` ou lors de la création d'un tag de
-version.
+Sur chaque push et chaque pull request visant `dev` ou `main`, un job requis et
+indépendant construit puis démarre la surcharge Compose de production. Ce smoke
+test initialise une base vierge, applique Liquibase, vérifie les rôles
+PostgreSQL limités et authentifiés en SCRAM, la connexion applicative, le refus
+d'en-têtes `Host` et `X-Forwarded-Host` hostiles, puis une sauvegarde chiffrée
+ponctuelle. Cette sauvegarde de la base et des documents est déchiffrée et
+restaurée dans une base jetable, dont le contenu est contrôlé. Le scénario
+vérifie également les
+commandes de maintenance, les propriétés de durcissement et les limites de
+ressources des conteneurs avant et après la désactivation du rôle d'amorçage.
+Les secrets et clés utilisés sont éphémères et masqués dans les journaux ; la CI
+ne déploie rien.
+
+Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
+et Docker vers `dev`. Chaque commit intégré à `main` produit une seule fois les
+cinq images candidates dans GHCR sous une étiquette immuable
+`sha-<commit>`, avec SBOM, provenance BuildKit, attestation GitHub et signature
+sans clé persistante Sigstore Cosign. Lorsqu'un tag `v*` désigne ce commit, le
+workflow `publish-images.yaml` ajoute les étiquettes sémantiques sans
+reconstruire les images et contrôle que leurs digests restent identiques.
+
+La livraison reste manuelle : GitHub ne se connecte pas au serveur et ne
+déploie rien. L'opérateur copie `.env.release.example` vers `.env.release`, y
+place les cinq références GHCR épinglées par digest, s'authentifie auprès de
+GHCR si nécessaire, puis utilise :
+
+```bash
+make release-config
+make release-verify
+make release-pull
+make release-db-status
+make release-db-update
+make release-up
+make release-ps
+```
+
+Pour des images privées, l'authentification Docker utilise un compte technique
+et un token limité à `read:packages`, transmis avec `docker login
+--password-stdin`. Ce token reste hors de `.env`, `.env.release`, Git et des
+journaux de commande.
+
+`release-verify` exige Docker Buildx, Cosign et GitHub CLI. Il vérifie chaque
+digest, la signature keyless émise par le workflow de `main` et l'attestation
+GitHub stockée dans GHCR. La surcharge `compose.release.yaml` supprime les
+instructions `build` : une livraison ne peut donc pas reconstruire localement
+une image différente de celle qui a été attestée et testée.
+
+## Organisation du code applicatif
+
+Les contrôleurs traduisent les requêtes HTTP, appliquent les autorisations et
+choisissent les réponses. La validation et le remplissage des participants, la
+présentation des menus, l’invitation et le périmètre utilisateurs ainsi que
+l’enregistrement multi-lignes des stocks sont portés par des services dédiés.
+Les limites des champs texte sensibles sont imposées côté serveur et dans les
+entités, indépendamment des attributs HTML.
 
 ## Règles de persistance
 
@@ -180,3 +250,25 @@ php bin/console doctrine:migrations:migrate
 Le runbook de livraison et les paramètres d’infrastructure sont volontairement
 absents du dépôt. Une copie locale peut être conservée dans
 `.local/PRODUCTION_RUNBOOK.md` ; ce répertoire est ignoré par Git.
+
+## Sauvegardes chiffrées
+
+Le service `backup` chiffre avec Age le dump PostgreSQL et l'archive des
+documents avant toute écriture dans `BACKUP_DIR`. Seuls des fichiers
+`*.dump.age` et `*.tar.gz.age`, créés avec des permissions restrictives, sont
+conservés ; les fichiers en clair restent dans le `tmpfs` du conteneur et sont
+supprimés après chiffrement.
+
+`BACKUP_AGE_RECIPIENT` doit contenir la clé publique Age du destinataire. La clé
+privée correspondante ne doit jamais être placée dans ce dépôt, dans le fichier
+`.env` de l'application ni sur le même stockage que les sauvegardes : elle doit
+être injectée uniquement lors d'une restauration depuis un gestionnaire de
+secrets séparé. `make backup-now` déclenche une sauvegarde ponctuelle avec la
+surcharge de production. `make backup-restore-test` génère une paire de clés
+éphémère et vérifie localement le chiffrement et la restauration de la base et
+des documents dans une pile Compose de production isolée et jetable.
+
+Le smoke test de production crée une paire de clés éphémère, sauvegarde puis
+restaure réellement la base et un document témoin. En exploitation, il reste à
+mettre en place une copie hors site versionnée ou immuable, la rotation des clés
+et un test périodique de restauration avec les clés réelles.

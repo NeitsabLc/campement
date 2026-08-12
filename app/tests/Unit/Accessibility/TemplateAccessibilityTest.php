@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Accessibility;
 
 use PHPUnit\Framework\TestCase;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 
 final class TemplateAccessibilityTest extends TestCase
 {
@@ -28,7 +26,7 @@ final class TemplateAccessibilityTest extends TestCase
     public function testChaqueDialoguePossedeUnNomAccessible(): void
     {
         $repertoire = dirname(__DIR__, 3).'/templates';
-        $fichiers = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($repertoire));
+        $fichiers = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($repertoire));
         $dialoguesTrouves = 0;
 
         foreach ($fichiers as $fichier) {
@@ -92,7 +90,7 @@ final class TemplateAccessibilityTest extends TestCase
     public function testLesMessagesFlashSontAnnoncesSelonLeurPriorite(): void
     {
         $repertoire = dirname(__DIR__, 3).'/templates';
-        $fichiers = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($repertoire));
+        $fichiers = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($repertoire));
         $messagesTrouves = 0;
 
         foreach ($fichiers as $fichier) {

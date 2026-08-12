@@ -2,6 +2,8 @@
 
 DOCKER_COMPOSE := docker compose
 DOCKER_COMPOSE_PROD := docker compose -f compose.yaml -f compose.prod.yaml
+RELEASE_ENV ?= .env.release
+DOCKER_COMPOSE_RELEASE := docker compose --env-file .env --env-file $(RELEASE_ENV) -f compose.yaml -f compose.prod.yaml -f compose.release.yaml
 PHP := $(DOCKER_COMPOSE) exec php
 PHP_RUN := $(DOCKER_COMPOSE) run --rm php
 LIQUIBASE := $(DOCKER_COMPOSE) --profile tools run --rm liquibase
@@ -39,8 +41,8 @@ ps: ## Afficher l'état des conteneurs
 	$(DOCKER_COMPOSE) ps
 
 .PHONY: prod-config
-prod-config: ## Valider et afficher la configuration Compose de production
-	$(DOCKER_COMPOSE_PROD) config
+prod-config: ## Valider silencieusement la configuration Compose de production
+	@$(DOCKER_COMPOSE_PROD) config --quiet
 
 .PHONY: prod-up
 prod-up: ## Démarrer la production avec sa surcharge sécurisée
@@ -49,6 +51,34 @@ prod-up: ## Démarrer la production avec sa surcharge sécurisée
 .PHONY: prod-ps
 prod-ps: ## Afficher l'état des conteneurs de production
 	$(DOCKER_COMPOSE_PROD) ps
+
+.PHONY: release-config
+release-config: ## Valider la configuration de livraison utilisant GHCR
+	@$(DOCKER_COMPOSE_RELEASE) config --quiet
+
+.PHONY: release-verify
+release-verify: ## Vérifier les digests, signatures et attestations GHCR
+	@set -a; . ./$(RELEASE_ENV); set +a; ./scripts/verify-release-images.sh
+
+.PHONY: release-pull
+release-pull: release-config release-verify ## Télécharger manuellement les cinq images vérifiées
+	$(DOCKER_COMPOSE_RELEASE) --profile tools pull php nginx database liquibase backup
+
+.PHONY: release-db-status
+release-db-status: release-config ## Contrôler les migrations avec l'image Liquibase livrée
+	$(DOCKER_COMPOSE_RELEASE) --profile tools run --rm liquibase status
+
+.PHONY: release-db-update
+release-db-update: release-config ## Appliquer les migrations avec l'image Liquibase livrée
+	$(DOCKER_COMPOSE_RELEASE) --profile tools run --rm liquibase update
+
+.PHONY: release-up
+release-up: release-config ## Démarrer manuellement les images GHCR sans reconstruction
+	$(DOCKER_COMPOSE_RELEASE) up -d --no-build database php nginx backup maintenance
+
+.PHONY: release-ps
+release-ps: ## Afficher l'état des conteneurs issus des images GHCR
+	$(DOCKER_COMPOSE_RELEASE) ps
 
 .PHONY: logs
 logs: ## Afficher les journaux
@@ -133,6 +163,29 @@ db-shell: ## Ouvrir une console PostgreSQL
 doctrine-validate: ## Vérifier le mapping Doctrine
 	docker compose exec php php bin/console doctrine:schema:validate --skip-sync
 
+.PHONY: lint-php
+lint-php: ## Contrôler le style PHP sans modifier les fichiers
+	$(PHP) composer lint:php
+
+.PHONY: style
+style: lint-php ## Vérifier le style du code PHP
+
+.PHONY: fix-php
+fix-php: ## Corriger automatiquement le style PHP
+	$(PHP) composer fix:php
+
+.PHONY: style-fix
+style-fix: fix-php ## Corriger automatiquement le style du code PHP
+
+.PHONY: analyse-statique
+analyse-statique: ## Analyser le code PHP avec PHPStan
+	$(PHP) php bin/console cache:warmup --env=dev
+	$(PHP) vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+.PHONY: test-accessibility
+test-accessibility: db-update-dev assets-compile ## Tester l'accessibilité sur les données de développement
+	npm run test:accessibility
+
 .PHONY: test-db-reset
 test-db-reset: ## Recréer et initialiser la base de tests
 	$(DOCKER_COMPOSE) exec database sh -c \
@@ -164,6 +217,14 @@ purge-data: ## Appliquer immédiatement les délais de conservation
 .PHONY: backup-now
 backup-now: ## Créer immédiatement une sauvegarde via le service de production
 	$(DOCKER_COMPOSE_PROD) run --rm -e BACKUP_ONCE=1 backup
+
+.PHONY: backup-restore-test
+backup-restore-test: ## Chiffrer puis restaurer la base et les documents dans un environnement jetable
+	./scripts/ci-backup-restore.sh
+
+.PHONY: maintenance-now
+maintenance-now: ## Exécuter immédiatement un cycle de maintenance de production
+	$(DOCKER_COMPOSE_PROD) run --rm -e MAINTENANCE_ONCE=1 maintenance
 
 .PHONY: prod-db-roles-prepare
 prod-db-roles-prepare: ## Préparer les rôles PostgreSQL limités sans retirer les accès existants

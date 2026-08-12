@@ -17,7 +17,8 @@ final class PreparationDistribution
         private readonly MenuRepository $menus,
         private readonly SejourTypeRepasRepository $typesRepas,
         private readonly EntityManagerInterface $entityManager,
-    ) {}
+    ) {
+    }
 
     /**
      * Crée les déjeuners vides nécessaires à la fusion des goûters.

@@ -7,7 +7,6 @@ namespace App\Repository;
 use App\Entity\Menu;
 use App\Entity\Sejour;
 use App\Entity\SejourTypeRepas;
-use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -25,7 +24,7 @@ final class MenuRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('e')->andWhere('e.actif = true')->getQuery()->getResult();
     }
 
-    public function findPourRepas(Sejour $sejour, DateTimeImmutable $date, SejourTypeRepas $repas): ?Menu
+    public function findPourRepas(Sejour $sejour, \DateTimeImmutable $date, SejourTypeRepas $repas): ?Menu
     {
         return $this->createQueryBuilder('menu')
             ->addSelect('menuDenree', 'denree', 'conditionnement', 'quantite', 'sejourPublicCible', 'publicCible')
@@ -47,7 +46,7 @@ final class MenuRepository extends ServiceEntityRepository
     }
 
     /** @return list<Menu> */
-    public function findPourDate(Sejour $sejour, DateTimeImmutable $date): array
+    public function findPourDate(Sejour $sejour, \DateTimeImmutable $date): array
     {
         return $this->createQueryBuilder('menu')
             ->addSelect('repas', 'typeRepas', 'menuDenree', 'denree', 'recette')
@@ -69,7 +68,7 @@ final class MenuRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return list<array{specialCode: ?string, dateMenu: ?DateTimeImmutable, repasId: ?string, nombreDenrees: string|int}>
+     * @return list<array{specialCode: ?string, dateMenu: ?\DateTimeImmutable, repasId: ?string, nombreDenrees: string|int}>
      */
     public function findStatutsPourSejour(Sejour $sejour): array
     {
@@ -89,11 +88,11 @@ final class MenuRepository extends ServiceEntityRepository
 
     public function findSpecial(Sejour $sejour, string $code): ?Menu
     {
-        return $this->createQueryBuilder('menu')->addSelect('menuDenree','denree','quantite','sejourPublicCible','publicCible','conditionnement')
-            ->leftJoin('menu.denrees','menuDenree')->leftJoin('menuDenree.denree','denree')->leftJoin('menuDenree.conditionnement','conditionnement')
-            ->leftJoin('menuDenree.quantites','quantite')->leftJoin('quantite.sejourPublicCible','sejourPublicCible')->leftJoin('sejourPublicCible.publicCible','publicCible')
+        return $this->createQueryBuilder('menu')->addSelect('menuDenree', 'denree', 'quantite', 'sejourPublicCible', 'publicCible', 'conditionnement')
+            ->leftJoin('menu.denrees', 'menuDenree')->leftJoin('menuDenree.denree', 'denree')->leftJoin('menuDenree.conditionnement', 'conditionnement')
+            ->leftJoin('menuDenree.quantites', 'quantite')->leftJoin('quantite.sejourPublicCible', 'sejourPublicCible')->leftJoin('sejourPublicCible.publicCible', 'publicCible')
             ->andWhere('menu.sejour = :sejour')->andWhere('menu.specialCode = :code')->andWhere('menu.actif = true')
-            ->setParameter('sejour',$sejour)->setParameter('code',$code)->getQuery()->getOneOrNullResult();
+            ->setParameter('sejour', $sejour)->setParameter('code', $code)->getQuery()->getOneOrNullResult();
     }
 
     /** @return list<Menu> */

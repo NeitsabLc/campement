@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\PublicCible;
 use App\Entity\Sejour;
 use App\Entity\SejourTypeRepas;
 use App\Entity\Utilisateur;
 use App\Repository\PublicCibleRepository;
 use App\Repository\SejourRepository;
 use App\Repository\TypeRepasRepository;
-use App\Service\ContexteSejour;
 use App\Service\AnonymisationSejour;
+use App\Service\ContexteSejour;
 use App\Service\DuplicationSejour;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -40,7 +39,9 @@ final class SejourController extends AbstractController
     ): Response {
         $admin = $this->isGranted(Utilisateur::ROLE_ADMIN);
         $connecte = $this->getUser();
-        if (!$connecte instanceof Utilisateur) { throw $this->createAccessDeniedException(); }
+        if (!$connecte instanceof Utilisateur) {
+            throw $this->createAccessDeniedException();
+        }
         if ('app_sejour_ajouter' === $request->attributes->get('_route') && !$admin) {
             throw $this->createAccessDeniedException('Seul un administrateur peut créer un séjour.');
         }
@@ -72,22 +73,32 @@ final class SejourController extends AbstractController
                 $debut = $fin = new \DateTimeImmutable();
             }
             $publicIds = array_filter($request->request->all('publics'), 'is_string');
-            if ('' === $nom || mb_strlen($nom) > 150) { $erreurs[] = 'Le nom est obligatoire et limité à 150 caractères.'; }
-            if (!$datesValides || $fin < $debut) { $erreurs[] = 'Les dates du séjour sont invalides.'; }
-            if ([] === $publicIds) { $erreurs[] = 'Sélectionnez au moins un type de public.'; }
+            if ('' === $nom || mb_strlen($nom) > 150) {
+                $erreurs[] = 'Le nom est obligatoire et limité à 150 caractères.';
+            }
+            if (!$datesValides || $fin < $debut) {
+                $erreurs[] = 'Les dates du séjour sont invalides.';
+            }
+            if ([] === $publicIds) {
+                $erreurs[] = 'Sélectionnez au moins un type de public.';
+            }
             if ([] === $erreurs) {
                 $sejour ??= new Sejour($nom, $debut, $fin);
                 $sejour->setNom($nom)
                     ->setModuleIntendanceActif($request->request->has('module_intendance'))
                     ->setModuleAdministratifActif($request->request->has('module_administratif'))
                     ->setModuleSituationsParticulieresActif($request->request->has('module_situations_particulieres'));
-                if (!$creation) { $sejour->setDates($debut, $fin); }
+                if (!$creation) {
+                    $sejour->setDates($debut, $fin);
+                }
                 foreach ($publics->findActifs() as $public) {
                     in_array((string) $public->getId(), $publicIds, true) ? $sejour->addPublicCible($public) : $sejour->removePublicCible($public);
                 }
                 if ($creation) {
                     $entityManager->persist($sejour);
-                    foreach ($typesRepas->findActifs() as $typeRepas) $entityManager->persist(new SejourTypeRepas($sejour, $typeRepas, $typeRepas->getOrdre()));
+                    foreach ($typesRepas->findActifs() as $typeRepas) {
+                        $entityManager->persist(new SejourTypeRepas($sejour, $typeRepas, $typeRepas->getOrdre()));
+                    }
                 }
                 if ($creation && $sourceDuplication instanceof Sejour) {
                     $choix = array_values(array_filter($request->request->all('duplication'), 'is_string'));
@@ -99,6 +110,7 @@ final class SejourController extends AbstractController
                     $entityManager->flush();
                 }
                 $this->addFlash('success', $creation ? 'Le séjour a été créé.' : 'Le séjour a été mis à jour.');
+
                 return $this->redirectToRoute('app_sejours');
             }
         }
@@ -130,8 +142,15 @@ final class SejourController extends AbstractController
     #[Route('/sejours/{id}/selection', name: 'app_sejour_selectionner', methods: ['POST'])]
     public function selectionner(Sejour $sejour, Request $request, ContexteSejour $contexte): Response
     {
-        if (!$this->isCsrfTokenValid('selectionner_sejour_'.$sejour->getId(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
-        try { $contexte->selectionner($sejour); } catch (\InvalidArgumentException) { throw $this->createAccessDeniedException(); }
+        if (!$this->isCsrfTokenValid('selectionner_sejour_'.$sejour->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        try {
+            $contexte->selectionner($sejour);
+        } catch (\InvalidArgumentException) {
+            throw $this->createAccessDeniedException();
+        }
+
         return $this->redirectToRoute('sejours' === $request->request->getString('retour') ? 'app_sejours' : 'app_tableau_de_bord');
     }
 
@@ -139,12 +158,19 @@ final class SejourController extends AbstractController
     public function statut(Sejour $sejour, Request $request, EntityManagerInterface $entityManager, ContexteSejour $contexte, AnonymisationSejour $anonymisation): Response
     {
         $connecte = $this->getUser();
-        if (!$connecte instanceof Utilisateur || (!$this->isGranted(Utilisateur::ROLE_ADMIN) && !$connecte->getSejoursGeres()->contains($sejour))) { throw $this->createAccessDeniedException(); }
-        if (!$this->isCsrfTokenValid('statut_sejour_'.$sejour->getId(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
-        if (!$sejour->isActif() && !$this->isGranted(Utilisateur::ROLE_ADMIN)) { throw $this->createAccessDeniedException(); }
+        if (!$connecte instanceof Utilisateur || (!$this->isGranted(Utilisateur::ROLE_ADMIN) && !$connecte->getSejoursGeres()->contains($sejour))) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!$this->isCsrfTokenValid('statut_sejour_'.$sejour->getId(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!$sejour->isActif() && !$this->isGranted(Utilisateur::ROLE_ADMIN)) {
+            throw $this->createAccessDeniedException();
+        }
         $activation = !$sejour->isActif();
         if (!$activation && 'CONFIRMER' !== $request->request->getString('confirmation')) {
             $this->addFlash('error', 'La confirmation de suppression des données personnelles est requise.');
+
             return $this->redirectToRoute('app_sejours');
         }
         $sejour->setActif($activation);
@@ -154,9 +180,12 @@ final class SejourController extends AbstractController
         } else {
             $anonymisation->anonymiser($sejour, true);
         }
-        if (!$sejour->isActif() && $contexte->actif() === $sejour) { $contexte->selectionner(null); }
+        if (!$sejour->isActif() && $contexte->actif() === $sejour) {
+            $contexte->selectionner(null);
+        }
         $entityManager->flush();
         $this->addFlash('success', $sejour->isActif() ? 'Le séjour a été réactivé.' : 'Le séjour a été désactivé.');
+
         return $this->redirectToRoute('app_sejours');
     }
 }

@@ -67,6 +67,7 @@ final class DenreeRepository extends ServiceEntityRepository
         if (null !== $exclue) {
             $qb->andWhere('d != :exclue')->setParameter('exclue', $exclue);
         }
+
         return (int) $qb->getQuery()->getSingleScalarResult() > 0;
     }
 }

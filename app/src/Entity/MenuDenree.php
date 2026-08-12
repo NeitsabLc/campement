@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\MenuDenreeRepository;
-use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -50,10 +49,10 @@ class MenuDenree
     private int $ordre = 0;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, MenuDenreeQuantite> */
     #[ORM\OneToMany(
@@ -66,7 +65,7 @@ class MenuDenree
 
     public function __construct()
     {
-        $maintenant = new DateTimeImmutable();
+        $maintenant = new \DateTimeImmutable();
         $this->id = new UuidV7();
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
@@ -102,14 +101,53 @@ class MenuDenree
         return $this;
     }
 
-    public function getConditionnement(): Unite { return $this->conditionnement; }
-    public function setConditionnement(Unite $conditionnement): self { $this->conditionnement = $conditionnement; return $this; }
-    public function getRecette(): ?Recette { return $this->recette; }
-    public function setRecette(?Recette $recette): self { $this->recette = $recette; return $this; }
-    public function getRecetteInstanceId(): ?Uuid { return $this->recetteInstanceId; }
-    public function setRecetteInstanceId(?Uuid $id): self { $this->recetteInstanceId = $id; return $this; }
-    public function getCategorie(): ?string { return $this->categorie; }
-    public function setCategorie(?string $categorie): self { $this->categorie = $categorie; return $this; }
+    public function getConditionnement(): Unite
+    {
+        return $this->conditionnement;
+    }
+
+    public function setConditionnement(Unite $conditionnement): self
+    {
+        $this->conditionnement = $conditionnement;
+
+        return $this;
+    }
+
+    public function getRecette(): ?Recette
+    {
+        return $this->recette;
+    }
+
+    public function setRecette(?Recette $recette): self
+    {
+        $this->recette = $recette;
+
+        return $this;
+    }
+
+    public function getRecetteInstanceId(): ?Uuid
+    {
+        return $this->recetteInstanceId;
+    }
+
+    public function setRecetteInstanceId(?Uuid $id): self
+    {
+        $this->recetteInstanceId = $id;
+
+        return $this;
+    }
+
+    public function getCategorie(): ?string
+    {
+        return $this->categorie;
+    }
+
+    public function setCategorie(?string $categorie): self
+    {
+        $this->categorie = $categorie;
+
+        return $this;
+    }
 
     public function getOrdre(): int
     {
@@ -123,17 +161,17 @@ class MenuDenree
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
@@ -143,7 +181,7 @@ class MenuDenree
     #[ORM\PreUpdate]
     public function actualiserDateModification(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /** @return Collection<int, MenuDenreeQuantite> */

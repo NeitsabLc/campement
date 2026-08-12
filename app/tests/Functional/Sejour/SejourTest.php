@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Sejour;
 
-use App\Entity\PublicCible;
-use App\Entity\Sejour;
-use App\Entity\Utilisateur;
+use App\Entity\DocumentParticipant;
 use App\Entity\Groupe;
 use App\Entity\Participant;
-use App\Entity\DocumentParticipant;
+use App\Entity\PublicCible;
+use App\Entity\Sejour;
 use App\Entity\SituationParticuliere;
+use App\Entity\Utilisateur;
 use App\Repository\PublicCibleRepository;
 use App\Repository\SejourRepository;
 use App\Repository\UtilisateurRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\DBAL\Connection;
 use App\Service\AnonymisationSejour;
 use App\Service\StockageDocumentParticipant;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class SejourTest extends WebTestCase
 {
@@ -86,9 +86,13 @@ final class SejourTest extends WebTestCase
         $nomStockage = $stockage->stocker(new UploadedFile($temporaire, 'test.pdf', 'application/pdf', null, true));
         $document = (new DocumentParticipant())->setParticipant($participant)->setType(DocumentParticipant::FICHE_SANITAIRE)
             ->setNomFichier('test.pdf')->setCheminStockage($nomStockage);
-        foreach ([$sejour, $groupe, $participant, $situation, $document] as $entite) $em->persist($entite);
+        foreach ([$sejour, $groupe, $participant, $situation, $document] as $entite) {
+            $em->persist($entite);
+        }
         $em->flush();
-        $participantId = $participant->getId(); $groupeId = $groupe->getId(); $situationId = $situation->getId();
+        $participantId = $participant->getId();
+        $groupeId = $groupe->getId();
+        $situationId = $situation->getId();
 
         $container->get(AnonymisationSejour::class)->anonymiser($sejour, true);
         $em->clear();
@@ -109,15 +113,15 @@ final class SejourTest extends WebTestCase
         self::assertInstanceOf(Sejour::class, $source);
         $db = $container->get(Connection::class);
         $suffixe = bin2hex(random_bytes(4));
-        $fournisseurId = (string) $db->fetchOne("INSERT INTO campement.fournisseur (id,sejour_id,nom,actif) VALUES (uuidv7(),:sejour,:nom,true) RETURNING id", ['sejour' => (string) $source->getId(), 'nom' => 'Fournisseur '.$suffixe]);
+        $fournisseurId = (string) $db->fetchOne('INSERT INTO campement.fournisseur (id,sejour_id,nom,actif) VALUES (uuidv7(),:sejour,:nom,true) RETURNING id', ['sejour' => (string) $source->getId(), 'nom' => 'Fournisseur '.$suffixe]);
         $denree = $db->fetchAssociative('SELECT id,unite_inventaire_id FROM campement.denree WHERE sejour_id=:sejour ORDER BY nom LIMIT 1', ['sejour' => (string) $source->getId()]);
         self::assertIsArray($denree);
-        $referenceId = (string) $db->fetchOne("INSERT INTO campement.denree_fournisseur (id,fournisseur_id,denree_id,reference,actif) VALUES (uuidv7(),:fournisseur,:denree,:reference,true) RETURNING id", ['fournisseur' => $fournisseurId, 'denree' => $denree['id'], 'reference' => 'REF-'.$suffixe]);
+        $referenceId = (string) $db->fetchOne('INSERT INTO campement.denree_fournisseur (id,fournisseur_id,denree_id,reference,actif) VALUES (uuidv7(),:fournisseur,:denree,:reference,true) RETURNING id', ['fournisseur' => $fournisseurId, 'denree' => $denree['id'], 'reference' => 'REF-'.$suffixe]);
         $db->executeStatement("INSERT INTO campement.denree_fournisseur_conditionnement (id,reference_fournisseur_id,ordre,libelle,conditionnement_id,quantite_contenu,unite_contenu_id) VALUES (uuidv7(),:reference,1,'Inventaire',:unite,1,:unite)", ['reference' => $referenceId, 'unite' => $denree['unite_inventaire_id']]);
         $db->executeStatement("INSERT INTO campement.recette (id,sejour_id,nom,categorie,actif) VALUES (uuidv7(),:sejour,:nom,'PLAT',true)", ['sejour' => (string) $source->getId(), 'nom' => 'Recette '.$suffixe]);
-        $db->executeStatement("INSERT INTO campement.menu (id,sejour_id,sejour_type_repas_id,date_menu,nom,actif) SELECT uuidv7(),:sejour,id,:date,:nom,true FROM campement.sejour_type_repas WHERE sejour_id=:sejour ORDER BY ordre LIMIT 1", ['sejour' => (string) $source->getId(), 'date' => '2026-07-'.random_int(2, 28), 'nom' => 'Menu '.$suffixe]);
+        $db->executeStatement('INSERT INTO campement.menu (id,sejour_id,sejour_type_repas_id,date_menu,nom,actif) SELECT uuidv7(),:sejour,id,:date,:nom,true FROM campement.sejour_type_repas WHERE sejour_id=:sejour ORDER BY ordre LIMIT 1', ['sejour' => (string) $source->getId(), 'date' => '2026-07-'.random_int(2, 28), 'nom' => 'Menu '.$suffixe]);
         $mouvementId = (string) $db->fetchOne("INSERT INTO campement.mouvement_stock (id,sejour_id,utilisateur_id,type_mouvement_id,origine_mouvement_id,date_mouvement) SELECT uuidv7(),:sejour,:utilisateur,t.id,o.id,NOW() FROM campement.type_mouvement t CROSS JOIN campement.origine_mouvement o WHERE t.code='ENTREE' AND o.code='INVENTAIRE' RETURNING id", ['sejour' => (string) $source->getId(), 'utilisateur' => (string) $admin->getId()]);
-        $db->executeStatement("INSERT INTO campement.mouvement_stock_ligne (id,mouvement_stock_id,denree_id,conditionnement_sortie_id,quantite_unite_reference,quantite_unite_inventaire) VALUES (uuidv7(),:mouvement,:denree,:unite,3,3)", ['mouvement' => $mouvementId, 'denree' => $denree['id'], 'unite' => $denree['unite_inventaire_id']]);
+        $db->executeStatement('INSERT INTO campement.mouvement_stock_ligne (id,mouvement_stock_id,denree_id,conditionnement_sortie_id,quantite_unite_reference,quantite_unite_inventaire) VALUES (uuidv7(),:mouvement,:denree,:unite,3,3)', ['mouvement' => $mouvementId, 'denree' => $denree['id'], 'unite' => $denree['unite_inventaire_id']]);
         $client->loginUser($admin);
 
         $crawler = $client->request('GET', '/sejours/'.$source->getId().'/dupliquer');

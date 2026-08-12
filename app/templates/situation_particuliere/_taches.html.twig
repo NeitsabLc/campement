@@ -6,7 +6,7 @@
             <label>Statut<select name="statut">{% for code, libelle in statuts %}<option value="{{ code }}"{{ code == tache.statut ? ' selected' : '' }}>{{ libelle }}</option>{% endfor %}</select></label>
             <label>Échéance<input type="date" name="date_echeance" value="{{ tache.dateEcheance ? tache.dateEcheance|date('Y-m-d') : '' }}"{{ tache.origine == 'AUTOMATIQUE' ? ' disabled' : '' }}></label>
             <label>Date de réalisation<input type="date" name="date_realisation" value="{{ tache.dateRealisation ? tache.dateRealisation|date('Y-m-d') : '' }}"></label>
-        </div><label>Commentaire<textarea name="commentaire" rows="2">{{ tache.commentaire }}</textarea></label><footer><button type="submit">Mettre à jour</button></footer></form>
+        </div><label>Commentaire<textarea name="commentaire" maxlength="2000" rows="2">{{ tache.commentaire }}</textarea></label><footer><button type="submit">Mettre à jour</button></footer></form>
         {% if tache.peutEtreSupprimee %}<form method="post" action="{{ path('app_situation_particuliere_tache_supprimer', {id: situation.id, tacheId: tache.id}) }}" class="task-delete-form"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_tache_' ~ tache.id) }}"><button class="danger-link" type="submit">Supprimer cette tâche</button></form>{% endif %}
         </div></details>{% endfor %}</div>{% endif %}
     <details class="add-task-form"><summary>＋ Ajouter une tâche</summary><form method="post" action="{{ path('app_situation_particuliere_tache_ajouter', {id: situation.id}) }}" data-controller="situation-task-form"><input type="hidden" name="_token" value="{{ csrf_token('ajouter_tache_situation_' ~ situation.id) }}"><div class="add-task-form__fields">

@@ -43,7 +43,9 @@ final class GestionTachesSituationParticuliereTest extends TestCase
 
         self::assertCount(3, $this->situation->getTaches());
         $parType = [];
-        foreach ($this->situation->getTaches() as $tache) $parType[$tache->getTypePredefini()] = $tache;
+        foreach ($this->situation->getTaches() as $tache) {
+            $parType[$tache->getTypePredefini()] = $tache;
+        }
         self::assertSame('2026-08-15', $parType[TacheSituationParticuliere::TYPE_ACCIDENT]->getDateEcheance()?->format('Y-m-d'));
         self::assertSame('2026-08-12', $parType[TacheSituationParticuliere::TYPE_EVENEMENT_GRAVE]->getDateEcheance()?->format('Y-m-d'));
         self::assertSame('2026-08-10', $parType[TacheSituationParticuliere::TYPE_APPEL_URGENCE]->getDateEcheance()?->format('Y-m-d'));

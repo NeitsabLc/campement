@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -40,19 +39,19 @@ class Groupe
     private string $type;
 
     #[ORM\Column(name: 'date_debut_presence', type: Types::DATE_IMMUTABLE)]
-    private DateTimeImmutable $dateDebutPresence;
+    private \DateTimeImmutable $dateDebutPresence;
 
     #[ORM\Column(name: 'date_fin_presence', type: Types::DATE_IMMUTABLE)]
-    private DateTimeImmutable $dateFinPresence;
+    private \DateTimeImmutable $dateFinPresence;
 
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, Utilisateur> */
     #[ORM\OneToMany(mappedBy: 'groupe', targetEntity: Utilisateur::class)]
@@ -64,7 +63,7 @@ class Groupe
 
     public function __construct()
     {
-        $maintenant = new DateTimeImmutable();
+        $maintenant = new \DateTimeImmutable();
         $this->id = new UuidV7();
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
@@ -137,31 +136,31 @@ class Groupe
         return $this;
     }
 
-    public function getDateDebutPresence(): DateTimeImmutable
+    public function getDateDebutPresence(): \DateTimeImmutable
     {
         return $this->dateDebutPresence;
     }
 
-    public function setDateDebutPresence(DateTimeImmutable $dateDebutPresence): self
+    public function setDateDebutPresence(\DateTimeImmutable $dateDebutPresence): self
     {
         $this->dateDebutPresence = $dateDebutPresence;
 
         return $this;
     }
 
-    public function getDateFinPresence(): DateTimeImmutable
+    public function getDateFinPresence(): \DateTimeImmutable
     {
         return $this->dateFinPresence;
     }
 
-    public function setDateFinPresence(DateTimeImmutable $dateFinPresence): self
+    public function setDateFinPresence(\DateTimeImmutable $dateFinPresence): self
     {
         $this->dateFinPresence = $dateFinPresence;
 
         return $this;
     }
 
-    public function estPresentLe(DateTimeImmutable $date): bool
+    public function estPresentLe(\DateTimeImmutable $date): bool
     {
         return $date >= $this->dateDebutPresence && $date <= $this->dateFinPresence;
     }
@@ -178,17 +177,17 @@ class Groupe
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
@@ -198,7 +197,7 @@ class Groupe
     #[ORM\PreUpdate]
     public function actualiserDateModification(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /** @return Collection<int, Utilisateur> */
@@ -231,5 +230,4 @@ class Groupe
     {
         return $this->participants;
     }
-
 }

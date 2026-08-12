@@ -14,9 +14,8 @@ use App\Repository\SejourRepository;
 use App\Repository\TypeMouvementRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ConversionConditionnement;
-use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -53,7 +52,7 @@ final class SortieConsommationController extends AbstractController
             return $this->render('sortie_consommation/index.html.twig', ['sejour' => null]);
         }
 
-        $groupesActifs = $groupes->findActifsPresentsPourSejour($sejour, new DateTimeImmutable('today'));
+        $groupesActifs = $groupes->findActifsPresentsPourSejour($sejour, new \DateTimeImmutable('today'));
         $tousLesMenus = $menus->findActifsPourSejour($sejour);
         $cleSoumission = $request->request->getString('cle_soumission');
         if (!Uuid::isValid($cleSoumission)) {
@@ -258,7 +257,9 @@ final class SortieConsommationController extends AbstractController
 
     /**
      * @template T of object
+     *
      * @param list<T> $items
+     *
      * @return T|null
      */
     private function selection(string $id, array $items): ?object
@@ -275,16 +276,16 @@ final class SortieConsommationController extends AbstractController
         return null;
     }
 
-    private function dateMouvementNavigateur(Request $request, Menu $menu): DateTimeImmutable
+    private function dateMouvementNavigateur(Request $request, Menu $menu): \DateTimeImmutable
     {
         $iso = $request->request->getString('date_navigateur');
         $heure = $request->request->getString('heure_navigateur');
         $decalageBrut = $request->request->getString('decalage_utc');
         $decalage = preg_match('/^-?\d+$/', $decalageBrut) ? (int) $decalageBrut : 0;
         try {
-            $instant = '' !== $iso ? new DateTimeImmutable($iso) : new DateTimeImmutable();
+            $instant = '' !== $iso ? new \DateTimeImmutable($iso) : new \DateTimeImmutable();
         } catch (\Exception) {
-            $instant = new DateTimeImmutable();
+            $instant = new \DateTimeImmutable();
         }
         if (null === $menu->getDateMenu() || !preg_match('/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $heure)) {
             return $instant;
@@ -296,6 +297,6 @@ final class SortieConsommationController extends AbstractController
         $minutes = abs($minutes);
         $offset = sprintf('%s%02d:%02d', $signe, intdiv($minutes, 60), $minutes % 60);
 
-        return new DateTimeImmutable($menu->getDateMenu()->format('Y-m-d').'T'.$heure.$offset);
+        return new \DateTimeImmutable($menu->getDateMenu()->format('Y-m-d').'T'.$heure.$offset);
     }
 }

@@ -3,18 +3,19 @@
 # définir POSTGRES_HBA_FILE avant toute exposition réseau. Les noms de rôles
 # doivent correspondre aux variables POSTGRES_*_USER du fichier .env.
 
-local   all             all                                     trust
-host    all             all             127.0.0.1/32            trust
-host    all             all             ::1/128                 trust
+local   all             all                                     scram-sha-256
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             ::1/128                 scram-sha-256
 
-local   replication     all                                     trust
-host    replication     all             127.0.0.1/32            trust
-host    replication     all             ::1/128                 trust
+local   replication     all                                     scram-sha-256
+host    replication     all             127.0.0.1/32            scram-sha-256
+host    replication     all             ::1/128                 scram-sha-256
 
 host    campement       campement_app          172.30.0.0/16           scram-sha-256
 host    campement       campement_migrator     172.30.0.0/16           scram-sha-256
 host    campement       campement_backup       172.30.0.0/16           scram-sha-256
 host    campement       campement              172.30.0.0/16           scram-sha-256
+host    all             campement_admin        172.30.0.0/16           scram-sha-256
 
 host    all             all                     0.0.0.0/0               reject
 host    all             all                     ::/0                    reject

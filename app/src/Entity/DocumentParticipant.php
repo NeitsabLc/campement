@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -41,17 +40,69 @@ class DocumentParticipant
     #[ORM\Column(name: 'chemin_stockage', length: 500)]
     private string $cheminStockage;
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE)]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
-    public function __construct() { $this->id = new UuidV7(); $this->createdAt = new DateTimeImmutable(); }
-    public function getId(): ?Uuid { return $this->id; }
-    public function getParticipant(): Participant { return $this->participant; }
-    public function setParticipant(Participant $valeur): self { $this->participant = $valeur; return $this; }
-    public function getType(): string { return $this->type; }
-    public function setType(string $valeur): self { $this->type = $valeur; return $this; }
-    public function getNomFichier(): string { return $this->nomFichier; }
-    public function setNomFichier(string $valeur): self { $this->nomFichier = $valeur; return $this; }
-    public function getCheminStockage(): string { return $this->cheminStockage; }
-    public function setCheminStockage(string $valeur): self { $this->cheminStockage = $valeur; return $this; }
-    public function getCreatedAt(): DateTimeImmutable { return $this->createdAt; }
+    public function __construct()
+    {
+        $this->id = new UuidV7();
+        $this->createdAt = new \DateTimeImmutable();
+    }
+
+    public function getId(): ?Uuid
+    {
+        return $this->id;
+    }
+
+    public function getParticipant(): Participant
+    {
+        return $this->participant;
+    }
+
+    public function setParticipant(Participant $valeur): self
+    {
+        $this->participant = $valeur;
+
+        return $this;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $valeur): self
+    {
+        $this->type = $valeur;
+
+        return $this;
+    }
+
+    public function getNomFichier(): string
+    {
+        return $this->nomFichier;
+    }
+
+    public function setNomFichier(string $valeur): self
+    {
+        $this->nomFichier = $valeur;
+
+        return $this;
+    }
+
+    public function getCheminStockage(): string
+    {
+        return $this->cheminStockage;
+    }
+
+    public function setCheminStockage(string $valeur): self
+    {
+        $this->cheminStockage = $valeur;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
 }

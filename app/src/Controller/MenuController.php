@@ -19,9 +19,7 @@ use App\Repository\UniteRepository;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
 use App\Service\PreparationDistribution;
-use DateInterval;
-use DatePeriod;
-use DateTimeImmutable;
+use App\Service\PresentationMenu;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\ExpressionLanguage\Expression;
@@ -35,7 +33,6 @@ use Symfony\Component\Uid\Uuid;
 final class MenuController extends AbstractController
 {
     private const CATEGORIES = Recette::CATEGORIES;
-    private const REPAS_AVEC_CATEGORIES = ['DEJEUNER', 'DINER'];
     private const SPECIAUX = [
         'EXPLO' => 'Explo',
         'PIQUE_NIQUE_1' => 'Pique-nique 1',
@@ -54,6 +51,7 @@ final class MenuController extends AbstractController
         UniteRepository $unites,
         ConversionConditionnement $conversion,
         PreparationDistribution $preparationDistribution,
+        PresentationMenu $presentation,
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexte->actif();
@@ -69,8 +67,8 @@ final class MenuController extends AbstractController
 
         $specialDemande = $request->query->getString('special');
         $special = array_key_exists($specialDemande, self::SPECIAUX) ? $specialDemande : null;
-        $date = $this->date($request, $sejour->getDateDebut(), $sejour->getDateFin());
-        $repasSelectionne = $this->repas($request->query->getString('repas'), $repas);
+        $date = $presentation->date($request, $sejour->getDateDebut(), $sejour->getDateFin());
+        $repasSelectionne = $presentation->repas($request->query->getString('repas'), $repas);
 
         if ($lectureSeule && $request->isMethod('POST')) {
             throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
@@ -80,10 +78,10 @@ final class MenuController extends AbstractController
             return $this->render('menu/groupe.html.twig', [
                 'sejour' => $sejour,
                 'date_selectionnee' => $date,
-                'date_libelle' => $this->libelleDate($date),
+                'date_libelle' => $presentation->libelleDate($date),
                 'jour_precedent' => $date > $sejour->getDateDebut() ? $date->modify('-1 day') : null,
                 'jour_suivant' => $date < $sejour->getDateFin() ? $date->modify('+1 day') : null,
-                'menus_jour' => $this->menusDuJour($menus->findPourDate($sejour, $date), $repas),
+                'menus_jour' => $presentation->menusDuJour($menus->findPourDate($sejour, $date), $repas),
             ]);
         }
 
@@ -91,7 +89,7 @@ final class MenuController extends AbstractController
             ? $menus->findSpecial($sejour, $special)
             : $menus->findPourRepas($sejour, $date, $repasSelectionne);
         $publicsActifs = $publics->findActifsPourSejour($sejour);
-        $avecCategories = null === $special && $this->avecCategories($repasSelectionne->getTypeRepas()->getCode());
+        $avecCategories = null === $special && $presentation->avecCategories($repasSelectionne->getTypeRepas()->getCode());
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
@@ -174,74 +172,13 @@ final class MenuController extends AbstractController
 
         $denreesActives = $denrees->findActifsPourSejour($sejour);
         $conditionnements = $conversion->conditionnementsPourDenrees($denreesActives);
-        $catalogue = [];
-        foreach ($denreesActives as $denree) {
-            $catalogue[(string) $denree->getId()] = [
-                'id' => (string) $denree->getId(),
-                'nom' => $denree->getNom(),
-                'conditionnements' => array_map(static fn ($unite): array => [
-                    'id' => (string) $unite->getId(),
-                    'nom' => $unite->getNom(),
-                    'symbole' => $unite->getSymbole(),
-                ], $conditionnements[(string) $denree->getId()]),
-            ];
-        }
+        $catalogue = $presentation->catalogue($denreesActives, $conditionnements);
 
         $recettesActives = $recettes->findActivesPourSejour($sejour);
-        $recettesJson = [];
-        foreach ($recettesActives as $recette) {
-            $lignes = [];
-            foreach ($recette->getDenrees() as $ligne) {
-                $quantites = [];
-                foreach ($ligne->getQuantites() as $quantite) {
-                    $quantites[(string) $quantite->getSejourPublicCible()->getId()] = $quantite->getQuantiteIndividuelle();
-                }
-                $lignes[] = [
-                    'denree' => (string) $ligne->getDenree()->getId(),
-                    'conditionnement' => (string) $ligne->getConditionnement()->getId(),
-                    'quantites' => $quantites,
-                ];
-            }
-            $recettesJson[(string) $recette->getId()] = [
-                'nom' => $recette->getNom(),
-                'categorie' => $recette->getCategorie(),
-                'lignes' => $lignes,
-            ];
-        }
-
-        $menusExistants = [];
-        foreach ($menus->findStatutsPourSejour($sejour) as $statut) {
-            $cle = $statut['specialCode']
-                ? 'special|'.$statut['specialCode']
-                : $statut['dateMenu']?->format('Y-m-d').'|'.$statut['repasId'];
-            $menusExistants[$cle] = (int) $statut['nombreDenrees'] > 0;
-        }
-
-        $jours = [];
-        foreach (new DatePeriod($sejour->getDateDebut(), new DateInterval('P1D'), $sejour->getDateFin()->modify('+1 day')) as $jour) {
-            $jours[] = $jour;
-        }
-
-        $compositionMenu = [];
-        if (null !== $menu) {
-            foreach ($menu->getDenrees() as $ligne) {
-                $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
-                $instance = $ligne->getRecetteInstanceId();
-                $recette = $ligne->getRecette();
-                if (null !== $instance && null !== $recette) {
-                    $cle = (string) $instance;
-                    $compositionMenu[$categorie]['recettes'][$cle] ??= [
-                        'id' => (string) $recette->getId(),
-                        'nom' => $recette->getNom(),
-                        'instance' => $cle,
-                        'lignes' => [],
-                    ];
-                    $compositionMenu[$categorie]['recettes'][$cle]['lignes'][] = $ligne;
-                } else {
-                    $compositionMenu[$categorie]['supplementaires'][] = $ligne;
-                }
-            }
-        }
+        $recettesJson = $presentation->recettesJson($recettesActives);
+        $menusExistants = $presentation->menusExistants($menus->findStatutsPourSejour($sejour));
+        $jours = $presentation->jours($sejour);
+        $compositionMenu = $presentation->composition($menu, $avecCategories);
 
         return $this->render('menu/index.html.twig', [
             'sejour' => $sejour,
@@ -260,105 +197,14 @@ final class MenuController extends AbstractController
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
             'lecture_seule' => $lectureSeule,
-            'date_libelle' => $this->libelleDate($date),
+            'date_libelle' => $presentation->libelleDate($date),
             'jour_precedent' => $date > $sejour->getDateDebut() ? $date->modify('-1 day') : null,
             'jour_suivant' => $date < $sejour->getDateFin() ? $date->modify('+1 day') : null,
-            'menus_jour' => $this->menusDuJour($menus->findPourDate($sejour, $date), $repas),
+            'menus_jour' => $presentation->menusDuJour($menus->findPourDate($sejour, $date), $repas),
         ]);
     }
 
-    private function date(Request $request, DateTimeImmutable $debut, DateTimeImmutable $fin): DateTimeImmutable
-    {
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $request->query->getString('date'));
-
-        return false !== $date && $date >= $debut && $date <= $fin ? $date : $debut;
-    }
-
-    /** @param list<SejourTypeRepas> $repas */
-    private function repas(string $id, array $repas): SejourTypeRepas
-    {
-        foreach ($repas as $configuration) {
-            if ((string) $configuration->getId() === $id) {
-                return $configuration;
-            }
-        }
-
-        return $repas[0];
-    }
-
-    private function avecCategories(string $code): bool
-    {
-        return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
-    }
-
-    private function libelleDate(DateTimeImmutable $date): string
-    {
-        $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-        $mois = [1 => 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-
-        return ucfirst(sprintf('%s %d %s', $jours[(int) $date->format('w')], (int) $date->format('j'), $mois[(int) $date->format('n')]));
-    }
-
-    /**
-     * @param list<Menu> $menus
-     * @param list<SejourTypeRepas> $repas
-     * @return list<array{libelle: string, code: string, categories: list<array{code: string, libelle: string, recettes: list<string>, supplementaires: list<string>}>}>
-     */
-    private function menusDuJour(array $menus, array $repas): array
-    {
-        $parRepas = [];
-        foreach ($menus as $menu) {
-            $configuration = $menu->getSejourTypeRepas();
-            if (null !== $configuration) {
-                $parRepas[(string) $configuration->getId()] = $menu;
-            }
-        }
-
-        $resultat = [];
-        foreach ($repas as $configuration) {
-            $menu = $parRepas[(string) $configuration->getId()] ?? null;
-            $codeRepas = $configuration->getTypeRepas()->getCode();
-            $avecCategories = $this->avecCategories($codeRepas);
-            $categories = [];
-            $codes = $avecCategories ? self::CATEGORIES : [''];
-
-            foreach ($codes as $codeCategorie) {
-                $recettes = [];
-                $supplementaires = [];
-                if (null !== $menu) {
-                    foreach ($menu->getDenrees() as $ligne) {
-                        $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
-                        if ($categorie !== $codeCategorie) {
-                            continue;
-                        }
-                        $recette = $ligne->getRecette();
-                        if (null !== $recette) {
-                            $recettes[(string) ($ligne->getRecetteInstanceId() ?? $recette->getId())] = $recette->getNom();
-                        } else {
-                            $supplementaires[] = $ligne->getDenree()->getNom();
-                        }
-                    }
-                }
-
-                $categories[] = [
-                    'code' => $codeCategorie,
-                    'libelle' => '' === $codeCategorie ? $configuration->getTypeRepas()->getLibelle() : ucfirst(strtolower($codeCategorie)),
-                    'recettes' => array_values($recettes),
-                    'supplementaires' => $supplementaires,
-                ];
-            }
-
-            $resultat[] = [
-                'libelle' => $configuration->getTypeRepas()->getLibelle(),
-                'code' => $codeRepas,
-                'categories' => $categories,
-            ];
-        }
-
-        return $resultat;
-    }
-
-    private function redirectMenu(DateTimeImmutable $date, SejourTypeRepas $repas, ?string $special): Response
+    private function redirectMenu(\DateTimeImmutable $date, SejourTypeRepas $repas, ?string $special): Response
     {
         return $this->redirectToRoute('app_menus', null !== $special
             ? ['special' => $special]

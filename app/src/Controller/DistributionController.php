@@ -30,7 +30,9 @@ final class DistributionController extends AbstractController
     public function index(Request $request, ContexteSejour $contexte, EntityManagerInterface $em, PreparationDistribution $preparation): Response
     {
         $sejour = $contexte->actif();
-        if (null === $sejour) { return $this->redirectToRoute('app_tableau_de_bord'); }
+        if (null === $sejour) {
+            return $this->redirectToRoute('app_tableau_de_bord');
+        }
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('configurer_distribution_'.$sejour->getId(), $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException('Jeton CSRF invalide.');
@@ -46,6 +48,7 @@ final class DistributionController extends AbstractController
             }
             $em->flush();
             $this->addFlash('success', $message);
+
             return $this->redirectToRoute('app_distribution');
         }
 
@@ -59,7 +62,9 @@ final class DistributionController extends AbstractController
     public function qrCode(Request $request, ContexteSejour $contexte): Response
     {
         $sejour = $contexte->actif();
-        if (null === $sejour) { throw $this->createNotFoundException(); }
+        if (null === $sejour) {
+            throw $this->createNotFoundException();
+        }
         $url = $this->generateUrl('app_sortie_consommation', ['jeton' => $sejour->getJetonDistributionPublique()], UrlGeneratorInterface::ABSOLUTE_URL);
         $resultat = (new SvgWriter())->write(new QrCode(
             data: $url,
@@ -75,6 +80,7 @@ final class DistributionController extends AbstractController
             $reponse->headers->set('Content-Disposition', 'attachment; filename="qr-distribution-'.$sejour->getId().'.svg"');
         }
         $reponse->headers->addCacheControlDirective('no-store');
+
         return $reponse;
     }
 

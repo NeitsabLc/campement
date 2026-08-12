@@ -11,12 +11,16 @@ trait ActivableTrait
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
-    public function isActif(): bool { return $this->actif; }
+    public function isActif(): bool
+    {
+        return $this->actif;
+    }
 
     public function setActif(bool $actif): self
     {
         $this->actif = $actif;
         $this->touch();
+
         return $this;
     }
 }
