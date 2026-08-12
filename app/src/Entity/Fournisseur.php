@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Entity\Traits\ActivableTrait;
@@ -10,18 +11,19 @@ use App\Repository\FournisseurRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: FournisseurRepository::class)]
-#[ORM\Table(name: "fournisseur", schema: "campement")]
-#[ORM\Index(name: "idx_fournisseur_nom", columns: ["nom"])]
-#[ORM\Index(name: "idx_fournisseur_sejour", columns: ["sejour_id"])]
-#[ORM\UniqueConstraint(name: "uq_fournisseur_nom", columns: ["sejour_id", "nom"])]
+#[ORM\Table(name: 'fournisseur', schema: 'campement')]
+#[ORM\Index(name: 'idx_fournisseur_nom', columns: ['nom'])]
+#[ORM\Index(name: 'idx_fournisseur_sejour', columns: ['sejour_id'])]
+#[ORM\UniqueConstraint(name: 'uq_fournisseur_nom', columns: ['sejour_id', 'nom'])]
 class Fournisseur
 {
     use EntityIdTrait;
     use TimestampableTrait;
     use ActivableTrait;
+    public const ADRESSE_LONGUEUR_MAX = 1000;
 
     #[ORM\ManyToOne(targetEntity: Sejour::class)]
-    #[ORM\JoinColumn(name: "sejour_id", nullable: false, onDelete: "CASCADE")]
+    #[ORM\JoinColumn(name: 'sejour_id', nullable: false, onDelete: 'CASCADE')]
     private Sejour $sejour;
 
     #[ORM\Column(length: 150)]
@@ -33,7 +35,7 @@ class Fournisseur
     #[ORM\Column(length: 150, nullable: true)]
     private ?string $email = null;
 
-    #[ORM\Column(type: "text", nullable: true)]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $adresse = null;
 
     public function __construct(Sejour $sejour, string $nom)
@@ -58,6 +60,7 @@ class Fournisseur
     {
         $this->nom = $nom;
         $this->touch();
+
         return $this;
     }
 
@@ -70,6 +73,7 @@ class Fournisseur
     {
         $this->telephone = $tel;
         $this->touch();
+
         return $this;
     }
 
@@ -82,6 +86,7 @@ class Fournisseur
     {
         $this->email = $mail;
         $this->touch();
+
         return $this;
     }
 
@@ -92,8 +97,12 @@ class Fournisseur
 
     public function setAdresse(?string $adresse): self
     {
+        if (null !== $adresse && mb_strlen($adresse) > self::ADRESSE_LONGUEUR_MAX) {
+            throw new \InvalidArgumentException('L’adresse ne peut pas dépasser 1 000 caractères.');
+        }
         $this->adresse = $adresse;
         $this->touch();
+
         return $this;
     }
 

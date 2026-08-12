@@ -10,7 +10,6 @@ use App\Repository\GroupeRepository;
 use App\Repository\ParticipantRepository;
 use App\Repository\SejourPublicCibleRepository;
 use App\Service\ContexteSejour;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -110,8 +109,8 @@ final class GroupeController extends AbstractController
                 $erreurs[] = 'Sélectionnez un type de public disponible pour ce séjour.';
             }
 
-            $dateDebutPresence = DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_debut_presence']);
-            $dateFinPresence = DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_fin_presence']);
+            $dateDebutPresence = \DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_debut_presence']);
+            $dateFinPresence = \DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_fin_presence']);
             if (false === $dateDebutPresence || false === $dateFinPresence
                 || $dateDebutPresence->format('Y-m-d') !== $donnees['date_debut_presence']
                 || $dateFinPresence->format('Y-m-d') !== $donnees['date_fin_presence']) {

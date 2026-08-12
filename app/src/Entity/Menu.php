@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -33,7 +32,7 @@ class Menu
     private ?SejourTypeRepas $sejourTypeRepas = null;
 
     #[ORM\Column(name: 'date_menu', type: Types::DATE_IMMUTABLE, nullable: true)]
-    private ?DateTimeImmutable $dateMenu = null;
+    private ?\DateTimeImmutable $dateMenu = null;
 
     #[ORM\Column(name: 'special_code', length: 20, nullable: true)]
     private ?string $specialCode = null;
@@ -45,10 +44,10 @@ class Menu
     private bool $actif = true;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, MenuDenree> */
     #[ORM\OneToMany(
@@ -62,7 +61,7 @@ class Menu
 
     public function __construct()
     {
-        $maintenant = new DateTimeImmutable();
+        $maintenant = new \DateTimeImmutable();
         $this->id = new UuidV7();
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
@@ -98,21 +97,35 @@ class Menu
         return $this;
     }
 
-    public function getDateMenu(): ?DateTimeImmutable
+    public function getDateMenu(): ?\DateTimeImmutable
     {
         return $this->dateMenu;
     }
 
-    public function setDateMenu(DateTimeImmutable $dateMenu): self
+    public function setDateMenu(\DateTimeImmutable $dateMenu): self
     {
         $this->dateMenu = $dateMenu;
 
         return $this;
     }
 
-    public function getSpecialCode(): ?string { return $this->specialCode; }
-    public function setSpecialCode(?string $code): self { $this->specialCode = $code; return $this; }
-    public function isSpecial(): bool { return null !== $this->specialCode; }
+    public function getSpecialCode(): ?string
+    {
+        return $this->specialCode;
+    }
+
+    public function setSpecialCode(?string $code): self
+    {
+        $this->specialCode = $code;
+
+        return $this;
+    }
+
+    public function isSpecial(): bool
+    {
+        return null !== $this->specialCode;
+    }
+
     public function getLibelle(): string
     {
         return match ($this->specialCode) {
@@ -145,17 +158,17 @@ class Menu
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
@@ -165,7 +178,7 @@ class Menu
     #[ORM\PreUpdate]
     public function actualiserDateModification(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /** @return Collection<int, MenuDenree> */
@@ -194,5 +207,4 @@ class Menu
 
         return $this;
     }
-
 }

@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\Denree;
@@ -7,24 +9,27 @@ use App\Entity\ReferenceFournisseurConditionnement;
 use App\Entity\Unite;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
-use Collator;
 
 final class ConversionConditionnement
 {
-    public function __construct(private ReferenceFournisseurRepository $references, private ReferenceFournisseurConditionnementRepository $niveaux) {}
+    public function __construct(private ReferenceFournisseurRepository $references, private ReferenceFournisseurConditionnementRepository $niveaux)
+    {
+    }
 
     /** @return list<Unite> */
     public function conditionnementsPour(Denree $denree): array
     {
         $resultat = [(string) $denree->getUniteReference()->getId() => $denree->getUniteReference()];
         foreach ($this->references->findPourDenree($denree) as $reference) {
-            if (!$reference->isActif()) continue;
+            if (!$reference->isActif()) {
+                continue;
+            }
             foreach ($this->niveaux->findPourReference($reference) as $niveau) {
                 $resultat[(string) $niveau->getConditionnement()->getId()] = $niveau->getConditionnement();
             }
         }
         $resultat = array_values($resultat);
-        $collator = new Collator('fr_FR');
+        $collator = new \Collator('fr_FR');
         usort($resultat, static fn (Unite $a, Unite $b): int => $collator->compare($a->getNom(), $b->getNom()));
 
         return $resultat;
@@ -33,8 +38,8 @@ final class ConversionConditionnement
     /**
      * Charge en une seule requête les conditionnements de plusieurs denrées.
      *
-     * @param list<Denree> $denrees
-     * @param null|list<ReferenceFournisseurConditionnement> $niveaux niveaux déjà chargés, le cas échéant
+     * @param list<Denree>                                   $denrees
+     * @param list<ReferenceFournisseurConditionnement>|null $niveaux niveaux déjà chargés, le cas échéant
      *
      * @return array<string, list<Unite>> indexé par identifiant de denrée
      */
@@ -53,7 +58,7 @@ final class ConversionConditionnement
             $resultats[$denreeId][(string) $conditionnement->getId()] = $conditionnement;
         }
 
-        $collator = new Collator('fr_FR');
+        $collator = new \Collator('fr_FR');
         foreach ($resultats as &$conditionnements) {
             $conditionnements = array_values($conditionnements);
             usort($conditionnements, static fn (Unite $a, Unite $b): int => $collator->compare($a->getNom(), $b->getNom()));
@@ -66,17 +71,24 @@ final class ConversionConditionnement
     /** Plus petit contenu connu, exprimé dans l'unité physique terminale de la denrée. */
     public function facteurMinimal(Denree $denree, Unite $conditionnement): ?float
     {
-        if ($conditionnement === $denree->getUniteReference()) return 1.0;
+        if ($conditionnement === $denree->getUniteReference()) {
+            return 1.0;
+        }
         $facteurs = [];
         foreach ($this->references->findPourDenree($denree) as $reference) {
-            if (!$reference->isActif()) continue;
+            if (!$reference->isActif()) {
+                continue;
+            }
             $liste = $this->niveaux->findPourReference($reference);
             $facteur = 1.0;
             for ($i = count($liste) - 1; $i >= 0; --$i) {
                 $facteur *= (float) $liste[$i]->getQuantiteContenu();
-                if ($liste[$i]->getConditionnement() === $conditionnement) $facteurs[] = $facteur;
+                if ($liste[$i]->getConditionnement() === $conditionnement) {
+                    $facteurs[] = $facteur;
+                }
             }
         }
+
         return [] === $facteurs ? null : min($facteurs);
     }
 
@@ -168,7 +180,7 @@ final class ConversionConditionnement
      * recalculée avec un conditionnement qui a pu être modifié depuis.
      *
      * @param list<ReferenceFournisseurConditionnement> $conditionnements
-     * @param array<string, string>                      $quantitesSaisies
+     * @param array<string, string>                     $quantitesSaisies
      */
     public function quantiteEntreeInventaire(Denree $denree, float $quantiteReference, array $conditionnements, array $quantitesSaisies): float
     {

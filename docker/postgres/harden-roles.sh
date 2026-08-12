@@ -13,7 +13,7 @@ for variable in \
     POSTGRES_APP_USER POSTGRES_APP_PASSWORD \
     POSTGRES_MIGRATOR_USER POSTGRES_MIGRATOR_PASSWORD \
     POSTGRES_BACKUP_USER POSTGRES_BACKUP_PASSWORD \
-    POSTGRES_HEALTHCHECK_USER
+    POSTGRES_HEALTHCHECK_USER POSTGRES_HEALTHCHECK_PASSWORD
 do
     case "$variable" in
         POSTGRES_APP_USER) valeur=${POSTGRES_APP_USER:-} ;;
@@ -23,6 +23,7 @@ do
         POSTGRES_BACKUP_USER) valeur=${POSTGRES_BACKUP_USER:-} ;;
         POSTGRES_BACKUP_PASSWORD) valeur=${POSTGRES_BACKUP_PASSWORD:-} ;;
         POSTGRES_HEALTHCHECK_USER) valeur=${POSTGRES_HEALTHCHECK_USER:-} ;;
+        POSTGRES_HEALTHCHECK_PASSWORD) valeur=${POSTGRES_HEALTHCHECK_PASSWORD:-} ;;
     esac
     if [ -z "$valeur" ] || [ "$valeur" = "change-me" ]; then
         echo "$variable doit être renseignée avant le durcissement." >&2
@@ -44,7 +45,7 @@ if [ "$POSTGRES_APP_USER" = "$POSTGRES_MIGRATOR_USER" ] \
     exit 2
 fi
 
-psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --set=ON_ERROR_STOP=1 \
+PGPASSWORD="$POSTGRES_PASSWORD" psql --host=127.0.0.1 --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --set=ON_ERROR_STOP=1 \
     --set=database_name="$POSTGRES_DB" \
     --set=app_user="$POSTGRES_APP_USER" \
     --set=app_password="$POSTGRES_APP_PASSWORD" \
@@ -52,20 +53,21 @@ psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --
     --set=migrator_password="$POSTGRES_MIGRATOR_PASSWORD" \
     --set=backup_user="$POSTGRES_BACKUP_USER" \
     --set=backup_password="$POSTGRES_BACKUP_PASSWORD" \
-    --set=admin_user="$POSTGRES_HEALTHCHECK_USER" <<'SQL'
+    --set=admin_user="$POSTGRES_HEALTHCHECK_USER" \
+    --set=admin_password="$POSTGRES_HEALTHCHECK_PASSWORD" <<'SQL'
 SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'app_user', :'app_password')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'app_user') \gexec
 SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'migrator_user', :'migrator_password')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'migrator_user') \gexec
 SELECT format('CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD %L', :'backup_user', :'backup_password')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'backup_user') \gexec
-SELECT format('CREATE ROLE %I WITH LOGIN SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS', :'admin_user')
+SELECT format('CREATE ROLE %I WITH LOGIN SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS PASSWORD %L', :'admin_user', :'admin_password')
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'admin_user') \gexec
 
 SELECT format('ALTER ROLE %I PASSWORD %L', :'app_user', :'app_password') \gexec
 SELECT format('ALTER ROLE %I PASSWORD %L', :'migrator_user', :'migrator_password') \gexec
 SELECT format('ALTER ROLE %I PASSWORD %L', :'backup_user', :'backup_password') \gexec
-SELECT format('ALTER ROLE %I SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS PASSWORD NULL', :'admin_user') \gexec
+SELECT format('ALTER ROLE %I SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS PASSWORD %L', :'admin_user', :'admin_password') \gexec
 
 SELECT format('GRANT CONNECT ON DATABASE %I TO %I, %I, %I', :'database_name', :'app_user', :'migrator_user', :'backup_user') \gexec
 SELECT format('GRANT USAGE ON SCHEMA campement TO %I', :'app_user') \gexec
@@ -96,7 +98,7 @@ if [ "$mode" = "prepare" ]; then
     exit 0
 fi
 
-psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --set=ON_ERROR_STOP=1 \
+PGPASSWORD="$POSTGRES_PASSWORD" psql --host=127.0.0.1 --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --single-transaction --set=ON_ERROR_STOP=1 \
     --set=database_name="$POSTGRES_DB" \
     --set=bootstrap_user="$POSTGRES_USER" \
     --set=migrator_user="$POSTGRES_MIGRATOR_USER" <<'SQL'

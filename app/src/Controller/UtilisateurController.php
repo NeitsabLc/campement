@@ -10,15 +10,12 @@ use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
 use App\Repository\SejourRepository;
 use App\Repository\UtilisateurRepository;
+use App\Service\InvitationUtilisateur;
+use App\Service\PerimetreUtilisateur;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Address;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Uid\Uuid;
@@ -32,16 +29,6 @@ final class UtilisateurController extends AbstractController
         Utilisateur::ROLE_GROUPE => 'Groupe',
     ];
 
-    public function __construct(
-        #[Autowire('%env(APP_PUBLIC_URL)%')]
-        private readonly string $urlPublique,
-        #[Autowire('%env(MAILER_FROM_EMAIL)%')]
-        private readonly string $emailExpediteur,
-        #[Autowire('%env(MAILER_FROM_NAME)%')]
-        private readonly string $nomExpediteur,
-    ) {
-    }
-
     #[Route('/utilisateurs', name: 'app_utilisateurs', methods: ['GET', 'POST'])]
     #[Route('/utilisateurs/ajouter', name: 'app_utilisateur_ajouter', methods: ['GET', 'POST'])]
     #[Route('/utilisateurs/{id}/modifier', name: 'app_utilisateur_modifier', methods: ['GET', 'POST'])]
@@ -50,8 +37,8 @@ final class UtilisateurController extends AbstractController
         UtilisateurRepository $utilisateurs,
         SejourRepository $sejours,
         GroupeRepository $groupes,
-        UserPasswordHasherInterface $hasher,
-        MailerInterface $mailer,
+        PerimetreUtilisateur $perimetre,
+        InvitationUtilisateur $invitation,
         EntityManagerInterface $entityManager,
         ?string $id = null,
     ): Response {
@@ -63,14 +50,14 @@ final class UtilisateurController extends AbstractController
         $sejoursAccessibles = $estAdministrateur
             ? $sejours->findBy([], ['dateDebut' => 'DESC'])
             : $connecte->getSejoursGeres()->toArray();
-        $sejourSelectionne = $estAdministrateur ? null : $this->selectionnerSejour($request, $sejoursAccessibles);
+        $sejourSelectionne = $estAdministrateur ? null : $perimetre->selectionnerSejour($request, $sejoursAccessibles);
         $rolesAccessibles = $estAdministrateur
             ? self::ROLES
             : array_intersect_key(self::ROLES, array_flip([Utilisateur::ROLE_GESTIONNAIRE, Utilisateur::ROLE_GROUPE]));
 
         $utilisateurRoute = null !== $id && Uuid::isValid($id) ? $utilisateurs->find($id) : null;
         if (null !== $id && (!$utilisateurRoute instanceof Utilisateur
-            || !$this->utilisateurEstVisible($utilisateurRoute, $sejourSelectionne, $estAdministrateur))) {
+            || !$perimetre->utilisateurEstVisible($utilisateurRoute, $sejourSelectionne, $estAdministrateur))) {
             throw $this->createNotFoundException('Utilisateur introuvable dans votre périmètre.');
         }
         $donnees = [
@@ -108,7 +95,7 @@ final class UtilisateurController extends AbstractController
                     ? $utilisateurs->find($donnees['utilisateur_id'])
                     : null;
                 if (!$utilisateurModifie instanceof Utilisateur
-                    || !$this->utilisateurEstVisible($utilisateurModifie, $sejourSelectionne, $estAdministrateur)) {
+                    || !$perimetre->utilisateurEstVisible($utilisateurModifie, $sejourSelectionne, $estAdministrateur)) {
                     throw $this->createAccessDeniedException('Cet utilisateur ne peut pas être modifié dans votre périmètre.');
                 }
             }
@@ -132,7 +119,7 @@ final class UtilisateurController extends AbstractController
                 && $utilisateurModifie instanceof Utilisateur
                 && Utilisateur::ROLE_GESTIONNAIRE === $utilisateurModifie->getRole()
                 && Utilisateur::ROLE_GESTIONNAIRE !== $donnees['role']
-                && $this->possedeAutreSejour($utilisateurModifie, $sejourSelectionne)) {
+                && $perimetre->possedeAutreSejour($utilisateurModifie, $sejourSelectionne)) {
                 $erreurs[] = 'Le rôle de ce gestionnaire multi-séjours ne peut être modifié que par un administrateur.';
             }
 
@@ -143,7 +130,7 @@ final class UtilisateurController extends AbstractController
                 } else {
                     foreach (array_unique($donnees['sejours']) as $id) {
                         $sejour = is_string($id) ? $sejours->find($id) : null;
-                        if ($sejour instanceof Sejour && $this->contientSejour($sejoursAccessibles, $sejour)) {
+                        if ($sejour instanceof Sejour && $perimetre->contientSejour($sejoursAccessibles, $sejour)) {
                             $sejoursChoisis[] = $sejour;
                         }
                     }
@@ -162,11 +149,11 @@ final class UtilisateurController extends AbstractController
                     ? $groupes->find($donnees['groupe'])
                     : null;
                 if (!$sejourDuGroupe instanceof Sejour
-                    || !$this->contientSejour($sejoursAccessibles, $sejourDuGroupe)) {
+                    || !$perimetre->contientSejour($sejoursAccessibles, $sejourDuGroupe)) {
                     $erreurs[] = 'Sélectionnez un séjour valide pour cet utilisateur groupe.';
                 } elseif (!$groupeChoisi instanceof Groupe
                     || $groupeChoisi->getSejour() !== $sejourDuGroupe
-                    || !$this->contientSejour($sejoursAccessibles, $groupeChoisi->getSejour())
+                    || !$perimetre->contientSejour($sejoursAccessibles, $groupeChoisi->getSejour())
                     || (null !== $sejourSelectionne && $groupeChoisi->getSejour() !== $sejourSelectionne)) {
                     $erreurs[] = 'Sélectionnez un groupe appartenant au séjour choisi.';
                     $groupeChoisi = null;
@@ -191,31 +178,7 @@ final class UtilisateurController extends AbstractController
                     $utilisateur->addSejourGere($sejour);
                 }
                 if ($creation) {
-                    $jetonInvitation = bin2hex(random_bytes(32));
-                    $utilisateur
-                        ->setPassword($hasher->hashPassword($utilisateur, bin2hex(random_bytes(32))))
-                        ->setChangementMotDePasseRequis(true)
-                        ->definirJetonReinitialisation($jetonInvitation, new \DateTimeImmutable('+24 hours'));
-                    $entityManager->persist($utilisateur);
-                    $entityManager->flush();
-
-                    $lienInvitation = rtrim($this->urlPublique, '/').$this->generateUrl(
-                        'app_reinitialiser_mot_de_passe',
-                        ['jeton' => $jetonInvitation],
-                    );
-
-                    try {
-                        $mailer->send((new TemplatedEmail())
-                            ->from(new Address($this->emailExpediteur, $this->nomExpediteur))
-                            ->to($utilisateur->getEmail())
-                            ->subject('Votre accès à Campement')
-                            ->htmlTemplate('emails/nouvel_utilisateur.html.twig')
-                            ->context(['utilisateur' => $utilisateur, 'lien_invitation' => $lienInvitation]));
-                    } catch (\Throwable $exception) {
-                        $entityManager->remove($utilisateur);
-                        $entityManager->flush();
-                        throw $exception;
-                    }
+                    $invitation->envoyer($utilisateur);
                 } else {
                     $entityManager->flush();
                 }
@@ -234,7 +197,7 @@ final class UtilisateurController extends AbstractController
 
         $utilisateursVisibles = array_values(array_filter(
             $utilisateurs->findPourAdministration(),
-            fn (Utilisateur $utilisateur): bool => $this->utilisateurEstVisible(
+            fn (Utilisateur $utilisateur): bool => $perimetre->utilisateurEstVisible(
                 $utilisateur,
                 $sejourSelectionne,
                 $estAdministrateur,
@@ -269,6 +232,7 @@ final class UtilisateurController extends AbstractController
         Utilisateur $utilisateur,
         Request $request,
         SejourRepository $sejours,
+        PerimetreUtilisateur $perimetre,
         EntityManagerInterface $entityManager,
     ): Response {
         if (!$this->isCsrfTokenValid('statut_utilisateur_'.$utilisateur->getId(), $request->request->getString('_token'))) {
@@ -280,10 +244,10 @@ final class UtilisateurController extends AbstractController
         if (!$estAdministrateur && (!$connecte instanceof Utilisateur
             || !$sejourSelectionne instanceof Sejour
             || !$connecte->getSejoursGeres()->contains($sejourSelectionne)
-            || !$this->utilisateurEstVisible($utilisateur, $sejourSelectionne, false))) {
+            || !$perimetre->utilisateurEstVisible($utilisateur, $sejourSelectionne, false))) {
             throw $this->createAccessDeniedException('Cet utilisateur n’appartient pas au séjour sélectionné.');
         }
-        if (!$estAdministrateur && $this->possedeAutreSejour($utilisateur, $sejourSelectionne)) {
+        if (!$estAdministrateur && $perimetre->possedeAutreSejour($utilisateur, $sejourSelectionne)) {
             throw $this->createAccessDeniedException('Un gestionnaire multi-séjours ne peut être désactivé que par un administrateur.');
         }
         if ($utilisateur === $connecte) {
@@ -295,59 +259,5 @@ final class UtilisateurController extends AbstractController
         }
 
         return $this->redirectToRoute('app_utilisateurs', null === $sejourSelectionne ? [] : ['sejour' => $sejourSelectionne->getId()]);
-    }
-
-    /** @param list<Sejour> $sejoursAccessibles */
-    private function selectionnerSejour(Request $request, array $sejoursAccessibles): ?Sejour
-    {
-        $idDemande = $request->query->getString('sejour');
-        if ('' === $idDemande) {
-            $idDemande = (string) $request->getSession()->get('utilisateurs_sejour', '');
-        }
-        foreach ($sejoursAccessibles as $sejour) {
-            if ((string) $sejour->getId() === $idDemande) {
-                $request->getSession()->set('utilisateurs_sejour', $idDemande);
-                return $sejour;
-            }
-        }
-        $sejour = $sejoursAccessibles[0] ?? null;
-        if ($sejour instanceof Sejour) {
-            $request->getSession()->set('utilisateurs_sejour', (string) $sejour->getId());
-        }
-
-        return $sejour instanceof Sejour ? $sejour : null;
-    }
-
-    /** @param list<Sejour> $sejours */
-    private function contientSejour(array $sejours, Sejour $recherche): bool
-    {
-        return array_any($sejours, static fn (Sejour $sejour): bool => $sejour === $recherche);
-    }
-
-    private function utilisateurEstVisible(Utilisateur $utilisateur, ?Sejour $sejour, bool $estAdministrateur): bool
-    {
-        if (Utilisateur::ROLE_TECHNIQUE === $utilisateur->getRole()) {
-            return false;
-        }
-        if ($estAdministrateur) {
-            return true;
-        }
-        if (null === $sejour) {
-            return false;
-        }
-
-        return (Utilisateur::ROLE_GESTIONNAIRE === $utilisateur->getRole() && $utilisateur->getSejoursGeres()->contains($sejour))
-            || (Utilisateur::ROLE_GROUPE === $utilisateur->getRole() && $utilisateur->getGroupe()?->getSejour() === $sejour);
-    }
-
-    private function possedeAutreSejour(Utilisateur $utilisateur, ?Sejour $sejour): bool
-    {
-        foreach ($utilisateur->getSejoursGeres() as $sejourGere) {
-            if ($sejourGere !== $sejour) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Entity\Traits\ActivableTrait;
@@ -10,10 +11,10 @@ use App\Repository\ReferenceFournisseurRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ReferenceFournisseurRepository::class)]
-#[ORM\Table(name: "denree_fournisseur", schema: "campement")]
-#[ORM\UniqueConstraint(name: "uq_denree_fournisseur",columns: ["fournisseur_id", "reference"],),]
-#[ORM\Index(name: "idx_denree_fournisseur_fournisseur",columns: ["fournisseur_id"],),]
-#[ORM\Index(name: "idx_denree_fournisseur_denree", columns: ["denree_id"])]
+#[ORM\Table(name: 'denree_fournisseur', schema: 'campement')]
+#[ORM\UniqueConstraint(name: 'uq_denree_fournisseur', columns: ['fournisseur_id', 'reference'], ),]
+#[ORM\Index(name: 'idx_denree_fournisseur_fournisseur', columns: ['fournisseur_id'], ),]
+#[ORM\Index(name: 'idx_denree_fournisseur_denree', columns: ['denree_id'])]
 class ReferenceFournisseur
 {
     use EntityIdTrait;
@@ -21,11 +22,11 @@ class ReferenceFournisseur
     use ActivableTrait;
 
     #[ORM\ManyToOne(targetEntity: Fournisseur::class)]
-    #[ORM\JoinColumn(name: "fournisseur_id",nullable: false,onDelete: "RESTRICT",),]
+    #[ORM\JoinColumn(name: 'fournisseur_id', nullable: false, onDelete: 'RESTRICT', ),]
     private Fournisseur $fournisseur;
 
     #[ORM\ManyToOne(targetEntity: Denree::class)]
-    #[ORM\JoinColumn(name: "denree_id", nullable: false, onDelete: "RESTRICT")]
+    #[ORM\JoinColumn(name: 'denree_id', nullable: false, onDelete: 'RESTRICT')]
     private Denree $denree;
 
     #[ORM\Column(length: 100, nullable: true)]
@@ -73,6 +74,7 @@ class ReferenceFournisseur
     {
         $this->reference = $reference;
         $this->touch();
+
         return $this;
     }
 

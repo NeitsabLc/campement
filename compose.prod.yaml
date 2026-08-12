@@ -37,6 +37,9 @@ services:
       - /tmp:mode=1777
       - /var/www/app/var/cache:mode=0770,uid=33,gid=33
       - /var/www/app/var/log:mode=0770,uid=33,gid=33
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
 
   nginx:
     logging: *production-logging
@@ -62,6 +65,9 @@ services:
       - /var/cache/nginx:mode=0750,uid=101,gid=101
       - /var/log/nginx:mode=0750,uid=101,gid=101
       - /var/run:mode=0750,uid=101,gid=101
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
 
   maintenance:
     logging: *production-logging
@@ -100,6 +106,9 @@ services:
       - /tmp:mode=1777
       - /var/www/app/var/cache:mode=0770,uid=33,gid=33
       - /var/www/app/var/log:mode=0770,uid=33,gid=33
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 64
     depends_on:
       database:
         condition: service_healthy
@@ -109,8 +118,15 @@ services:
   backup:
     logging: *production-logging
     restart: unless-stopped
-    image: "postgres:${POSTGRES_VERSION}@${POSTGRES_IMAGE_DIGEST:-sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15}"
-    entrypoint: ["/bin/sh", "/usr/local/bin/campement-backup"]
+    image: "campement-backup:${APP_IMAGE_TAG:-local}"
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+      target: backup-runtime
+      args:
+        POSTGRES_VERSION: "${POSTGRES_VERSION}"
+        POSTGRES_IMAGE_DIGEST: "${POSTGRES_IMAGE_DIGEST:-sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15}"
+        AGE_PACKAGE_VERSION: "${AGE_PACKAGE_VERSION:-1.3.1-r5}"
     read_only: true
     user: postgres
     group_add:
@@ -124,12 +140,15 @@ services:
       POSTGRES_DB: "${POSTGRES_DB}"
       POSTGRES_USER: "${POSTGRES_BACKUP_USER}"
       PGPASSWORD: "${POSTGRES_BACKUP_PASSWORD}"
+      BACKUP_AGE_RECIPIENT: "${BACKUP_AGE_RECIPIENT:?BACKUP_AGE_RECIPIENT doit être renseigné}"
     volumes:
-      - ./docker/postgres/backup.sh:/usr/local/bin/campement-backup:ro
       - documents_participants:/documents:ro
       - "${BACKUP_DIR:-./var/backups}:/backups"
     tmpfs:
       - /tmp:mode=1777
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
     depends_on:
       database:
         condition: service_healthy
@@ -138,6 +157,14 @@ services:
 
   database:
     logging: *production-logging
+    image: "campement-postgres-production:${APP_IMAGE_TAG:-local}"
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+      target: postgres-runtime
+      args:
+        POSTGRES_VERSION: "${POSTGRES_VERSION}"
+        POSTGRES_IMAGE_DIGEST: "${POSTGRES_IMAGE_DIGEST:-sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15}"
     read_only: true
     user: postgres
     init: true
@@ -153,20 +180,33 @@ services:
       POSTGRES_BACKUP_USER: "${POSTGRES_BACKUP_USER}"
       POSTGRES_BACKUP_PASSWORD: "${POSTGRES_BACKUP_PASSWORD:-}"
       POSTGRES_HEALTHCHECK_USER: "${POSTGRES_HEALTHCHECK_USER}"
+      POSTGRES_HEALTHCHECK_PASSWORD: "${POSTGRES_HEALTHCHECK_PASSWORD:-}"
+      POSTGRES_INITDB_ARGS: "--auth-local=scram-sha-256 --auth-host=scram-sha-256"
     command:
       - postgres
       - -c
       - hba_file=/etc/postgresql/pg_hba.conf
     volumes:
       - "${POSTGRES_HBA_FILE:-./docker/postgres/pg_hba.prod.conf.example}:/etc/postgresql/pg_hba.conf:ro"
-      - ./docker/postgres/harden-roles.sh:/usr/local/bin/campement-harden-roles:ro
     tmpfs:
       - /tmp:mode=1777
       - /var/run/postgresql:mode=0775,uid=70,gid=70
+    mem_limit: 1g
+    cpus: 2.0
+    pids_limit: 256
 
   liquibase:
     logging: *production-logging
+    image: "campement-liquibase-production:${APP_IMAGE_TAG:-local}"
+    build:
+      context: .
+      dockerfile: docker/liquibase/Dockerfile
+      target: liquibase-runtime
+      args:
+        LIQUIBASE_VERSION: "${LIQUIBASE_VERSION}"
+        LIQUIBASE_IMAGE_DIGEST: "${LIQUIBASE_IMAGE_DIGEST:-sha256:dfe136c26d39088d87d1bd27f833d6ac5b738a180d7c960b065c7be525725d01}"
     read_only: true
+    user: liquibase
     init: true
     cap_drop:
       - ALL
@@ -174,6 +214,10 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:mode=1777
+    volumes: !override []
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
     environment:
       LIQUIBASE_COMMAND_USERNAME: "${POSTGRES_MIGRATOR_USER}"
       LIQUIBASE_COMMAND_PASSWORD: "${POSTGRES_MIGRATOR_PASSWORD}"

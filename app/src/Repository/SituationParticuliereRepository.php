@@ -12,7 +12,10 @@ use Doctrine\Persistence\ManagerRegistry;
 /** @extends ServiceEntityRepository<SituationParticuliere> */
 final class SituationParticuliereRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry) { parent::__construct($registry, SituationParticuliere::class); }
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, SituationParticuliere::class);
+    }
 
     /** @return list<SituationParticuliere> */
     public function findPourSejour(Sejour $sejour): array

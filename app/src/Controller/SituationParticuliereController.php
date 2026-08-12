@@ -28,7 +28,10 @@ final class SituationParticuliereController extends AbstractController
     public function liste(ContexteSejour $contexte, SituationParticuliereRepository $repository): Response
     {
         $sejour = $contexte->actif();
-        if (!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
+        if (!$sejour) {
+            throw $this->createNotFoundException('Aucun séjour actif.');
+        }
+
         return $this->render('situation_particuliere/liste.html.twig', [
             'sejour' => $sejour,
             'situations' => $repository->findPourSejour($sejour),
@@ -45,23 +48,31 @@ final class SituationParticuliereController extends AbstractController
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexte->actif();
-        if (!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
+        if (!$sejour) {
+            throw $this->createNotFoundException('Aucun séjour actif.');
+        }
         $donnees = $this->lireSituation($request);
         $erreurs = [];
         if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('creer_situation_particuliere', $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            if (!$this->isCsrfTokenValid('creer_situation_particuliere', $request->request->getString('_token'))) {
+                throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            }
             $date = $this->validerSituation($donnees, $sejour->getDateDebut(), $sejour->getDateFin(), $erreurs);
             if ([] === $erreurs && $date) {
                 $situation = new SituationParticuliere($sejour, $donnees['libelle'], $date);
                 $situation->setInformationsComplementaires($donnees['informations']);
-                if ($sejour->isModuleAdministratifActif()) $this->synchroniserParticipants($situation, $donnees['participants'], $participants);
+                if ($sejour->isModuleAdministratifActif()) {
+                    $this->synchroniserParticipants($situation, $donnees['participants'], $participants);
+                }
                 $gestionTaches->synchroniser($situation);
                 $entityManager->persist($situation);
                 $entityManager->flush();
                 $this->addFlash('success', 'La situation particulière a été créée.');
+
                 return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $situation->getId()]);
             }
         }
+
         return $this->formulaire($sejour, null, $donnees, $erreurs, $participants);
     }
 
@@ -69,6 +80,7 @@ final class SituationParticuliereController extends AbstractController
     public function detail(string $id, ContexteSejour $contexte, SituationParticuliereRepository $repository): Response
     {
         $situation = $this->trouver($id, $contexte, $repository);
+
         return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $situation->getId()]);
     }
 
@@ -92,17 +104,23 @@ final class SituationParticuliereController extends AbstractController
         ];
         $erreurs = [];
         if ($request->isMethod('POST')) {
-            if (!$this->isCsrfTokenValid('modifier_situation_particuliere_'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            if (!$this->isCsrfTokenValid('modifier_situation_particuliere_'.$id, $request->request->getString('_token'))) {
+                throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            }
             $date = $this->validerSituation($donnees, $sejour->getDateDebut(), $sejour->getDateFin(), $erreurs);
             if ([] === $erreurs && $date) {
                 $situation->setLibelle($donnees['libelle'])->setDateSituation($date)->setInformationsComplementaires($donnees['informations']);
-                if ($sejour->isModuleAdministratifActif()) $this->synchroniserParticipants($situation, $donnees['participants'], $participants);
+                if ($sejour->isModuleAdministratifActif()) {
+                    $this->synchroniserParticipants($situation, $donnees['participants'], $participants);
+                }
                 $gestionTaches->synchroniser($situation);
                 $entityManager->flush();
                 $this->addFlash('success', 'La situation particulière a été mise à jour.');
+
                 return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $id]);
             }
         }
+
         return $this->formulaire($sejour, $situation, $donnees, $erreurs, $participants);
     }
 
@@ -110,13 +128,19 @@ final class SituationParticuliereController extends AbstractController
     public function ajouterTache(string $id, Request $request, ContexteSejour $contexte, SituationParticuliereRepository $repository, EntityManagerInterface $entityManager): Response
     {
         $situation = $this->trouver($id, $contexte, $repository);
-        if (!$this->isCsrfTokenValid('ajouter_tache_situation_'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        if (!$this->isCsrfTokenValid('ajouter_tache_situation_'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
         $type = $request->request->getString('type_predefini');
         $libelle = trim($request->request->getString('libelle_libre'));
         try {
             $echeance = $this->dateOptionnelle($request->request->getString('date_echeance'));
             if ('' !== $type) {
-                foreach ($situation->getTaches() as $existante) if ($existante->getTypePredefini() === $type) throw new \DomainException('Une tâche de ce type existe déjà.');
+                foreach ($situation->getTaches() as $existante) {
+                    if ($existante->getTypePredefini() === $type) {
+                        throw new \DomainException('Une tâche de ce type existe déjà.');
+                    }
+                }
                 $tache = TacheSituationParticuliere::manuellePredefinie($situation, $type, $echeance);
             } else {
                 $tache = TacheSituationParticuliere::libre($situation, $libelle, $echeance);
@@ -127,6 +151,7 @@ final class SituationParticuliereController extends AbstractController
         } catch (\InvalidArgumentException|\DomainException $exception) {
             $this->addFlash('error', $exception->getMessage());
         }
+
         return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $id]);
     }
 
@@ -135,8 +160,12 @@ final class SituationParticuliereController extends AbstractController
     {
         $situation = $this->trouver($id, $contexte, $repository);
         $tache = $situation->getTaches()->findFirst(static fn (int $index, TacheSituationParticuliere $candidate): bool => (string) $candidate->getId() === $tacheId);
-        if (!$tache) throw $this->createNotFoundException('Tâche introuvable.');
-        if (!$this->isCsrfTokenValid('modifier_tache_'.$tacheId, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        if (!$tache) {
+            throw $this->createNotFoundException('Tâche introuvable.');
+        }
+        if (!$this->isCsrfTokenValid('modifier_tache_'.$tacheId, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
         try {
             $statut = $request->request->getString('statut');
             $realisation = TacheSituationParticuliere::STATUT_REALISE === $statut ? ($this->dateOptionnelle($request->request->getString('date_realisation')) ?? new \DateTimeImmutable('today')) : null;
@@ -149,6 +178,7 @@ final class SituationParticuliereController extends AbstractController
         } catch (\InvalidArgumentException $exception) {
             $this->addFlash('error', $exception->getMessage());
         }
+
         return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $id]);
     }
 
@@ -157,8 +187,12 @@ final class SituationParticuliereController extends AbstractController
     {
         $situation = $this->trouver($id, $contexte, $repository);
         $tache = $situation->getTaches()->findFirst(static fn (int $index, TacheSituationParticuliere $candidate): bool => (string) $candidate->getId() === $tacheId);
-        if (!$tache) throw $this->createNotFoundException('Tâche introuvable.');
-        if (!$this->isCsrfTokenValid('supprimer_tache_'.$tacheId, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        if (!$tache) {
+            throw $this->createNotFoundException('Tâche introuvable.');
+        }
+        if (!$this->isCsrfTokenValid('supprimer_tache_'.$tacheId, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
         try {
             $situation->removeTache($tache);
             $entityManager->remove($tache);
@@ -167,6 +201,7 @@ final class SituationParticuliereController extends AbstractController
         } catch (\DomainException $exception) {
             $this->addFlash('error', $exception->getMessage());
         }
+
         return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $id]);
     }
 
@@ -174,15 +209,21 @@ final class SituationParticuliereController extends AbstractController
     public function supprimer(string $id, Request $request, ContexteSejour $contexte, SituationParticuliereRepository $repository, EntityManagerInterface $entityManager): Response
     {
         $situation = $this->trouver($id, $contexte, $repository);
-        if ($request->isMethod('GET')) return $this->render('situation_particuliere/suppression.html.twig', ['situation' => $situation]);
-        if (!$this->isCsrfTokenValid('supprimer_situation_particuliere_'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        if ($request->isMethod('GET')) {
+            return $this->render('situation_particuliere/suppression.html.twig', ['situation' => $situation]);
+        }
+        if (!$this->isCsrfTokenValid('supprimer_situation_particuliere_'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
         if (!$situation->peutEtreSupprimee()) {
             $this->addFlash('error', 'Une situation contenant une tâche réalisée ne peut pas être supprimée.');
+
             return $this->redirectToRoute('app_situation_particuliere_modifier', ['id' => $id]);
         }
         $entityManager->remove($situation);
         $entityManager->flush();
         $this->addFlash('success', 'La situation particulière a été supprimée.');
+
         return $this->redirectToRoute('app_situations_particulieres');
     }
 
@@ -196,44 +237,67 @@ final class SituationParticuliereController extends AbstractController
             'participants' => array_values(array_filter($request->request->all('participants'), 'is_string')),
         ];
     }
+
     /**
      * @param array{libelle: string, date: string, informations: list<string>, participants: list<string>} $donnees
-     * @param list<string> $erreurs
+     * @param list<string>                                                                                 $erreurs
      */
     private function validerSituation(array $donnees, \DateTimeImmutable $debut, \DateTimeImmutable $fin, array &$erreurs): ?\DateTimeImmutable
     {
-        if ('' === $donnees['libelle'] || mb_strlen($donnees['libelle']) > 200) $erreurs[] = 'Le libellé est obligatoire et limité à 200 caractères.';
+        if ('' === $donnees['libelle'] || mb_strlen($donnees['libelle']) > 200) {
+            $erreurs[] = 'Le libellé est obligatoire et limité à 200 caractères.';
+        }
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date']);
-        if (!$date || $date->format('Y-m-d') !== $donnees['date']) $erreurs[] = 'La date de la situation est invalide.';
-        elseif ($date < $debut || $date > $fin) $erreurs[] = 'La date de la situation doit être comprise dans les dates du séjour.';
+        if (!$date || $date->format('Y-m-d') !== $donnees['date']) {
+            $erreurs[] = 'La date de la situation est invalide.';
+        } elseif ($date < $debut || $date > $fin) {
+            $erreurs[] = 'La date de la situation doit être comprise dans les dates du séjour.';
+        }
+
         return $date ?: null;
     }
+
     private function dateOptionnelle(string $valeur): ?\DateTimeImmutable
     {
-        if ('' === $valeur) return null;
+        if ('' === $valeur) {
+            return null;
+        }
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $valeur);
-        if (!$date || $date->format('Y-m-d') !== $valeur) throw new \InvalidArgumentException('La date saisie est invalide.');
+        if (!$date || $date->format('Y-m-d') !== $valeur) {
+            throw new \InvalidArgumentException('La date saisie est invalide.');
+        }
+
         return $date;
     }
+
     /** @param list<string> $ids */
     private function synchroniserParticipants(SituationParticuliere $situation, array $ids, ParticipantRepository $repository): void
     {
-        foreach ($situation->getParticipants()->toArray() as $participant) $situation->removeParticipant($participant);
+        foreach ($situation->getParticipants()->toArray() as $participant) {
+            $situation->removeParticipant($participant);
+        }
         foreach (array_unique($ids) as $id) {
             $participant = Uuid::isValid($id) ? $repository->find($id) : null;
-            if ($participant instanceof Participant && $participant->getGroupe()->getSejour() === $situation->getSejour()) $situation->addParticipant($participant);
+            if ($participant instanceof Participant && $participant->getGroupe()->getSejour() === $situation->getSejour()) {
+                $situation->addParticipant($participant);
+            }
         }
     }
+
     private function trouver(string $id, ContexteSejour $contexte, SituationParticuliereRepository $repository): SituationParticuliere
     {
         $sejour = $contexte->actif();
         $situation = Uuid::isValid($id) ? $repository->find($id) : null;
-        if (!$sejour || !$situation instanceof SituationParticuliere || $situation->getSejour() !== $sejour) throw $this->createNotFoundException('Situation particulière introuvable pour le séjour actif.');
+        if (!$sejour || !$situation instanceof SituationParticuliere || $situation->getSejour() !== $sejour) {
+            throw $this->createNotFoundException('Situation particulière introuvable pour le séjour actif.');
+        }
+
         return $situation;
     }
+
     /**
      * @param array{libelle: string, date: string, informations: list<string>, participants: list<string>} $donnees
-     * @param list<string> $erreurs
+     * @param list<string>                                                                                 $erreurs
      */
     private function formulaire(mixed $sejour, ?SituationParticuliere $situation, array $donnees, array $erreurs, ParticipantRepository $participants): Response
     {

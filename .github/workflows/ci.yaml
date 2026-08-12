@@ -42,13 +42,15 @@ jobs:
           cp .env.example .env
           cp app/.env.example app/.env
           APP_SECRET_CI="$(openssl rand -hex 32)"
+          echo "::add-mask::${APP_SECRET_CI}"
           sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
           sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
           echo "APP_SECRET=${APP_SECRET_CI}" >> "$GITHUB_ENV"
-          echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-          echo "POSTGRES_APP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-          echo "POSTGRES_MIGRATOR_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
-          echo "POSTGRES_BACKUP_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::${valeur}"
+            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
+          done
           echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
 
       - name: Valider la configuration Docker Compose
@@ -88,30 +90,41 @@ jobs:
           php bin/console doctrine:schema:validate --skip-sync
 
       - name: Compiler les assets
-        run: >-
-          docker compose exec --no-TTY php
-          php bin/console asset-map:compile
+        run: |
+          docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug
+          docker compose exec --no-TTY php php bin/console importmap:install
+          docker compose exec --no-TTY php php bin/console asset-map:compile --env=prod --no-debug
 
       - name: Analyser statiquement le code PHP
         run: |
           docker compose exec --no-TTY php php bin/console cache:warmup --env=dev
           docker compose exec --no-TTY php vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
-      - name: Preparer l'image PHP pour l'analyse de vulnerabilites
-        run: |
-          docker tag "$(docker compose images --quiet php)" campement-php-ci:scan
-          docker save campement-php-ci:scan --output /tmp/campement-php.tar
+      - name: Controler le style PHP
+        run: docker compose exec --no-TTY php composer lint:php
 
-      - name: Analyser les vulnerabilites de l'image PHP
-        run: >-
-          docker run --rm
-          --volume /tmp:/scan:ro
-          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-          image --input /scan/campement-php.tar
-          --scanners vuln
-          --severity HIGH,CRITICAL
-          --ignore-unfixed
-          --exit-code 1
+      - name: Preparer les images pour l'analyse de vulnerabilites
+        run: |
+          docker compose -f compose.yaml -f compose.prod.yaml build php nginx database liquibase backup
+          docker save campement-php-production:local --output /tmp/campement-php.tar
+          docker save campement-nginx-production:local --output /tmp/campement-nginx.tar
+          docker save campement-postgres-production:local --output /tmp/campement-postgres.tar
+          docker save campement-liquibase-production:local --output /tmp/campement-liquibase.tar
+          docker save campement-backup:local --output /tmp/campement-backup.tar
+
+      - name: Analyser les vulnerabilites des images d'execution
+        run: |
+          for archive in php nginx postgres liquibase backup; do
+            docker run --rm \
+              --volume /tmp:/scan:ro \
+              --volume campement-trivy-cache:/root/.cache/trivy \
+              ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c \
+              image --input "/scan/campement-${archive}.tar" \
+              --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1
+          done
 
       - name: Reinitialiser la base de tests
         run: |
@@ -133,7 +146,7 @@ jobs:
         run: npm ci
 
       - name: Auditer les dependances npm
-        run: npm audit --package-lock-only --audit-level=high
+        run: npm audit --audit-level=high
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
@@ -144,38 +157,6 @@ jobs:
       - name: Executer les controles d'accessibilite
         run: npm run test:accessibility
 
-      - name: Arreter l'environnement de developpement avant le test de production
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: docker compose down --volumes --remove-orphans
-
-      - name: Tester la configuration de production
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: ./scripts/ci-production-smoke.sh
-
-      - name: Analyser l'image PHP finale de production
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: >-
-          docker run --rm
-          --volume /tmp:/scan:ro
-          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-          image --input /scan/campement-php-production.tar
-          --scanners vuln
-          --severity HIGH,CRITICAL
-          --ignore-unfixed
-          --exit-code 1
-
-      - name: Analyser l'image Nginx finale de production
-        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
-        run: >-
-          docker run --rm
-          --volume /tmp:/scan:ro
-          ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-          image --input /scan/campement-nginx-production.tar
-          --scanners vuln
-          --severity HIGH,CRITICAL
-          --ignore-unfixed
-          --exit-code 1
-
       - name: Afficher les journaux en cas d'echec
         if: failure()
         run: |
@@ -185,3 +166,35 @@ jobs:
       - name: Arreter les services
         if: always()
         run: docker compose down --volumes --remove-orphans
+
+  production-smoke:
+    name: Configuration de production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Preparer la configuration de production isolee
+        run: |
+          cp .env.example .env
+          cp app/.env.example app/.env
+          APP_SECRET_CI="$(openssl rand -hex 32)"
+          echo "::add-mask::${APP_SECRET_CI}"
+          sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
+          echo "APP_SECRET=${APP_SECRET_CI}" >> "$GITHUB_ENV"
+          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::${valeur}"
+            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
+          done
+          echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
+
+      - name: Tester la superposition Compose de production
+        env:
+          COMPOSE_PROJECT_NAME: campement-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          NGINX_HOST_PORT: 18082
+          POSTGRES_HOST_PORT: 15436
+        run: ./scripts/ci-production-smoke.sh

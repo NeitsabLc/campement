@@ -1,12 +1,27 @@
 <?php
+
 declare(strict_types=1);
+
 namespace App\Repository;
-use App\Entity\Recette; use App\Entity\Sejour; use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository; use Doctrine\Persistence\ManagerRegistry;
+
+use App\Entity\Recette;
+use App\Entity\Sejour;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\Persistence\ManagerRegistry;
+
 /** @extends ServiceEntityRepository<Recette> */
 final class RecetteRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $r) { parent::__construct($r, Recette::class); }
-    /** @return list<Recette> */ public function findActivesPourSejour(Sejour $s): array { return $this->findPourGestion($s, true); }
+    public function __construct(ManagerRegistry $r)
+    {
+        parent::__construct($r, Recette::class);
+    }
+
+    /** @return list<Recette> */
+    public function findActivesPourSejour(Sejour $s): array
+    {
+        return $this->findPourGestion($s, true);
+    }
 
     /** @return list<Recette> */
     public function findPourGestion(Sejour $sejour, bool $actif): array

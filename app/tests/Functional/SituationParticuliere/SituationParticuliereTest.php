@@ -118,6 +118,7 @@ final class SituationParticuliereTest extends WebTestCase
         self::assertInstanceOf(Sejour::class, $sejour);
         $sejour->setModuleSituationsParticulieresActif(true);
         static::getContainer()->get(EntityManagerInterface::class)->flush();
+
         return $sejour;
     }
 }

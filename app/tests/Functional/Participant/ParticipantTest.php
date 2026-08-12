@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Participant;
 
+use App\Entity\DocumentParticipant;
+use App\Entity\Participant;
+use App\Entity\Sejour;
 use App\Repository\GroupeRepository;
 use App\Repository\ParticipantRepository;
-use App\Entity\Sejour;
-use App\Entity\Participant;
-use App\Entity\DocumentParticipant;
-use DateTimeImmutable;
+use App\Repository\UtilisateurRepository;
 use App\Service\ContexteSejour;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Repository\UtilisateurRepository;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -156,9 +155,9 @@ final class ParticipantTest extends WebTestCase
         $groupe = static::getContainer()->get(GroupeRepository::class)->findActifs()[0] ?? null;
         self::assertNotNull($groupe);
         $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
-            ->setNom('Avant')->setPrenom('Modification')->setDateNaissance(new DateTimeImmutable('2013-05-12'))
+            ->setNom('Avant')->setPrenom('Modification')->setDateNaissance(new \DateTimeImmutable('2013-05-12'))
             ->setTelephoneParent1('0601020304')->setEmailParents('parents@example.test')
-            ->setDateDebutPresence(new DateTimeImmutable('2026-07-10'))->setDateFinPresence(new DateTimeImmutable('2026-07-24'));
+            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-10'))->setDateFinPresence(new \DateTimeImmutable('2026-07-24'));
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($participant);
         $entityManager->flush();
@@ -184,9 +183,9 @@ final class ParticipantTest extends WebTestCase
         $groupe = static::getContainer()->get(GroupeRepository::class)->findActifs()[0] ?? null;
         self::assertNotNull($groupe);
         $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
-            ->setNom('À supprimer')->setPrenom('Fiche')->setDateNaissance(new DateTimeImmutable('2013-05-12'))
+            ->setNom('À supprimer')->setPrenom('Fiche')->setDateNaissance(new \DateTimeImmutable('2013-05-12'))
             ->setTelephoneParent1('0601020304')->setEmailParents('parents@example.test')
-            ->setDateDebutPresence(new DateTimeImmutable('2026-07-10'))->setDateFinPresence(new DateTimeImmutable('2026-07-24'));
+            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-10'))->setDateFinPresence(new \DateTimeImmutable('2026-07-24'));
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($participant);
         $entityManager->flush();
@@ -271,9 +270,9 @@ final class ParticipantTest extends WebTestCase
         $groupe = static::getContainer()->get(GroupeRepository::class)->findActifs()[0] ?? null;
         self::assertNotNull($groupe);
         $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
-            ->setNom('Documents')->setPrenom('Jeune')->setDateNaissance(new DateTimeImmutable('2013-05-12'))
+            ->setNom('Documents')->setPrenom('Jeune')->setDateNaissance(new \DateTimeImmutable('2013-05-12'))
             ->setTelephoneParent1('0601020304')->setEmailParents('documents@example.test')
-            ->setDateDebutPresence(new DateTimeImmutable('2026-07-10'))->setDateFinPresence(new DateTimeImmutable('2026-07-24'));
+            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-10'))->setDateFinPresence(new \DateTimeImmutable('2026-07-24'));
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($participant);
         $entityManager->flush();

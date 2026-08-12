@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Entity\Traits\EntityIdTrait;
@@ -8,44 +9,44 @@ use App\Entity\Traits\TimestampableTrait;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity(repositoryClass: ReferenceFournisseurConditionnementRepository::class,),]
-#[ORM\Table(name: "denree_fournisseur_conditionnement", schema: "campement")]
-#[ORM\UniqueConstraint(name: "uq_denree_fournisseur_conditionnement", columns: ["reference_fournisseur_id", "ordre"],),]
-#[ORM\Index(name: "idx_denree_fournisseur_conditionnement_reference", columns: ["reference_fournisseur_id"],),]
-#[ORM\Index(name: "idx_denree_fournisseur_conditionnement_unite", columns: ["unite_contenu_id"],),]
+#[ORM\Entity(repositoryClass: ReferenceFournisseurConditionnementRepository::class, ),]
+#[ORM\Table(name: 'denree_fournisseur_conditionnement', schema: 'campement')]
+#[ORM\UniqueConstraint(name: 'uq_denree_fournisseur_conditionnement', columns: ['reference_fournisseur_id', 'ordre'], ),]
+#[ORM\Index(name: 'idx_denree_fournisseur_conditionnement_reference', columns: ['reference_fournisseur_id'], ),]
+#[ORM\Index(name: 'idx_denree_fournisseur_conditionnement_unite', columns: ['unite_contenu_id'], ),]
 class ReferenceFournisseurConditionnement
 {
     use EntityIdTrait;
     use TimestampableTrait;
 
     #[ORM\ManyToOne(targetEntity: ReferenceFournisseur::class)]
-    #[ORM\JoinColumn(name: "reference_fournisseur_id", nullable: false, onDelete: "CASCADE",),]
+    #[ORM\JoinColumn(name: 'reference_fournisseur_id', nullable: false, onDelete: 'CASCADE', ),]
     private ReferenceFournisseur $referenceFournisseur;
 
-    #[ORM\Column(type: "smallint")]
+    #[ORM\Column(type: 'smallint')]
     private int $ordre;
 
     #[ORM\Column(length: 50)]
     private string $libelle;
 
     #[ORM\ManyToOne(targetEntity: Unite::class)]
-    #[ORM\JoinColumn(name: "conditionnement_id", nullable: false, onDelete: "RESTRICT")]
+    #[ORM\JoinColumn(name: 'conditionnement_id', nullable: false, onDelete: 'RESTRICT')]
     private Unite $conditionnement;
 
-    #[ORM\Column(name: "quantite_contenu",type: "decimal",precision: 12,scale: 3,),]
+    #[ORM\Column(name: 'quantite_contenu', type: 'decimal', precision: 12, scale: 3, ),]
     private string $quantiteContenu;
 
-    #[ORM\Column(name: "libelle_contenu", length: 50, nullable: true)]
+    #[ORM\Column(name: 'libelle_contenu', length: 50, nullable: true)]
     private ?string $libelleContenu = null;
 
     #[ORM\ManyToOne(targetEntity: Unite::class)]
-    #[ORM\JoinColumn(name: "unite_contenu_id", nullable: true, onDelete: "RESTRICT")]
+    #[ORM\JoinColumn(name: 'unite_contenu_id', nullable: true, onDelete: 'RESTRICT')]
     private ?Unite $uniteContenu = null;
 
     public function __construct(ReferenceFournisseur $ref, int $ordre, string $libelle, string $quantite, ?Unite $unite = null, ?string $libelleContenu = null, ?Unite $conditionnement = null)
     {
         if ($ordre <= 0 || (float) $quantite <= 0) {
-            throw new \InvalidArgumentException("Conditionnement invalide.");
+            throw new \InvalidArgumentException('Conditionnement invalide.');
         }
 
         $this->initializeId();
@@ -59,8 +60,19 @@ class ReferenceFournisseurConditionnement
         $this->libelleContenu = $libelleContenu;
     }
 
-    public function getConditionnement(): Unite { return $this->conditionnement; }
-    public function setConditionnement(Unite $conditionnement): self { $this->conditionnement = $conditionnement; $this->libelle = $conditionnement->getNom(); $this->touch(); return $this; }
+    public function getConditionnement(): Unite
+    {
+        return $this->conditionnement;
+    }
+
+    public function setConditionnement(Unite $conditionnement): self
+    {
+        $this->conditionnement = $conditionnement;
+        $this->libelle = $conditionnement->getNom();
+        $this->touch();
+
+        return $this;
+    }
 
     public function getReferenceFournisseur(): ReferenceFournisseur
     {
@@ -79,6 +91,7 @@ class ReferenceFournisseurConditionnement
         }
         $this->ordre = $ordre;
         $this->touch();
+
         return $this;
     }
 
@@ -91,6 +104,7 @@ class ReferenceFournisseurConditionnement
     {
         $this->libelle = $libelle;
         $this->touch();
+
         return $this;
     }
 
@@ -106,6 +120,7 @@ class ReferenceFournisseurConditionnement
         }
         $this->quantiteContenu = $quantite;
         $this->touch();
+
         return $this;
     }
 
@@ -118,6 +133,7 @@ class ReferenceFournisseurConditionnement
     {
         $this->uniteContenu = $unite;
         $this->touch();
+
         return $this;
     }
 
@@ -130,6 +146,7 @@ class ReferenceFournisseurConditionnement
     {
         $this->libelleContenu = $libelle;
         $this->touch();
+
         return $this;
     }
 

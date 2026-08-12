@@ -44,9 +44,19 @@ class SejourPublicCible
         $this->quantitesMenu = new ArrayCollection();
     }
 
-    public function getSejour(): Sejour { return $this->sejour; }
-    public function getPublicCible(): PublicCible { return $this->publicCible; }
+    public function getSejour(): Sejour
+    {
+        return $this->sejour;
+    }
+
+    public function getPublicCible(): PublicCible
+    {
+        return $this->publicCible;
+    }
 
     /** @return Collection<int, MenuDenreeQuantite> */
-    public function getQuantitesMenu(): Collection { return $this->quantitesMenu; }
+    public function getQuantitesMenu(): Collection
+    {
+        return $this->quantitesMenu;
+    }
 }

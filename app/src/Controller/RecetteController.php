@@ -43,12 +43,17 @@ final class RecetteController extends AbstractController
     {
         $sejour = $contexte->actif();
         $recette = Uuid::isValid($id) ? $recettes->find($id) : null;
-        if (null === $sejour || null === $recette || $recette->getSejour() !== $sejour) throw $this->createNotFoundException();
-        if (!$this->isCsrfTokenValid('supprimer_recette_'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
+        if (null === $sejour || null === $recette || $recette->getSejour() !== $sejour) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->isCsrfTokenValid('supprimer_recette_'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
         // Les menus existants conservent ainsi leur référence vers la recette.
         $recette->setActif(!$recette->isActif());
         $entityManager->flush();
         $this->addFlash('success', sprintf('La recette « %s » a été %s.', $recette->getNom(), $recette->isActif() ? 'réactivée' : 'désactivée'));
+
         return $this->redirectToRoute('app_recettes', $recette->isActif() ? [] : ['desactivees' => 1]);
     }
 

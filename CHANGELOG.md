@@ -8,10 +8,21 @@ suivent le versionnement sémantique.
 
 ### Ajouté
 
-- smoke test de la surcharge Compose de production sur les événements GitHub
-  Actions concernant `main`, avec base vierge, migrations, rôles PostgreSQL,
+- smoke test indépendant de la surcharge Compose de production sur chaque push
+  et pull request visant `dev` ou `main`, avec base vierge, migrations, rôles PostgreSQL,
   sauvegarde, maintenance et contrôles HTTP ;
-- audits des dépendances Importmap et npm dans la CI.
+- audits des dépendances Importmap et npm dans la CI ;
+- suivi hebdomadaire des dépendances Composer, npm, GitHub Actions et Docker par
+  Dependabot ;
+- publication sur les tags issus de `main` des cinq images GHCR avec SBOM,
+  provenance, attestation GitHub et signature keyless Cosign.
+- sauvegarde Age de la base PostgreSQL et des documents, avec restauration réelle
+  dans le smoke test de production.
+- commande locale `make backup-restore-test` pour vérifier le chiffrement et la
+  restauration de la base et des documents.
+- commandes de qualité et d'exploitation alignées avec Bénévole Jambville :
+  `make analyse-statique`, `make style`, `make style-fix`,
+  `make test-accessibility` et `make maintenance-now`.
 
 ### Modifié
 
@@ -19,17 +30,40 @@ suivent le versionnement sémantique.
   dépendances sans outils de développement et assets compilés intégrés à
   l'image au lieu d'un bind mount du dépôt ;
 - scénario d'initialisation de la base vierge aligné sur la migration historique
-  V001, avant préparation et validation des rôles PostgreSQL limités.
+  V001, avant préparation et validation des rôles PostgreSQL limités ;
+- passage à Liquibase 5.0.3 avec pilote PostgreSQL 42.7.12 vérifié par somme de
+  contrôle et retrait du gestionnaire de paquets inutilisé de l'image finale ;
+- extraction dans des services dédiés de la logique de formulaire participant,
+  de présentation des menus, d'invitation et de périmètre utilisateurs et de
+  l'enregistrement multi-lignes des stocks.
+- contrôle automatique du style PHP avec PHP-CS-Fixer.
 
 ### Sécurité
 
+- mise à jour d'EasyAdmin vers `5.5.1` afin de corriger le contournement du
+  contrôle d'accès par le répartiteur d'actions personnalisées ;
 - épinglage par digest des images PHP, Nginx, PostgreSQL et Liquibase ;
 - exécution non-root et en lecture seule des services de production, avec
   suppression des capabilities et `no-new-privileges` ;
-- analyse Trivy des images PHP et Nginx finales réellement livrées, y compris
-  les dépendances Composer embarquées ;
+- analyse Trivy des images PHP, Nginx, PostgreSQL et Liquibase, y compris leurs
+  artefacts finaux réellement livrés ;
 - mise à niveau des paquets Alpine de l'image Nginx pendant sa construction
-  afin d'intégrer les correctifs de sécurité publiés.
+  afin d'intégrer les correctifs de sécurité publiés ;
+- validation silencieuse de Compose, masquage des secrets éphémères de CI et
+  publication locale de Nginx sur `127.0.0.1` par défaut ;
+- plafonds CPU, mémoire et PID sur tous les services de production, contrôlés
+  sur les conteneurs créés par le smoke test ;
+- limites serveur de 1 000 caractères pour les adresses fournisseur et de 2 000
+  caractères pour les commentaires de tâche.
+- authentification SCRAM obligatoire pour les connexions PostgreSQL locales et
+  réseau, y compris le rôle de contrôle de santé ;
+- vérification des règles HBA propres à chaque rôle et refus effectif d'un rôle
+  réseau valide mais non autorisé ;
+- refus d'en-têtes `Host` et `X-Forwarded-Host` hostiles vérifié par le smoke test ;
+- chiffrement Age des sauvegardes avant leur écriture sur le stockage, sans
+  conservation d'un dump ou d'une archive documentaire en clair ;
+- analyse Trivy et publication avec attestations de la cinquième image dédiée
+  aux sauvegardes.
 
 ## [1.2.2] - 2026-08-12
 

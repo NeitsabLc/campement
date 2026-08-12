@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\PublicCibleRepository;
-use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -35,10 +34,10 @@ class PublicCible
     private bool $actif = true;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, SejourPublicCible> */
     #[ORM\OneToMany(mappedBy: 'publicCible', targetEntity: SejourPublicCible::class)]
@@ -46,7 +45,7 @@ class PublicCible
 
     public function __construct()
     {
-        $maintenant = new DateTimeImmutable();
+        $maintenant = new \DateTimeImmutable();
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
         $this->sejours = new ArrayCollection();
@@ -105,17 +104,17 @@ class PublicCible
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
@@ -125,7 +124,7 @@ class PublicCible
     #[ORM\PreUpdate]
     public function actualiserDateModification(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /** @return Collection<int, SejourPublicCible> */

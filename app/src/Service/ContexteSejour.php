@@ -13,14 +13,15 @@ use Symfony\Contracts\Service\ResetInterface;
 
 final class ContexteSejour implements ResetInterface
 {
-    /** @var null|list<Sejour> */
+    /** @var list<Sejour>|null */
     private ?array $sejoursAccessibles = null;
 
     public function __construct(
         private readonly Security $security,
         private readonly SejourRepository $sejours,
         private readonly EntityManagerInterface $entityManager,
-    ) {}
+    ) {
+    }
 
     /** @return list<Sejour> */
     public function accessibles(): array
@@ -48,7 +49,9 @@ final class ContexteSejour implements ResetInterface
     public function actif(): ?Sejour
     {
         $utilisateur = $this->security->getUser();
-        if (!$utilisateur instanceof Utilisateur) { return null; }
+        if (!$utilisateur instanceof Utilisateur) {
+            return null;
+        }
         $accessibles = $this->accessibles();
         $selection = $utilisateur->getDernierSejour();
         if ($selection instanceof Sejour && $selection->isActif() && array_any($accessibles, static fn (Sejour $s): bool => $s === $selection)) {
@@ -56,16 +59,22 @@ final class ContexteSejour implements ResetInterface
         }
         if (1 === count($accessibles)) {
             $this->selectionner($accessibles[0]);
+
             return $accessibles[0];
         }
-        if (null !== $selection) { $this->selectionner(null); }
+        if (null !== $selection) {
+            $this->selectionner(null);
+        }
+
         return null;
     }
 
     public function selectionner(?Sejour $sejour): void
     {
         $utilisateur = $this->security->getUser();
-        if (!$utilisateur instanceof Utilisateur) { return; }
+        if (!$utilisateur instanceof Utilisateur) {
+            return;
+        }
         if (null !== $sejour && (!$sejour->isActif() || !array_any($this->accessibles(), static fn (Sejour $s): bool => $s === $sejour))) {
             throw new \InvalidArgumentException('Ce séjour n’est pas accessible.');
         }

@@ -25,7 +25,9 @@ final class AnonymiserSejoursTerminesCommand extends Command
         private readonly MailerInterface $mailer,
         private readonly string $mailerFromEmail,
         private readonly string $mailerFromName,
-    ) { parent::__construct(); }
+    ) {
+        parent::__construct();
+    }
 
     protected function configure(): void
     {
@@ -39,10 +41,12 @@ final class AnonymiserSejoursTerminesCommand extends Command
             $sejour = $this->sejours->findOneBy([], ['dateFin' => 'DESC']);
             if (!$sejour instanceof Sejour) {
                 $output->writeln('<error>Aucun séjour disponible pour générer l’aperçu.</error>');
+
                 return Command::FAILURE;
             }
             $this->prevenir($sejour, $apercuDestinataire);
             $output->writeln(sprintf('<info>Aperçu envoyé à %s.</info>', $apercuDestinataire));
+
             return Command::SUCCESS;
         }
 
@@ -52,6 +56,7 @@ final class AnonymiserSejoursTerminesCommand extends Command
             $this->anonymisation->anonymiser($sejour);
             $output->writeln(sprintf('<info>%s anonymisé.</info>', $sejour->getNom()));
         }
+
         return Command::SUCCESS;
     }
 
@@ -60,10 +65,14 @@ final class AnonymiserSejoursTerminesCommand extends Command
         $destinataires = null !== $apercuDestinataire ? [new Address($apercuDestinataire)] : [];
         if (null === $apercuDestinataire) {
             foreach ($sejour->getGestionnaires() as $gestionnaire) {
-                if ($gestionnaire->isActif()) $destinataires[] = new Address($gestionnaire->getEmail(), $gestionnaire->getPrenom().' '.$gestionnaire->getNom());
+                if ($gestionnaire->isActif()) {
+                    $destinataires[] = new Address($gestionnaire->getEmail(), $gestionnaire->getPrenom().' '.$gestionnaire->getNom());
+                }
             }
         }
-        if ([] === $destinataires) return;
+        if ([] === $destinataires) {
+            return;
+        }
         $email = (new TemplatedEmail())
             ->from(new Address($this->mailerFromEmail, $this->mailerFromName))
             ->to(...$destinataires)

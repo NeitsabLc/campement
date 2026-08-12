@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\Groupe;
 use App\Entity\DocumentParticipant;
+use App\Entity\Groupe;
 use App\Entity\Participant;
 use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
 use App\Repository\ParticipantRepository;
 use App\Service\ContexteSejour;
+use App\Service\FormulaireParticipant;
 use App\Service\ListeParticipantsPdf;
 use App\Service\StockageDocumentParticipant;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\ExpressionLanguage\Expression;
@@ -35,7 +35,9 @@ final class ParticipantController extends AbstractController
         ListeParticipantsPdf $pdf,
     ): Response {
         $sejour = $contexteSejour->actif();
-        if (!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
+        if (!$sejour) {
+            throw $this->createNotFoundException('Aucun séjour actif.');
+        }
         $contenu = $pdf->generer($sejour, $groupeRepository->findActifsPourSejour($sejour), $participantRepository->findPourSejour($sejour));
         $nom = preg_replace('/[^a-z0-9]+/', '-', mb_strtolower($sejour->getNom())) ?: 'sejour';
 
@@ -52,13 +54,14 @@ final class ParticipantController extends AbstractController
         ContexteSejour $contexteSejour,
         GroupeRepository $groupeRepository,
         ParticipantRepository $participantRepository,
+        FormulaireParticipant $formulaire,
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexteSejour->actif();
         $utilisateurGroupe = $this->getUser() instanceof Utilisateur && $this->isGranted(Utilisateur::ROLE_GROUPE)
             ? $this->getUser()->getGroupe()
             : null;
-        $donnees = $this->lireDonnees($request);
+        $donnees = $formulaire->lire($request);
         $erreurs = [];
 
         if (!$request->isMethod('POST') && 'app_participant_ajouter' === $request->attributes->get('_route')) {
@@ -82,61 +85,19 @@ final class ParticipantController extends AbstractController
             if ($utilisateurGroupe instanceof Groupe && $groupe !== $utilisateurGroupe) {
                 $groupe = null;
             }
-            if (!$groupe instanceof Groupe) $erreurs[] = 'Sélectionnez une unité du séjour actif.';
-            if (!in_array($donnees['type'], [Participant::TYPE_JEUNE, Participant::TYPE_ADULTE], true)) $erreurs[] = 'Le type de participant est invalide.';
-            foreach (['nom' => 'Le nom', 'prenom' => 'Le prénom'] as $champ => $libelle) {
-                if ('' === $donnees[$champ]) $erreurs[] = $libelle.' est obligatoire.';
-                elseif (mb_strlen($donnees[$champ]) > 150) $erreurs[] = $libelle.' ne peut pas dépasser 150 caractères.';
+            if (!$groupe instanceof Groupe) {
+                $erreurs[] = 'Sélectionnez une unité du séjour actif.';
             }
-            $naissance = $this->dateValide($donnees['date_naissance'], 'La date de naissance', $erreurs);
-            $debut = $this->dateValide($donnees['date_debut_presence'], 'La date de début de présence', $erreurs);
-            $fin = $this->dateValide($donnees['date_fin_presence'], 'La date de fin de présence', $erreurs);
-            if ($debut && $fin && $fin < $debut) $erreurs[] = 'La date de fin de présence doit suivre la date de début.';
-            if ($sejour && $debut && ($debut < $sejour->getDateDebut() || $debut > $sejour->getDateFin())) {
-                $erreurs[] = 'La date de début de présence doit être comprise dans les dates du séjour.';
-            }
-            if ($sejour && $fin && ($fin < $sejour->getDateDebut() || $fin > $sejour->getDateFin())) {
-                $erreurs[] = 'La date de fin de présence doit être comprise dans les dates du séjour.';
-            }
+            $validation = $sejour ? $formulaire->valider($donnees, $sejour) : ['erreurs' => []];
+            $erreurs = [...$erreurs, ...$validation['erreurs']];
 
-            if (Participant::TYPE_JEUNE === $donnees['type']) {
-                if ('' === $donnees['telephone_parent_1']) $erreurs[] = 'Le premier numéro de téléphone des parents est obligatoire.';
-                elseif (!$this->telephoneValide($donnees['telephone_parent_1'])) $erreurs[] = 'Le premier numéro de téléphone des parents est invalide.';
-                if ('' !== $donnees['telephone_parent_2'] && !$this->telephoneValide($donnees['telephone_parent_2'])) $erreurs[] = 'Le second numéro de téléphone des parents est invalide.';
-                if (mb_strlen($donnees['email_parents']) > 254 || !filter_var($donnees['email_parents'], FILTER_VALIDATE_EMAIL)) $erreurs[] = 'L’adresse e-mail des parents est invalide.';
-            } else {
-                if ('' === $donnees['telephone']) $erreurs[] = 'Le numéro de téléphone de l’adulte est obligatoire.';
-                elseif (!$this->telephoneValide($donnees['telephone'])) $erreurs[] = 'Le numéro de téléphone de l’adulte est invalide.';
-                if (mb_strlen($donnees['email']) > 254 || !filter_var($donnees['email'], FILTER_VALIDATE_EMAIL)) $erreurs[] = 'L’adresse e-mail de l’adulte est invalide.';
-                if ('' === $donnees['contact_urgence_nom_prenom']) $erreurs[] = 'Le nom et le prénom du contact d’urgence sont obligatoires.';
-                elseif (mb_strlen($donnees['contact_urgence_nom_prenom']) > 300) $erreurs[] = 'Le nom et le prénom du contact d’urgence ne peuvent pas dépasser 300 caractères.';
-                if ('' === $donnees['contact_urgence_telephone']) $erreurs[] = 'Le numéro de téléphone du contact d’urgence est obligatoire.';
-                elseif (!$this->telephoneValide($donnees['contact_urgence_telephone'])) $erreurs[] = 'Le numéro de téléphone du contact d’urgence est invalide.';
-            }
-
-            $qualifications = array_values(array_intersect(Participant::QUALIFICATIONS, $donnees['qualifications']));
-            if (in_array('Autre diplôme', $qualifications, true) && '' === $donnees['autre_diplome']) {
-                $erreurs[] = 'Précisez l’autre diplôme.';
-            }
-
-            if ([] === $erreurs && $groupe && $naissance && $debut && $fin) {
-                $participant = (new Participant())->setGroupe($groupe)->setType($donnees['type'])
-                    ->setNom($donnees['nom'])->setPrenom($donnees['prenom'])->setDateNaissance($naissance)
-                    ->setDateDebutPresence($debut)->setDateFinPresence($fin);
-                if (Participant::TYPE_JEUNE === $donnees['type']) {
-                    $participant->setTelephoneParent1($donnees['telephone_parent_1'])
-                        ->setTelephoneParent2($this->nullable($donnees['telephone_parent_2']))
-                        ->setEmailParents($donnees['email_parents']);
-                } else {
-                    $participant->setContactUrgenceNomPrenom($donnees['contact_urgence_nom_prenom'])
-                        ->setContactUrgenceTelephone($donnees['contact_urgence_telephone'])
-                        ->setTelephone($donnees['telephone'])->setEmail($donnees['email'])->setQualifications($qualifications)
-                        ->setAutreDiplome($this->nullable($donnees['autre_diplome']))
-                        ->setStagiaireBafa($donnees['stagiaire_bafa']);
-                }
+            if ([] === $erreurs && $groupe) {
+                $participant = (new Participant())->setGroupe($groupe)->setType($donnees['type']);
+                $formulaire->appliquer($participant, $donnees, $validation);
                 $entityManager->persist($participant);
                 $entityManager->flush();
                 $this->addFlash('success', sprintf('%s %s a bien été ajouté%s.', $participant->getPrenom(), $participant->getNom(), Participant::TYPE_JEUNE === $participant->getType() ? 'e' : ''));
+
                 return $this->redirectToRoute('app_participants');
             }
         }
@@ -147,9 +108,13 @@ final class ParticipantController extends AbstractController
                 ? ($utilisateurGroupe->isActif() ? [$utilisateurGroupe] : [])
                 : $groupeRepository->findActifsPourSejour($sejour));
         $participantsParGroupe = [];
-        if ($sejour) foreach ($participantRepository->findPourSejour($sejour) as $participant) {
-            if ($utilisateurGroupe instanceof Groupe && $participant->getGroupe() !== $utilisateurGroupe) continue;
-            $participantsParGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
+        if ($sejour) {
+            foreach ($participantRepository->findPourSejour($sejour) as $participant) {
+                if ($utilisateurGroupe instanceof Groupe && $participant->getGroupe() !== $utilisateurGroupe) {
+                    continue;
+                }
+                $participantsParGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
+            }
         }
 
         $template = 'app_participants' === $request->attributes->get('_route') && !$request->isMethod('POST')
@@ -168,6 +133,7 @@ final class ParticipantController extends AbstractController
         Request $request,
         ContexteSejour $contexteSejour,
         ParticipantRepository $participantRepository,
+        FormulaireParticipant $formulaire,
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexteSejour->actif();
@@ -180,7 +146,7 @@ final class ParticipantController extends AbstractController
             throw $this->createAccessDeniedException('Ce participant n’appartient pas à votre unité.');
         }
 
-        $donnees = $request->isMethod('POST') ? $this->lireDonnees($request) : $this->donneesParticipant($participant);
+        $donnees = $request->isMethod('POST') ? $formulaire->lire($request) : $formulaire->depuisParticipant($participant);
         $donnees['type'] = $participant->getType();
         $erreurs = [];
 
@@ -188,22 +154,10 @@ final class ParticipantController extends AbstractController
             if (!$this->isCsrfTokenValid('modifier_participant_'.$id, $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException('Jeton CSRF invalide.');
             }
-            $dates = $this->validerFiche($donnees, $sejour, $erreurs);
+            $validation = $formulaire->valider($donnees, $sejour);
+            $erreurs = $validation['erreurs'];
             if ([] === $erreurs) {
-                $participant->setNom($donnees['nom'])->setPrenom($donnees['prenom'])
-                    ->setDateNaissance($dates['naissance'])->setDateDebutPresence($dates['debut'])->setDateFinPresence($dates['fin']);
-                if (Participant::TYPE_JEUNE === $participant->getType()) {
-                    $participant->setTelephoneParent1($donnees['telephone_parent_1'])
-                        ->setTelephoneParent2($this->nullable($donnees['telephone_parent_2']))
-                        ->setEmailParents($donnees['email_parents']);
-                } else {
-                    $qualifications = array_values(array_intersect(Participant::QUALIFICATIONS, $donnees['qualifications']));
-                    $participant->setTelephone($donnees['telephone'])->setEmail($donnees['email'])
-                        ->setContactUrgenceNomPrenom($donnees['contact_urgence_nom_prenom'])
-                        ->setContactUrgenceTelephone($donnees['contact_urgence_telephone'])
-                        ->setQualifications($qualifications)->setAutreDiplome($this->nullable($donnees['autre_diplome']))
-                        ->setStagiaireBafa($donnees['stagiaire_bafa']);
-                }
+                $formulaire->appliquer($participant, $donnees, $validation);
                 $entityManager->flush();
                 $this->addFlash('success', sprintf('La fiche de %s %s a bien été mise à jour.', $participant->getPrenom(), $participant->getNom()));
 
@@ -247,7 +201,9 @@ final class ParticipantController extends AbstractController
         }
 
         $nomComplet = $participant->getPrenom().' '.$participant->getNom();
-        foreach ($participant->getDocuments() as $document) $stockageDocuments->supprimer($document->getCheminStockage());
+        foreach ($participant->getDocuments() as $document) {
+            $stockageDocuments->supprimer($document->getCheminStockage());
+        }
         $entityManager->remove($participant);
         $entityManager->flush();
         $this->addFlash('success', sprintf('La fiche de %s a bien été supprimée.', $nomComplet));
@@ -255,102 +211,13 @@ final class ParticipantController extends AbstractController
         return $this->redirectToRoute('app_participants');
     }
 
-    /** @return array<string, mixed> */
-    private function lireDonnees(Request $request): array
-    {
-        return [
-            'groupe_id' => $request->request->getString('groupe_id'), 'type' => $request->request->getString('type'),
-            'nom' => trim($request->request->getString('nom')), 'prenom' => trim($request->request->getString('prenom')),
-            'date_naissance' => $request->request->getString('date_naissance'),
-            'telephone' => trim($request->request->getString('telephone')),
-            'email' => trim($request->request->getString('email')),
-            'telephone_parent_1' => trim($request->request->getString('telephone_parent_1')),
-            'telephone_parent_2' => trim($request->request->getString('telephone_parent_2')),
-            'email_parents' => trim($request->request->getString('email_parents')),
-            'contact_urgence_nom_prenom' => trim($request->request->getString('contact_urgence_nom_prenom')),
-            'contact_urgence_telephone' => trim($request->request->getString('contact_urgence_telephone')),
-            'qualifications' => array_values(array_filter($request->request->all('qualifications'), 'is_string')),
-            'autre_diplome' => trim($request->request->getString('autre_diplome')),
-            'stagiaire_bafa' => $request->request->getBoolean('stagiaire_bafa'),
-            'date_debut_presence' => $request->request->getString('date_debut_presence'),
-            'date_fin_presence' => $request->request->getString('date_fin_presence'),
-        ];
-    }
-
     private function trouverGroupe(string $id, mixed $sejour, GroupeRepository $repository): ?Groupe
     {
-        if (!$sejour || !Uuid::isValid($id)) return null;
+        if (!$sejour || !Uuid::isValid($id)) {
+            return null;
+        }
         $groupe = $repository->find($id);
+
         return $groupe instanceof Groupe && $groupe->isActif() && $groupe->getSejour() === $sejour ? $groupe : null;
-    }
-
-    /** @param list<string> $erreurs */
-    private function dateValide(string $valeur, string $libelle, array &$erreurs): ?DateTimeImmutable
-    {
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $valeur);
-        if (!$date || $date->format('Y-m-d') !== $valeur) { $erreurs[] = $libelle.' est obligatoire et doit être valide.'; return null; }
-        return $date;
-    }
-
-    private function nullable(string $valeur): ?string { return '' === $valeur ? null : $valeur; }
-
-    private function telephoneValide(string $valeur): bool
-    {
-        return mb_strlen($valeur) <= 30
-            && 1 === preg_match('/^(?:0[1-9](?:[ .-]?\d{2}){4}|\+33[ .-]?[1-9](?:[ .-]?\d{2}){4})$/', $valeur);
-    }
-
-    /** @return array<string, mixed> */
-    private function donneesParticipant(Participant $participant): array
-    {
-        return [
-            'groupe_id' => (string) $participant->getGroupe()->getId(), 'type' => $participant->getType(),
-            'nom' => $participant->getNom(), 'prenom' => $participant->getPrenom(),
-            'date_naissance' => $participant->getDateNaissance()->format('Y-m-d'),
-            'telephone' => $participant->getTelephone() ?? '', 'email' => $participant->getEmail() ?? '',
-            'telephone_parent_1' => $participant->getTelephoneParent1() ?? '',
-            'telephone_parent_2' => $participant->getTelephoneParent2() ?? '',
-            'email_parents' => $participant->getEmailParents() ?? '',
-            'contact_urgence_nom_prenom' => $participant->getContactUrgenceNomPrenom() ?? '',
-            'contact_urgence_telephone' => $participant->getContactUrgenceTelephone() ?? '',
-            'qualifications' => $participant->getQualifications(), 'autre_diplome' => $participant->getAutreDiplome() ?? '',
-            'stagiaire_bafa' => $participant->isStagiaireBafa(),
-            'date_debut_presence' => $participant->getDateDebutPresence()->format('Y-m-d'),
-            'date_fin_presence' => $participant->getDateFinPresence()->format('Y-m-d'),
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $donnees
-     * @param list<string> $erreurs
-     * @return array{naissance: ?DateTimeImmutable, debut: ?DateTimeImmutable, fin: ?DateTimeImmutable}
-     */
-    private function validerFiche(array $donnees, mixed $sejour, array &$erreurs): array
-    {
-        foreach (['nom' => 'Le nom', 'prenom' => 'Le prénom'] as $champ => $libelle) {
-            if ('' === $donnees[$champ]) $erreurs[] = $libelle.' est obligatoire.';
-            elseif (mb_strlen($donnees[$champ]) > 150) $erreurs[] = $libelle.' ne peut pas dépasser 150 caractères.';
-        }
-        $naissance = $this->dateValide($donnees['date_naissance'], 'La date de naissance', $erreurs);
-        $debut = $this->dateValide($donnees['date_debut_presence'], 'La date de début de présence', $erreurs);
-        $fin = $this->dateValide($donnees['date_fin_presence'], 'La date de fin de présence', $erreurs);
-        if ($debut && $fin && $fin < $debut) $erreurs[] = 'La date de fin de présence doit suivre la date de début.';
-        if ($debut && ($debut < $sejour->getDateDebut() || $debut > $sejour->getDateFin())) $erreurs[] = 'La date de début de présence doit être comprise dans les dates du séjour.';
-        if ($fin && ($fin < $sejour->getDateDebut() || $fin > $sejour->getDateFin())) $erreurs[] = 'La date de fin de présence doit être comprise dans les dates du séjour.';
-
-        if (Participant::TYPE_JEUNE === $donnees['type']) {
-            if ('' === $donnees['telephone_parent_1'] || !$this->telephoneValide($donnees['telephone_parent_1'])) $erreurs[] = 'Le premier numéro de téléphone des parents est invalide.';
-            if ('' !== $donnees['telephone_parent_2'] && !$this->telephoneValide($donnees['telephone_parent_2'])) $erreurs[] = 'Le second numéro de téléphone des parents est invalide.';
-            if (mb_strlen($donnees['email_parents']) > 254 || !filter_var($donnees['email_parents'], FILTER_VALIDATE_EMAIL)) $erreurs[] = 'L’adresse e-mail des parents est invalide.';
-        } else {
-            if ('' === $donnees['telephone'] || !$this->telephoneValide($donnees['telephone'])) $erreurs[] = 'Le numéro de téléphone de l’adulte est invalide.';
-            if (mb_strlen($donnees['email']) > 254 || !filter_var($donnees['email'], FILTER_VALIDATE_EMAIL)) $erreurs[] = 'L’adresse e-mail de l’adulte est invalide.';
-            if ('' === $donnees['contact_urgence_nom_prenom']) $erreurs[] = 'Le nom et le prénom du contact d’urgence sont obligatoires.';
-            if ('' === $donnees['contact_urgence_telephone'] || !$this->telephoneValide($donnees['contact_urgence_telephone'])) $erreurs[] = 'Le numéro de téléphone du contact d’urgence est invalide.';
-            $qualifications = array_values(array_intersect(Participant::QUALIFICATIONS, $donnees['qualifications']));
-            if (in_array('Autre diplôme', $qualifications, true) && '' === $donnees['autre_diplome']) $erreurs[] = 'Précisez l’autre diplôme.';
-        }
-
-        return ['naissance' => $naissance, 'debut' => $debut, 'fin' => $fin];
     }
 }

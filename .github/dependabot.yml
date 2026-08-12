@@ -1,0 +1,42 @@
+version: 2
+
+updates:
+  - package-ecosystem: composer
+    directory: /app
+    schedule:
+      interval: weekly
+    target-branch: dev
+    groups:
+      symfony:
+        patterns:
+          - "symfony/*"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: dev
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: dev
+
+  - package-ecosystem: docker
+    directory: /docker/php
+    schedule:
+      interval: weekly
+    target-branch: dev
+
+  - package-ecosystem: docker
+    directory: /docker/postgres
+    schedule:
+      interval: weekly
+    target-branch: dev
+
+  - package-ecosystem: docker
+    directory: /docker/liquibase
+    schedule:
+      interval: weekly
+    target-branch: dev

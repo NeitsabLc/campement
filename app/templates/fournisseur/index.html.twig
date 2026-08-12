@@ -65,7 +65,7 @@
                         <div class="supplier-form-field"><label for="supplier-phone">Téléphone</label><input id="supplier-phone" name="telephone" maxlength="30" autocomplete="tel" value="{{ donnees.telephone }}" data-supplier-dialog-target="phone"></div>
                         <div class="supplier-form-field"><label for="supplier-email">E-mail</label><input id="supplier-email" name="email" type="email" maxlength="150" autocomplete="email" value="{{ donnees.email }}" data-supplier-dialog-target="email"></div>
                     </div>
-                    <div class="supplier-form-field"><label for="supplier-address">Adresse</label><textarea id="supplier-address" name="adresse" rows="3" autocomplete="street-address" data-supplier-dialog-target="address">{{ donnees.adresse }}</textarea></div>
+                    <div class="supplier-form-field"><label for="supplier-address">Adresse</label><textarea id="supplier-address" name="adresse" maxlength="1000" rows="3" autocomplete="street-address" data-supplier-dialog-target="address">{{ donnees.adresse }}</textarea></div>
                     <div class="supplier-dialog__actions">
                         <button class="cancel-supplier-button" type="button" data-action="supplier-dialog#close">Annuler</button>
                         <button class="save-supplier-button" type="submit" data-supplier-dialog-target="submit">{{ donnees.fournisseur_id ? 'Enregistrer les modifications' : 'Créer le fournisseur' }}</button>
