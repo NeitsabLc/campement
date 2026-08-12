@@ -8,14 +8,21 @@ suivent le versionnement sémantique.
 
 ### Ajouté
 
-- smoke test de la surcharge Compose de production sur les événements GitHub
-  Actions concernant `main`, avec base vierge, migrations, rôles PostgreSQL,
+- smoke test indépendant de la surcharge Compose de production sur chaque push
+  et pull request visant `dev` ou `main`, avec base vierge, migrations, rôles PostgreSQL,
   sauvegarde, maintenance et contrôles HTTP ;
 - audits des dépendances Importmap et npm dans la CI ;
 - suivi hebdomadaire des dépendances Composer, npm, GitHub Actions et Docker par
   Dependabot ;
-- publication sur les tags issus de `main` des quatre images GHCR avec SBOM,
+- publication sur les tags issus de `main` des cinq images GHCR avec SBOM,
   provenance, attestation GitHub et signature keyless Cosign.
+- sauvegarde Age de la base PostgreSQL et des documents, avec restauration réelle
+  dans le smoke test de production.
+- commande locale `make backup-restore-test` pour vérifier le chiffrement et la
+  restauration de la base et des documents.
+- commandes de qualité et d'exploitation alignées avec Bénévole Jambville :
+  `make analyse-statique`, `make style`, `make style-fix`,
+  `make test-accessibility` et `make maintenance-now`.
 
 ### Modifié
 
@@ -29,6 +36,7 @@ suivent le versionnement sémantique.
 - extraction dans des services dédiés de la logique de formulaire participant,
   de présentation des menus, d'invitation et de périmètre utilisateurs et de
   l'enregistrement multi-lignes des stocks.
+- contrôle automatique du style PHP avec PHP-CS-Fixer.
 
 ### Sécurité
 
@@ -45,6 +53,13 @@ suivent le versionnement sémantique.
   sur les conteneurs créés par le smoke test ;
 - limites serveur de 1 000 caractères pour les adresses fournisseur et de 2 000
   caractères pour les commentaires de tâche.
+- authentification SCRAM obligatoire pour les connexions PostgreSQL locales et
+  réseau, y compris le rôle de contrôle de santé ;
+- refus d'en-têtes `Host` et `X-Forwarded-Host` hostiles vérifié par le smoke test ;
+- chiffrement Age des sauvegardes avant leur écriture sur le stockage, sans
+  conservation d'un dump ou d'une archive documentaire en clair ;
+- analyse Trivy et publication avec attestations de la cinquième image dédiée
+  aux sauvegardes.
 
 ## [1.2.2] - 2026-08-12
 

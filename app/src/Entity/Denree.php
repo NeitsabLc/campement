@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -46,10 +45,10 @@ class Denree
     private bool $actif = true;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, MenuDenree> */
     #[ORM\OneToMany(mappedBy: 'denree', targetEntity: MenuDenree::class)]
@@ -57,7 +56,7 @@ class Denree
 
     public function __construct(Sejour $sejour)
     {
-        $maintenant = new DateTimeImmutable();
+        $maintenant = new \DateTimeImmutable();
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
         $this->sejour = $sejour;
@@ -95,13 +94,24 @@ class Denree
     public function setUniteReference(Unite $uniteReference): self
     {
         $this->uniteReference = $uniteReference;
-        if (!isset($this->uniteInventaire)) { $this->uniteInventaire = $uniteReference; }
+        if (!isset($this->uniteInventaire)) {
+            $this->uniteInventaire = $uniteReference;
+        }
 
         return $this;
     }
 
-    public function getUniteInventaire(): Unite { return $this->uniteInventaire; }
-    public function setUniteInventaire(Unite $uniteInventaire): self { $this->uniteInventaire = $uniteInventaire; return $this; }
+    public function getUniteInventaire(): Unite
+    {
+        return $this->uniteInventaire;
+    }
+
+    public function setUniteInventaire(Unite $uniteInventaire): self
+    {
+        $this->uniteInventaire = $uniteInventaire;
+
+        return $this;
+    }
 
     public function getStockMin(): ?string
     {
@@ -127,17 +137,17 @@ class Denree
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
@@ -147,14 +157,12 @@ class Denree
     #[ORM\PreUpdate]
     public function actualiserDateModification(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
-
 
     /** @return Collection<int, MenuDenree> */
     public function getMenusDenrees(): Collection
     {
         return $this->menusDenrees;
     }
-
 }

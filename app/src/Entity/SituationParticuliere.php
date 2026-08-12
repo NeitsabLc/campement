@@ -71,48 +71,110 @@ class SituationParticuliere
         $this->dateSituation = $dateSituation;
     }
 
-    public function getSejour(): Sejour { return $this->sejour; }
-    public function getLibelle(): string { return $this->libelle; }
+    public function getSejour(): Sejour
+    {
+        return $this->sejour;
+    }
+
+    public function getLibelle(): string
+    {
+        return $this->libelle;
+    }
+
     public function setLibelle(string $libelle): self
     {
         $libelle = trim($libelle);
-        if ('' === $libelle || mb_strlen($libelle) > 200) throw new \InvalidArgumentException('Le libellé est obligatoire et limité à 200 caractères.');
+        if ('' === $libelle || mb_strlen($libelle) > 200) {
+            throw new \InvalidArgumentException('Le libellé est obligatoire et limité à 200 caractères.');
+        }
         $this->libelle = $libelle;
         $this->touch();
+
         return $this;
     }
-    public function getDateSituation(): \DateTimeImmutable { return $this->dateSituation; }
-    public function setDateSituation(\DateTimeImmutable $date): self { $this->dateSituation = $date; $this->touch(); return $this; }
-    /** @return list<string> */ public function getInformationsComplementaires(): array { return $this->informationsComplementaires; }
+
+    public function getDateSituation(): \DateTimeImmutable
+    {
+        return $this->dateSituation;
+    }
+
+    public function setDateSituation(\DateTimeImmutable $date): self
+    {
+        $this->dateSituation = $date;
+        $this->touch();
+
+        return $this;
+    }
+
+    /** @return list<string> */
+    public function getInformationsComplementaires(): array
+    {
+        return $this->informationsComplementaires;
+    }
+
     /** @param list<string> $informations */
     public function setInformationsComplementaires(array $informations): self
     {
         $invalides = array_diff($informations, array_keys(self::INFORMATIONS));
-        if ([] !== $invalides) throw new \InvalidArgumentException('Une information complémentaire est invalide.');
+        if ([] !== $invalides) {
+            throw new \InvalidArgumentException('Une information complémentaire est invalide.');
+        }
         $this->informationsComplementaires = array_values(array_unique($informations));
         $this->touch();
+
         return $this;
     }
-    /** @return Collection<int, Participant> */ public function getParticipants(): Collection { return $this->participants; }
+
+    /** @return Collection<int, Participant> */
+    public function getParticipants(): Collection
+    {
+        return $this->participants;
+    }
+
     public function addParticipant(Participant $participant): self
     {
-        if ($participant->getGroupe()->getSejour() !== $this->sejour) throw new \InvalidArgumentException('Le participant doit appartenir au séjour de la situation.');
-        if (!$this->participants->contains($participant)) $this->participants->add($participant);
+        if ($participant->getGroupe()->getSejour() !== $this->sejour) {
+            throw new \InvalidArgumentException('Le participant doit appartenir au séjour de la situation.');
+        }
+        if (!$this->participants->contains($participant)) {
+            $this->participants->add($participant);
+        }
+
         return $this;
     }
-    public function removeParticipant(Participant $participant): self { $this->participants->removeElement($participant); return $this; }
-    /** @return Collection<int, TacheSituationParticuliere> */ public function getTaches(): Collection { return $this->taches; }
+
+    public function removeParticipant(Participant $participant): self
+    {
+        $this->participants->removeElement($participant);
+
+        return $this;
+    }
+
+    /** @return Collection<int, TacheSituationParticuliere> */
+    public function getTaches(): Collection
+    {
+        return $this->taches;
+    }
+
     public function addTache(TacheSituationParticuliere $tache): self
     {
-        if (!$this->taches->contains($tache)) $this->taches->add($tache);
+        if (!$this->taches->contains($tache)) {
+            $this->taches->add($tache);
+        }
+
         return $this;
     }
+
     public function removeTache(TacheSituationParticuliere $tache): self
     {
-        if (!$tache->peutEtreSupprimee()) throw new \DomainException('Cette tâche ne peut pas être supprimée.');
+        if (!$tache->peutEtreSupprimee()) {
+            throw new \DomainException('Cette tâche ne peut pas être supprimée.');
+        }
         $this->taches->removeElement($tache);
+
         return $this;
     }
+
     public function peutEtreSupprimee(): bool
     {
         return !$this->taches->exists(static fn (int $index, TacheSituationParticuliere $tache): bool => TacheSituationParticuliere::STATUT_REALISE === $tache->getStatut());

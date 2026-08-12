@@ -25,8 +25,10 @@ final class ExportController extends AbstractController
     {
         $sejour = $contexteSejour->actif();
         $compteurs = ['adultes' => 0, 'jeunes' => 0];
-        if ($sejour) foreach ($participants->findPourSejour($sejour) as $participant) {
-            ++$compteurs[Participant::TYPE_ADULTE === $participant->getType() ? 'adultes' : 'jeunes'];
+        if ($sejour) {
+            foreach ($participants->findPourSejour($sejour) as $participant) {
+                ++$compteurs[Participant::TYPE_ADULTE === $participant->getType() ? 'adultes' : 'jeunes'];
+            }
         }
 
         return $this->render('export/index.html.twig', compact('sejour', 'compteurs'));
@@ -36,7 +38,9 @@ final class ExportController extends AbstractController
     public function documents(string $public, ContexteSejour $contexteSejour, ParticipantRepository $participants, DocumentsParticipantsPdf $pdf): Response
     {
         $sejour = $contexteSejour->actif();
-        if (!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
+        if (!$sejour) {
+            throw $this->createNotFoundException('Aucun séjour actif.');
+        }
         $type = 'adultes' === $public ? Participant::TYPE_ADULTE : Participant::TYPE_JEUNE;
         $typesDocuments = 'adultes' === $public
             ? [DocumentParticipant::FICHE_SANITAIRE, DocumentParticipant::VACCINS, DocumentParticipant::QUALIFICATION]
@@ -50,7 +54,9 @@ final class ExportController extends AbstractController
     public function participants(ContexteSejour $contexteSejour, GroupeRepository $groupes, ParticipantRepository $participants, ListeParticipantsPdf $pdf): Response
     {
         $sejour = $contexteSejour->actif();
-        if (!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
+        if (!$sejour) {
+            throw $this->createNotFoundException('Aucun séjour actif.');
+        }
 
         return $this->reponsePdf(
             $pdf->generer($sejour, $groupes->findActifsPourSejour($sejour), $participants->findPourSejour($sejour)),

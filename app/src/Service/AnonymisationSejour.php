@@ -14,7 +14,8 @@ final class AnonymisationSejour
         private readonly Connection $connexion,
         private readonly EntityManagerInterface $entityManager,
         private readonly StockageDocumentParticipant $stockage,
-    ) {}
+    ) {
+    }
 
     /**
      * Supprime toutes les données rattachables à une personne. Les groupes (unités
@@ -53,7 +54,9 @@ final class AnonymisationSejour
         });
 
         foreach ($fichiers as $fichier) {
-            if (is_string($fichier) && '' !== $fichier) $this->stockage->supprimer($fichier);
+            if (is_string($fichier) && '' !== $fichier) {
+                $this->stockage->supprimer($fichier);
+            }
         }
         $sejour->setActif(false)->marquerAnonymise();
         $this->entityManager->flush();

@@ -8,18 +8,16 @@ use App\Entity\Menu;
 use App\Entity\Recette;
 use App\Entity\Sejour;
 use App\Entity\SejourTypeRepas;
-use DateInterval;
-use DatePeriod;
-use DateTimeImmutable;
 use Symfony\Component\HttpFoundation\Request;
 
 final class PresentationMenu
 {
     private const REPAS_AVEC_CATEGORIES = ['DEJEUNER', 'DINER'];
 
-    public function date(Request $request, DateTimeImmutable $debut, DateTimeImmutable $fin): DateTimeImmutable
+    public function date(Request $request, \DateTimeImmutable $debut, \DateTimeImmutable $fin): \DateTimeImmutable
     {
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $request->query->getString('date'));
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $request->query->getString('date'));
+
         return false !== $date && $date >= $debut && $date <= $fin ? $date : $debut;
     }
 
@@ -27,8 +25,11 @@ final class PresentationMenu
     public function repas(string $id, array $repas): SejourTypeRepas
     {
         foreach ($repas as $configuration) {
-            if ((string) $configuration->getId() === $id) return $configuration;
+            if ((string) $configuration->getId() === $id) {
+                return $configuration;
+            }
         }
+
         return $repas[0];
     }
 
@@ -37,16 +38,18 @@ final class PresentationMenu
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
     }
 
-    public function libelleDate(DateTimeImmutable $date): string
+    public function libelleDate(\DateTimeImmutable $date): string
     {
         $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
         $mois = [1 => 'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
         return ucfirst(sprintf('%s %d %s', $jours[(int) $date->format('w')], (int) $date->format('j'), $mois[(int) $date->format('n')]));
     }
 
     /**
-     * @param list<object> $denrees
+     * @param list<object>                $denrees
      * @param array<string, list<object>> $conditionnements
+     *
      * @return array<string, array<string, mixed>>
      */
     public function catalogue(array $denrees, array $conditionnements): array
@@ -64,11 +67,13 @@ final class PresentationMenu
                 ], $conditionnements[$id]),
             ];
         }
+
         return $catalogue;
     }
 
     /**
      * @param list<Recette> $recettes
+     *
      * @return array<string, array<string, mixed>>
      */
     public function recettesJson(array $recettes): array
@@ -93,20 +98,23 @@ final class PresentationMenu
                 'lignes' => $lignes,
             ];
         }
+
         return $resultat;
     }
 
-    /** @return list<DateTimeImmutable> */
+    /** @return list<\DateTimeImmutable> */
     public function jours(Sejour $sejour): array
     {
-        return iterator_to_array(new DatePeriod($sejour->getDateDebut(), new DateInterval('P1D'), $sejour->getDateFin()->modify('+1 day')));
+        return iterator_to_array(new \DatePeriod($sejour->getDateDebut(), new \DateInterval('P1D'), $sejour->getDateFin()->modify('+1 day')));
     }
 
     /** @return array<string, array<string, mixed>> */
     public function composition(?Menu $menu, bool $avecCategories): array
     {
         $composition = [];
-        if (null === $menu) return $composition;
+        if (null === $menu) {
+            return $composition;
+        }
         foreach ($menu->getDenrees() as $ligne) {
             $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
             $instance = $ligne->getRecetteInstanceId();
@@ -124,11 +132,13 @@ final class PresentationMenu
                 $composition[$categorie]['supplementaires'][] = $ligne;
             }
         }
+
         return $composition;
     }
 
     /**
      * @param list<array<string, mixed>> $statuts
+     *
      * @return array<string, bool>
      */
     public function menusExistants(array $statuts): array
@@ -140,19 +150,23 @@ final class PresentationMenu
                 : $statut['dateMenu']?->format('Y-m-d').'|'.$statut['repasId'];
             $resultat[$cle] = (int) $statut['nombreDenrees'] > 0;
         }
+
         return $resultat;
     }
 
     /**
-     * @param list<Menu> $menus
+     * @param list<Menu>            $menus
      * @param list<SejourTypeRepas> $repas
+     *
      * @return list<array<string, mixed>>
      */
     public function menusDuJour(array $menus, array $repas): array
     {
         $parRepas = [];
         foreach ($menus as $menu) {
-            if (null !== ($configuration = $menu->getSejourTypeRepas())) $parRepas[(string) $configuration->getId()] = $menu;
+            if (null !== ($configuration = $menu->getSejourTypeRepas())) {
+                $parRepas[(string) $configuration->getId()] = $menu;
+            }
         }
         $resultat = [];
         foreach ($repas as $configuration) {
@@ -163,13 +177,17 @@ final class PresentationMenu
             foreach ($avecCategories ? Recette::CATEGORIES : [''] as $codeCategorie) {
                 $recettes = [];
                 $supplementaires = [];
-                if (null !== $menu) foreach ($menu->getDenrees() as $ligne) {
-                    $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
-                    if ($categorie !== $codeCategorie) continue;
-                    if (null !== ($recette = $ligne->getRecette())) {
-                        $recettes[(string) ($ligne->getRecetteInstanceId() ?? $recette->getId())] = $recette->getNom();
-                    } else {
-                        $supplementaires[] = $ligne->getDenree()->getNom();
+                if (null !== $menu) {
+                    foreach ($menu->getDenrees() as $ligne) {
+                        $categorie = $avecCategories ? ($ligne->getCategorie() ?? 'PLAT') : '';
+                        if ($categorie !== $codeCategorie) {
+                            continue;
+                        }
+                        if (null !== ($recette = $ligne->getRecette())) {
+                            $recettes[(string) ($ligne->getRecetteInstanceId() ?? $recette->getId())] = $recette->getNom();
+                        } else {
+                            $supplementaires[] = $ligne->getDenree()->getNom();
+                        }
                     }
                 }
                 $categories[] = [
@@ -181,6 +199,7 @@ final class PresentationMenu
             }
             $resultat[] = ['libelle' => $configuration->getTypeRepas()->getLibelle(), 'code' => $codeRepas, 'categories' => $categories];
         }
+
         return $resultat;
     }
 }

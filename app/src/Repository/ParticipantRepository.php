@@ -12,7 +12,10 @@ use Doctrine\Persistence\ManagerRegistry;
 /** @extends ServiceEntityRepository<Participant> */
 final class ParticipantRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry) { parent::__construct($registry, Participant::class); }
+    public function __construct(ManagerRegistry $registry)
+    {
+        parent::__construct($registry, Participant::class);
+    }
 
     /** @return list<Participant> */
     public function findPourSejour(Sejour $sejour): array

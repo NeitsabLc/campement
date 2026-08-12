@@ -10,7 +10,9 @@ use Twig\Extension\GlobalsInterface;
 
 final class ContexteSejourExtension extends AbstractExtension implements GlobalsInterface
 {
-    public function __construct(private readonly ContexteSejour $contexte) {}
+    public function __construct(private readonly ContexteSejour $contexte)
+    {
+    }
 
     public function getGlobals(): array
     {

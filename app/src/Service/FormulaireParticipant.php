@@ -6,7 +6,6 @@ namespace App\Service;
 
 use App\Entity\Participant;
 use App\Entity\Sejour;
-use DateTimeImmutable;
 use Symfony\Component\HttpFoundation\Request;
 
 final class FormulaireParticipant
@@ -61,7 +60,8 @@ final class FormulaireParticipant
 
     /**
      * @param array<string, mixed> $donnees
-     * @return array{erreurs: list<string>, naissance: ?DateTimeImmutable, debut: ?DateTimeImmutable, fin: ?DateTimeImmutable, qualifications: list<string>}
+     *
+     * @return array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>}
      */
     public function valider(array $donnees, Sejour $sejour): array
     {
@@ -70,43 +70,69 @@ final class FormulaireParticipant
             $erreurs[] = 'Le type de participant est invalide.';
         }
         foreach (['nom' => 'Le nom', 'prenom' => 'Le prénom'] as $champ => $libelle) {
-            if ('' === $donnees[$champ]) $erreurs[] = $libelle.' est obligatoire.';
-            elseif (mb_strlen($donnees[$champ]) > 150) $erreurs[] = $libelle.' ne peut pas dépasser 150 caractères.';
+            if ('' === $donnees[$champ]) {
+                $erreurs[] = $libelle.' est obligatoire.';
+            } elseif (mb_strlen($donnees[$champ]) > 150) {
+                $erreurs[] = $libelle.' ne peut pas dépasser 150 caractères.';
+            }
         }
 
         $naissance = $this->dateValide($donnees['date_naissance'], 'La date de naissance', $erreurs);
         $debut = $this->dateValide($donnees['date_debut_presence'], 'La date de début de présence', $erreurs);
         $fin = $this->dateValide($donnees['date_fin_presence'], 'La date de fin de présence', $erreurs);
-        if ($debut && $fin && $fin < $debut) $erreurs[] = 'La date de fin de présence doit suivre la date de début.';
-        if ($debut && ($debut < $sejour->getDateDebut() || $debut > $sejour->getDateFin())) $erreurs[] = 'La date de début de présence doit être comprise dans les dates du séjour.';
-        if ($fin && ($fin < $sejour->getDateDebut() || $fin > $sejour->getDateFin())) $erreurs[] = 'La date de fin de présence doit être comprise dans les dates du séjour.';
+        if ($debut && $fin && $fin < $debut) {
+            $erreurs[] = 'La date de fin de présence doit suivre la date de début.';
+        }
+        if ($debut && ($debut < $sejour->getDateDebut() || $debut > $sejour->getDateFin())) {
+            $erreurs[] = 'La date de début de présence doit être comprise dans les dates du séjour.';
+        }
+        if ($fin && ($fin < $sejour->getDateDebut() || $fin > $sejour->getDateFin())) {
+            $erreurs[] = 'La date de fin de présence doit être comprise dans les dates du séjour.';
+        }
 
         $qualifications = array_values(array_intersect(Participant::QUALIFICATIONS, $donnees['qualifications']));
         if (Participant::TYPE_JEUNE === $donnees['type']) {
-            if ('' === $donnees['telephone_parent_1'] || !$this->telephoneValide($donnees['telephone_parent_1'])) $erreurs[] = 'Le premier numéro de téléphone des parents est invalide.';
-            if ('' !== $donnees['telephone_parent_2'] && !$this->telephoneValide($donnees['telephone_parent_2'])) $erreurs[] = 'Le second numéro de téléphone des parents est invalide.';
-            if (mb_strlen($donnees['email_parents']) > 254 || !filter_var($donnees['email_parents'], FILTER_VALIDATE_EMAIL)) $erreurs[] = 'L’adresse e-mail des parents est invalide.';
+            if ('' === $donnees['telephone_parent_1'] || !$this->telephoneValide($donnees['telephone_parent_1'])) {
+                $erreurs[] = 'Le premier numéro de téléphone des parents est invalide.';
+            }
+            if ('' !== $donnees['telephone_parent_2'] && !$this->telephoneValide($donnees['telephone_parent_2'])) {
+                $erreurs[] = 'Le second numéro de téléphone des parents est invalide.';
+            }
+            if (mb_strlen($donnees['email_parents']) > 254 || !filter_var($donnees['email_parents'], FILTER_VALIDATE_EMAIL)) {
+                $erreurs[] = 'L’adresse e-mail des parents est invalide.';
+            }
         } elseif (Participant::TYPE_ADULTE === $donnees['type']) {
-            if ('' === $donnees['telephone'] || !$this->telephoneValide($donnees['telephone'])) $erreurs[] = 'Le numéro de téléphone de l’adulte est invalide.';
-            if (mb_strlen($donnees['email']) > 254 || !filter_var($donnees['email'], FILTER_VALIDATE_EMAIL)) $erreurs[] = 'L’adresse e-mail de l’adulte est invalide.';
-            if ('' === $donnees['contact_urgence_nom_prenom']) $erreurs[] = 'Le nom et le prénom du contact d’urgence sont obligatoires.';
-            elseif (mb_strlen($donnees['contact_urgence_nom_prenom']) > 300) $erreurs[] = 'Le nom et le prénom du contact d’urgence ne peuvent pas dépasser 300 caractères.';
-            if ('' === $donnees['contact_urgence_telephone'] || !$this->telephoneValide($donnees['contact_urgence_telephone'])) $erreurs[] = 'Le numéro de téléphone du contact d’urgence est invalide.';
-            if (in_array('Autre diplôme', $qualifications, true) && '' === $donnees['autre_diplome']) $erreurs[] = 'Précisez l’autre diplôme.';
+            if ('' === $donnees['telephone'] || !$this->telephoneValide($donnees['telephone'])) {
+                $erreurs[] = 'Le numéro de téléphone de l’adulte est invalide.';
+            }
+            if (mb_strlen($donnees['email']) > 254 || !filter_var($donnees['email'], FILTER_VALIDATE_EMAIL)) {
+                $erreurs[] = 'L’adresse e-mail de l’adulte est invalide.';
+            }
+            if ('' === $donnees['contact_urgence_nom_prenom']) {
+                $erreurs[] = 'Le nom et le prénom du contact d’urgence sont obligatoires.';
+            } elseif (mb_strlen($donnees['contact_urgence_nom_prenom']) > 300) {
+                $erreurs[] = 'Le nom et le prénom du contact d’urgence ne peuvent pas dépasser 300 caractères.';
+            }
+            if ('' === $donnees['contact_urgence_telephone'] || !$this->telephoneValide($donnees['contact_urgence_telephone'])) {
+                $erreurs[] = 'Le numéro de téléphone du contact d’urgence est invalide.';
+            }
+            if (in_array('Autre diplôme', $qualifications, true) && '' === $donnees['autre_diplome']) {
+                $erreurs[] = 'Précisez l’autre diplôme.';
+            }
         }
 
         return compact('erreurs', 'naissance', 'debut', 'fin', 'qualifications');
     }
 
     /**
-     * @param array<string, mixed> $donnees
-     * @param array{erreurs: list<string>, naissance: ?DateTimeImmutable, debut: ?DateTimeImmutable, fin: ?DateTimeImmutable, qualifications: list<string>} $validation
+     * @param array<string, mixed>                                                                                                                             $donnees
+     * @param array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>} $validation
      */
     public function appliquer(Participant $participant, array $donnees, array $validation): void
     {
-        if (!$validation['naissance'] instanceof DateTimeImmutable
-            || !$validation['debut'] instanceof DateTimeImmutable
-            || !$validation['fin'] instanceof DateTimeImmutable) {
+        if (!$validation['naissance'] instanceof \DateTimeImmutable
+            || !$validation['debut'] instanceof \DateTimeImmutable
+            || !$validation['fin'] instanceof \DateTimeImmutable) {
             throw new \LogicException('Les dates du participant doivent être validées avant leur application.');
         }
         $participant->setNom($donnees['nom'])->setPrenom($donnees['prenom'])
@@ -115,6 +141,7 @@ final class FormulaireParticipant
             $participant->setTelephoneParent1($donnees['telephone_parent_1'])
                 ->setTelephoneParent2($this->nullable($donnees['telephone_parent_2']))
                 ->setEmailParents($donnees['email_parents']);
+
             return;
         }
         $participant->setTelephone($donnees['telephone'])->setEmail($donnees['email'])
@@ -126,13 +153,15 @@ final class FormulaireParticipant
     }
 
     /** @param list<string> $erreurs */
-    private function dateValide(string $valeur, string $libelle, array &$erreurs): ?DateTimeImmutable
+    private function dateValide(string $valeur, string $libelle, array &$erreurs): ?\DateTimeImmutable
     {
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $valeur);
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $valeur);
         if (!$date || $date->format('Y-m-d') !== $valeur) {
             $erreurs[] = $libelle.' est obligatoire et doit être valide.';
+
             return null;
         }
+
         return $date;
     }
 

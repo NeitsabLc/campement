@@ -20,7 +20,9 @@ final class ModuleSejourSubscriber
     private const SEJOUR_REQUIS = ['app_groupe'];
     private const SITUATIONS_PARTICULIERES = ['app_situation_particuliere', 'app_situations_particulieres'];
 
-    public function __construct(private readonly ContexteSejour $contexte, private readonly UrlGeneratorInterface $urls) {}
+    public function __construct(private readonly ContexteSejour $contexte, private readonly UrlGeneratorInterface $urls)
+    {
+    }
 
     public function __invoke(ControllerEvent $event): void
     {
@@ -31,7 +33,9 @@ final class ModuleSejourSubscriber
             : ($this->correspondA($route, self::ADMINISTRATIF)
                 ? 'administratif'
                 : ($this->correspondA($route, self::SITUATIONS_PARTICULIERES) ? 'situations_particulieres' : null));
-        if (null === $module && !$this->correspondA($route, self::SEJOUR_REQUIS)) { return; }
+        if (null === $module && !$this->correspondA($route, self::SEJOUR_REQUIS)) {
+            return;
+        }
         $sejour = $this->contexte->actif();
         if (null === $sejour
             || ('intendance' === $module && !$sejour->isModuleIntendanceActif())

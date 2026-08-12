@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Entity\Traits\ActivableTrait;
@@ -10,9 +11,9 @@ use App\Repository\UniteRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UniteRepository::class)]
-#[ORM\Table(name: "unite", schema: "campement")]
-#[ORM\UniqueConstraint(name: "uq_unite_nom", columns: ["nom"])]
-#[ORM\UniqueConstraint(name: "uq_unite_symbole", columns: ["symbole"])]
+#[ORM\Table(name: 'unite', schema: 'campement')]
+#[ORM\UniqueConstraint(name: 'uq_unite_nom', columns: ['nom'])]
+#[ORM\UniqueConstraint(name: 'uq_unite_symbole', columns: ['symbole'])]
 class Unite
 {
     use EntityIdTrait;
@@ -25,7 +26,7 @@ class Unite
     #[ORM\Column(length: 10)]
     private string $symbole;
 
-    #[ORM\Column(name: "utilisable_conditionnement", options: ["default" => true])]
+    #[ORM\Column(name: 'utilisable_conditionnement', options: ['default' => true])]
     private bool $utilisableConditionnement = true;
 
     public function __construct(string $nom, string $symbole)
@@ -45,6 +46,7 @@ class Unite
     {
         $this->nom = $nom;
         $this->touch();
+
         return $this;
     }
 
@@ -57,6 +59,7 @@ class Unite
     {
         $this->symbole = $symbole;
         $this->touch();
+
         return $this;
     }
 
@@ -65,6 +68,15 @@ class Unite
         return $this->symbole;
     }
 
-    public function isUtilisableConditionnement(): bool { return $this->utilisableConditionnement; }
-    public function setUtilisableConditionnement(bool $valeur): self { $this->utilisableConditionnement = $valeur; return $this; }
+    public function isUtilisableConditionnement(): bool
+    {
+        return $this->utilisableConditionnement;
+    }
+
+    public function setUtilisableConditionnement(bool $valeur): self
+    {
+        $this->utilisableConditionnement = $valeur;
+
+        return $this;
+    }
 }

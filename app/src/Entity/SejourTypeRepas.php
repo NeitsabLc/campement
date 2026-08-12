@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Entity\Traits\ActivableTrait;
@@ -10,10 +11,10 @@ use App\Repository\SejourTypeRepasRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SejourTypeRepasRepository::class)]
-#[ORM\Table(name: "sejour_type_repas", schema: "campement")]
-#[ORM\UniqueConstraint(name: "uq_sejour_type_repas", columns: ["sejour_id", "type_repas_id"],),]
-#[ORM\Index(name: "idx_sejour_type_repas_sejour", columns: ["sejour_id"])]
-#[ORM\Index(name: "idx_sejour_type_repas_type_repas", columns: ["type_repas_id"],),]
+#[ORM\Table(name: 'sejour_type_repas', schema: 'campement')]
+#[ORM\UniqueConstraint(name: 'uq_sejour_type_repas', columns: ['sejour_id', 'type_repas_id'], ),]
+#[ORM\Index(name: 'idx_sejour_type_repas_sejour', columns: ['sejour_id'])]
+#[ORM\Index(name: 'idx_sejour_type_repas_type_repas', columns: ['type_repas_id'], ),]
 class SejourTypeRepas
 {
     use EntityIdTrait;
@@ -21,17 +22,17 @@ class SejourTypeRepas
     use ActivableTrait;
 
     #[ORM\ManyToOne(targetEntity: Sejour::class)]
-    #[ORM\JoinColumn(name: "sejour_id", nullable: false, onDelete: "CASCADE")]
+    #[ORM\JoinColumn(name: 'sejour_id', nullable: false, onDelete: 'CASCADE')]
     private Sejour $sejour;
 
     #[ORM\ManyToOne(targetEntity: TypeRepas::class)]
-    #[ORM\JoinColumn(name: "type_repas_id", nullable: false, onDelete: "RESTRICT",),]
+    #[ORM\JoinColumn(name: 'type_repas_id', nullable: false, onDelete: 'RESTRICT', ),]
     private TypeRepas $typeRepas;
 
-    #[ORM\Column(name: "distribution_active", options: ["default" => true])]
+    #[ORM\Column(name: 'distribution_active', options: ['default' => true])]
     private bool $distributionActive = true;
 
-    #[ORM\Column(type: "smallint", options: ["default" => 0])]
+    #[ORM\Column(type: 'smallint', options: ['default' => 0])]
     private int $ordre = 0;
 
     public function __construct(Sejour $sejour, TypeRepas $typeRepas, int $ordre = 0)
@@ -62,6 +63,7 @@ class SejourTypeRepas
     {
         $this->distributionActive = $distributionActive;
         $this->touch();
+
         return $this;
     }
 
@@ -73,16 +75,17 @@ class SejourTypeRepas
     public function setOrdre(int $ordre): self
     {
         if ($ordre < 0) {
-            throw new \InvalidArgumentException("Ordre invalide.");
+            throw new \InvalidArgumentException('Ordre invalide.');
         }
 
         $this->ordre = $ordre;
         $this->touch();
+
         return $this;
     }
 
     public function __toString(): string
     {
-        return sprintf("%s — %s", $this->sejour, $this->typeRepas);
+        return sprintf('%s — %s', $this->sejour, $this->typeRepas);
     }
 }

@@ -34,6 +34,9 @@ jobs:
           - image: liquibase
             file: docker/liquibase/Dockerfile
             target: liquibase-runtime
+          - image: backup
+            file: docker/postgres/Dockerfile
+            target: backup-runtime
 
     steps:
       - name: Recuperer le code

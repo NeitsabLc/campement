@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Repository\UtilisateurRepository;
-use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -67,7 +66,7 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
     private bool $actif = true;
 
     #[ORM\Column(name: 'desactive_at', type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
-    private ?DateTimeImmutable $desactiveAt = null;
+    private ?\DateTimeImmutable $desactiveAt = null;
 
     #[ORM\Column(name: 'changement_mot_de_passe_requis', options: ['default' => false])]
     private bool $changementMotDePasseRequis = false;
@@ -76,13 +75,13 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $jetonReinitialisation = null;
 
     #[ORM\Column(name: 'expiration_jeton_reinitialisation', type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
-    private ?DateTimeImmutable $expirationJetonReinitialisation = null;
+    private ?\DateTimeImmutable $expirationJetonReinitialisation = null;
 
     #[ORM\Column(name: 'created_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $createdAt;
+    private \DateTimeImmutable $createdAt;
 
     #[ORM\Column(name: 'updated_at', type: Types::DATETIMETZ_IMMUTABLE, options: ['default' => new \Doctrine\DBAL\Schema\DefaultExpression\CurrentTimestamp()])]
-    private DateTimeImmutable $updatedAt;
+    private \DateTimeImmutable $updatedAt;
 
     /** @var Collection<int, Sejour> */
     #[ORM\ManyToMany(targetEntity: Sejour::class, inversedBy: 'gestionnaires')]
@@ -93,7 +92,7 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function __construct()
     {
-        $maintenant = new DateTimeImmutable();
+        $maintenant = new \DateTimeImmutable();
         $this->id = new UuidV7();
         $this->createdAt = $maintenant;
         $this->updatedAt = $maintenant;
@@ -117,8 +116,17 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getDernierSejour(): ?Sejour { return $this->dernierSejour; }
-    public function setDernierSejour(?Sejour $sejour): self { $this->dernierSejour = $sejour; return $this; }
+    public function getDernierSejour(): ?Sejour
+    {
+        return $this->dernierSejour;
+    }
+
+    public function setDernierSejour(?Sejour $sejour): self
+    {
+        $this->dernierSejour = $sejour;
+
+        return $this;
+    }
 
     public function getEmail(): string
     {
@@ -213,14 +221,14 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
     public function setActif(bool $actif): self
     {
         if ($this->actif !== $actif) {
-            $this->desactiveAt = $actif ? null : new DateTimeImmutable();
+            $this->desactiveAt = $actif ? null : new \DateTimeImmutable();
         }
         $this->actif = $actif;
 
         return $this;
     }
 
-    public function getDesactiveAt(): ?DateTimeImmutable
+    public function getDesactiveAt(): ?\DateTimeImmutable
     {
         return $this->desactiveAt;
     }
@@ -237,7 +245,7 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function definirJetonReinitialisation(string $jeton, DateTimeImmutable $expiration): self
+    public function definirJetonReinitialisation(string $jeton, \DateTimeImmutable $expiration): self
     {
         $this->jetonReinitialisation = hash('sha256', $jeton);
         $this->expirationJetonReinitialisation = $expiration;
@@ -250,11 +258,11 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->jetonReinitialisation;
     }
 
-    public function jetonReinitialisationEstValide(string $jeton, ?DateTimeImmutable $maintenant = null): bool
+    public function jetonReinitialisationEstValide(string $jeton, ?\DateTimeImmutable $maintenant = null): bool
     {
         return null !== $this->jetonReinitialisation
             && null !== $this->expirationJetonReinitialisation
-            && $this->expirationJetonReinitialisation >= ($maintenant ?? new DateTimeImmutable())
+            && $this->expirationJetonReinitialisation >= ($maintenant ?? new \DateTimeImmutable())
             && hash_equals($this->jetonReinitialisation, hash('sha256', $jeton));
     }
 
@@ -266,17 +274,17 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getCreatedAt(): DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function getUpdatedAt(): DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(DateTimeImmutable $updatedAt): self
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): self
     {
         $this->updatedAt = $updatedAt;
 
@@ -286,7 +294,7 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\PreUpdate]
     public function actualiserDateModification(): void
     {
-        $this->updatedAt = new DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     /**

@@ -20,7 +20,6 @@ use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
 use App\Service\PreparationDistribution;
 use App\Service\PresentationMenu;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\ExpressionLanguage\Expression;
@@ -205,7 +204,7 @@ final class MenuController extends AbstractController
         ]);
     }
 
-    private function redirectMenu(DateTimeImmutable $date, SejourTypeRepas $repas, ?string $special): Response
+    private function redirectMenu(\DateTimeImmutable $date, SejourTypeRepas $repas, ?string $special): Response
     {
         return $this->redirectToRoute('app_menus', null !== $special
             ? ['special' => $special]

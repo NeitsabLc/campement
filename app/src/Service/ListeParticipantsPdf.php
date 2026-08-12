@@ -22,10 +22,12 @@ final class ListeParticipantsPdf
         'adulte' => ['#332567', '#d9d5e6'],
     ];
 
-    public function __construct(#[Autowire('%kernel.project_dir%')] private readonly string $projectDir) {}
+    public function __construct(#[Autowire('%kernel.project_dir%')] private readonly string $projectDir)
+    {
+    }
 
     /**
-     * @param list<Groupe> $groupes
+     * @param list<Groupe>      $groupes
      * @param list<Participant> $participants
      */
     public function generer(Sejour $sejour, array $groupes, array $participants): string
@@ -51,7 +53,7 @@ final class ListeParticipantsPdf
     }
 
     /**
-     * @param list<Groupe> $groupes
+     * @param list<Groupe>                                    $groupes
      * @param array<string, array<string, list<Participant>>> $parGroupe
      */
     private function html(Sejour $sejour, array $groupes, array $parGroupe): string
@@ -61,14 +63,22 @@ final class ListeParticipantsPdf
             $listes = $parGroupe[(string) $groupe->getId()] ?? [];
             $jeunes = $listes[Participant::TYPE_JEUNE] ?? [];
             $adultes = $listes[Participant::TYPE_ADULTE] ?? [];
-            if ([] === $jeunes && [] === $adultes) continue;
+            if ([] === $jeunes && [] === $adultes) {
+                continue;
+            }
             $contenu = sprintf('<header><h1>%s</h1><p>%s - du %s au %s</p></header>', $this->e(mb_strtoupper($groupe->getNom())), $this->e($sejour->getNom()), $sejour->getDateDebut()->format('d/m/Y'), $sejour->getDateFin()->format('d/m/Y'));
-            if ([] !== $jeunes) $contenu .= $this->tableau('Jeunes', 'Coordonnées des parents (tél.)', $jeunes, true);
-            if ([] !== $adultes) $contenu .= $this->tableau('Adultes', 'Contact d’urgence (tél.)', $adultes, false);
+            if ([] !== $jeunes) {
+                $contenu .= $this->tableau('Jeunes', 'Coordonnées des parents (tél.)', $jeunes, true);
+            }
+            if ([] !== $adultes) {
+                $contenu .= $this->tableau('Adultes', 'Contact d’urgence (tél.)', $adultes, false);
+            }
             $theme = array_key_exists($groupe->getType(), self::THEMES) ? $groupe->getType() : 'adulte';
             $pages[] = sprintf('<section class="page theme-%s">%s</section>', $this->e($theme), $contenu);
         }
-        if ([] === $pages) $pages[] = '<section class="page"><header><h1>LISTE DES PARTICIPANTS</h1><p>'.$this->e($sejour->getNom()).'</p></header><p>Aucun participant enregistré.</p></section>';
+        if ([] === $pages) {
+            $pages[] = '<section class="page"><header><h1>LISTE DES PARTICIPANTS</h1><p>'.$this->e($sejour->getNom()).'</p></header><p>Aucun participant enregistré.</p></section>';
+        }
 
         return '<!doctype html><html lang="fr"><head><meta charset="UTF-8"><style>'.$this->css().'</style></head><body>'.implode('', $pages).'</body></html>';
     }

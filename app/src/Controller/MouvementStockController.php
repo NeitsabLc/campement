@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\MouvementStockLigneConditionnement;
-use App\Entity\Sejour;
 use App\Entity\Utilisateur;
 use App\Repository\DenreeRepository;
 use App\Repository\GroupeRepository;
@@ -15,9 +14,9 @@ use App\Repository\MouvementStockRepository;
 use App\Repository\OrigineMouvementRepository;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
+use App\Service\AuditMouvementStock;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
-use App\Service\AuditMouvementStock;
 use App\Service\EnregistrementMouvementStockMultiple;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -55,7 +54,9 @@ final class MouvementStockController extends AbstractController
             $fournisseurs = [];
             foreach ($donneesMouvement['lignes'] as $ligne) {
                 $fournisseur = $ligne->getReferenceFournisseur()?->getFournisseur()->getNom();
-                if (null !== $fournisseur) $fournisseurs[$fournisseur] = true;
+                if (null !== $fournisseur) {
+                    $fournisseurs[$fournisseur] = true;
+                }
             }
             $donneesMouvement['intervenant'] = match (count($fournisseurs)) {
                 0 => '—',
@@ -269,12 +270,15 @@ final class MouvementStockController extends AbstractController
                         : number_format($conversion->depuisUniteReferenceAvecNiveaux($ligneMouvement->getDenree(), $conditionnementLigne, (float) $ligneMouvement->getQuantiteUniteReference(), $niveauxActifs), 3, '.', ''),
                     'conditionnements' => array_reduce($detailsParLigne[(string) $ligneMouvement->getId()] ?? [], static function (array $resultat, MouvementStockLigneConditionnement $detail): array {
                         $resultat[(string) $detail->getConditionnement()->getId()] = $detail->getQuantite();
+
                         return $resultat;
                     }, []),
                 ];
             }
         }
-        if ([] === $lignesValeurs) $lignesValeurs = [[]];
+        if ([] === $lignesValeurs) {
+            $lignesValeurs = [[]];
+        }
 
         if ($request->isMethod('POST') && null !== $sejour && $request->request->has('lignes')) {
             if (!$this->isCsrfTokenValid('mouvement_stock', $request->request->getString('_token'))) {
@@ -282,7 +286,9 @@ final class MouvementStockController extends AbstractController
             }
 
             $utilisateur = $this->getUser();
-            if (!$utilisateur instanceof Utilisateur) throw new \LogicException('Utilisateur connecté invalide.');
+            if (!$utilisateur instanceof Utilisateur) {
+                throw new \LogicException('Utilisateur connecté invalide.');
+            }
             $resultat = $enregistrementMultiple->enregistrer(
                 $request, $sejour, $utilisateur, $denreesActives, $originesActives, $groupesActifs,
                 $fournisseursActifs, $referencesParDenree, $conditionnementsParReference,
@@ -296,6 +302,7 @@ final class MouvementStockController extends AbstractController
                     $resultat['nombre'],
                     $resultat['nombre'] > 1 ? 's' : '',
                 ));
+
                 return $this->redirectToRoute('app_mouvements_stock');
             }
         }
@@ -305,7 +312,9 @@ final class MouvementStockController extends AbstractController
                 throw $this->createAccessDeniedException('Jeton CSRF invalide.');
             }
             $utilisateur = $this->getUser();
-            if (!$utilisateur instanceof Utilisateur) throw new \LogicException('Utilisateur connecté invalide.');
+            if (!$utilisateur instanceof Utilisateur) {
+                throw new \LogicException('Utilisateur connecté invalide.');
+            }
             $resultat = $enregistrementMultiple->enregistrerSimple(
                 $request, $sejour, $utilisateur, $valeurs, $denreesActives, $originesActives, $groupesActifs,
                 $referencesParDenree, $conditionnementsParReference, $conditionnementsSortieParDenree,
@@ -325,5 +334,4 @@ final class MouvementStockController extends AbstractController
             'valeurs', 'lignesValeurs', 'erreurs', 'mouvementExistant', 'motifAudit',
         ));
     }
-
 }

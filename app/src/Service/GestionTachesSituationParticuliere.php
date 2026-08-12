@@ -24,7 +24,9 @@ final class GestionTachesSituationParticuliere
     {
         $informations = $situation->getInformationsComplementaires();
         $requis = [];
-        if ([] !== array_intersect($informations, self::ACCIDENT)) $requis[TacheSituationParticuliere::TYPE_ACCIDENT] = $situation->getDateSituation()->modify('+5 days');
+        if ([] !== array_intersect($informations, self::ACCIDENT)) {
+            $requis[TacheSituationParticuliere::TYPE_ACCIDENT] = $situation->getDateSituation()->modify('+5 days');
+        }
         if ([] !== array_intersect($informations, self::GRAVE_URGENCE)) {
             $requis[TacheSituationParticuliere::TYPE_EVENEMENT_GRAVE] = $situation->getDateSituation()->modify('+2 days');
             $requis[TacheSituationParticuliere::TYPE_APPEL_URGENCE] = $situation->getDateSituation();
@@ -36,14 +38,18 @@ final class GestionTachesSituationParticuliere
 
         $existantes = [];
         foreach ($situation->getTaches() as $tache) {
-            if (null !== $tache->getTypePredefini()) $existantes[$tache->getTypePredefini()] = $tache;
+            if (null !== $tache->getTypePredefini()) {
+                $existantes[$tache->getTypePredefini()] = $tache;
+            }
         }
         foreach ($requis as $type => $echeance) {
             if (!isset($existantes[$type])) {
                 TacheSituationParticuliere::automatique($situation, $type, $echeance);
             } elseif (TacheSituationParticuliere::ORIGINE_AUTOMATIQUE === $existantes[$type]->getOrigine()) {
                 $existantes[$type]->setDateEcheance($echeance);
-                if (TacheSituationParticuliere::STATUT_NON_REQUIS === $existantes[$type]->getStatut()) $existantes[$type]->setStatut(TacheSituationParticuliere::STATUT_A_FAIRE);
+                if (TacheSituationParticuliere::STATUT_NON_REQUIS === $existantes[$type]->getStatut()) {
+                    $existantes[$type]->setStatut(TacheSituationParticuliere::STATUT_A_FAIRE);
+                }
             }
         }
         foreach ($existantes as $type => $tache) {

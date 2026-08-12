@@ -12,7 +12,6 @@ use App\Repository\GroupeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\ParticipantRepository;
 use App\Service\ContexteSejour;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,13 +26,12 @@ final class TableauDeBordController extends AbstractController
         ParticipantRepository $participants,
         MenuRepository $menus,
         EntityManagerInterface $entityManager,
-    ): Response
-    {
+    ): Response {
         $sejour = $contexte->actif();
         $utilisateur = $this->getUser();
         $vueGroupe = $this->isGranted(Utilisateur::ROLE_GROUPE) && $utilisateur instanceof Utilisateur;
         $groupeUtilisateur = $vueGroupe ? $utilisateur->getGroupe() : null;
-        $aujourdhui = new DateTimeImmutable('today');
+        $aujourdhui = new \DateTimeImmutable('today');
         $sejourEnCours = null !== $sejour
             && $aujourdhui >= $sejour->getDateDebut()
             && $aujourdhui <= $sejour->getDateFin();

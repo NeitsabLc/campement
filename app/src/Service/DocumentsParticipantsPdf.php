@@ -6,16 +6,17 @@ namespace App\Service;
 
 use App\Entity\DocumentParticipant;
 use App\Entity\Participant;
-use RuntimeException;
 use setasign\Fpdi\Fpdi;
 
 final class DocumentsParticipantsPdf
 {
-    public function __construct(private readonly StockageDocumentParticipant $stockage) {}
+    public function __construct(private readonly StockageDocumentParticipant $stockage)
+    {
+    }
 
     /**
      * @param list<Participant> $participants
-     * @param list<string> $types
+     * @param list<string>      $types
      */
     public function generer(array $participants, array $types): string
     {
@@ -35,7 +36,9 @@ final class DocumentsParticipantsPdf
             foreach ($types as $type) {
                 foreach ($documents[$type] as $document) {
                     $chemin = $this->stockage->chemin($document->getCheminStockage());
-                    if (!is_file($chemin)) continue;
+                    if (!is_file($chemin)) {
+                        continue;
+                    }
                     'pdf' === strtolower(pathinfo($chemin, PATHINFO_EXTENSION))
                         ? $this->ajouterPdf($pdf, $chemin)
                         : $this->ajouterImage($pdf, $chemin);
@@ -54,7 +57,7 @@ final class DocumentsParticipantsPdf
     }
 
     /**
-     * @param list<string> $types
+     * @param list<string>                             $types
      * @param array<string, list<DocumentParticipant>> $documents
      */
     private function ajouterIntercalaire(Fpdi $pdf, Participant $participant, array $types, array $documents): void
@@ -101,14 +104,16 @@ final class DocumentsParticipantsPdf
                 $pdf->useTemplate($modele);
             }
         } catch (\Throwable $exception) {
-            throw new RuntimeException(sprintf('Le document « %s » ne peut pas être intégré au PDF.', basename($chemin)), 0, $exception);
+            throw new \RuntimeException(sprintf('Le document « %s » ne peut pas être intégré au PDF.', basename($chemin)), 0, $exception);
         }
     }
 
     private function ajouterImage(Fpdi $pdf, string $chemin): void
     {
         $dimensions = @getimagesize($chemin);
-        if (false === $dimensions) throw new RuntimeException(sprintf('L’image « %s » est illisible.', basename($chemin)));
+        if (false === $dimensions) {
+            throw new \RuntimeException(sprintf('L’image « %s » est illisible.', basename($chemin)));
+        }
         [$largeur, $hauteur] = $dimensions;
         $orientation = $largeur > $hauteur ? 'L' : 'P';
         $pageLargeur = 'L' === $orientation ? 297.0 : 210.0;

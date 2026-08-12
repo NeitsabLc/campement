@@ -10,7 +10,9 @@ use Twig\TwigFilter;
 
 final class AffichageQuantiteExtension extends AbstractExtension
 {
-    public function __construct(private readonly AffichageQuantite $affichageQuantite) {}
+    public function __construct(private readonly AffichageQuantite $affichageQuantite)
+    {
+    }
 
     public function getFilters(): array
     {

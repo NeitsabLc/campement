@@ -260,5 +260,4 @@ final class UtilisateurController extends AbstractController
 
         return $this->redirectToRoute('app_utilisateurs', null === $sejourSelectionne ? [] : ['sejour' => $sejourSelectionne->getId()]);
     }
-
 }

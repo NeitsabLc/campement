@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Entity\Groupe;
 use App\Entity\DocumentParticipant;
+use App\Entity\Groupe;
 use App\Entity\Participant;
 use App\Entity\Utilisateur;
 use App\Repository\GroupeRepository;
@@ -35,7 +35,9 @@ final class ParticipantController extends AbstractController
         ListeParticipantsPdf $pdf,
     ): Response {
         $sejour = $contexteSejour->actif();
-        if (!$sejour) throw $this->createNotFoundException('Aucun séjour actif.');
+        if (!$sejour) {
+            throw $this->createNotFoundException('Aucun séjour actif.');
+        }
         $contenu = $pdf->generer($sejour, $groupeRepository->findActifsPourSejour($sejour), $participantRepository->findPourSejour($sejour));
         $nom = preg_replace('/[^a-z0-9]+/', '-', mb_strtolower($sejour->getNom())) ?: 'sejour';
 
@@ -83,7 +85,9 @@ final class ParticipantController extends AbstractController
             if ($utilisateurGroupe instanceof Groupe && $groupe !== $utilisateurGroupe) {
                 $groupe = null;
             }
-            if (!$groupe instanceof Groupe) $erreurs[] = 'Sélectionnez une unité du séjour actif.';
+            if (!$groupe instanceof Groupe) {
+                $erreurs[] = 'Sélectionnez une unité du séjour actif.';
+            }
             $validation = $sejour ? $formulaire->valider($donnees, $sejour) : ['erreurs' => []];
             $erreurs = [...$erreurs, ...$validation['erreurs']];
 
@@ -93,6 +97,7 @@ final class ParticipantController extends AbstractController
                 $entityManager->persist($participant);
                 $entityManager->flush();
                 $this->addFlash('success', sprintf('%s %s a bien été ajouté%s.', $participant->getPrenom(), $participant->getNom(), Participant::TYPE_JEUNE === $participant->getType() ? 'e' : ''));
+
                 return $this->redirectToRoute('app_participants');
             }
         }
@@ -103,9 +108,13 @@ final class ParticipantController extends AbstractController
                 ? ($utilisateurGroupe->isActif() ? [$utilisateurGroupe] : [])
                 : $groupeRepository->findActifsPourSejour($sejour));
         $participantsParGroupe = [];
-        if ($sejour) foreach ($participantRepository->findPourSejour($sejour) as $participant) {
-            if ($utilisateurGroupe instanceof Groupe && $participant->getGroupe() !== $utilisateurGroupe) continue;
-            $participantsParGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
+        if ($sejour) {
+            foreach ($participantRepository->findPourSejour($sejour) as $participant) {
+                if ($utilisateurGroupe instanceof Groupe && $participant->getGroupe() !== $utilisateurGroupe) {
+                    continue;
+                }
+                $participantsParGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
+            }
         }
 
         $template = 'app_participants' === $request->attributes->get('_route') && !$request->isMethod('POST')
@@ -192,7 +201,9 @@ final class ParticipantController extends AbstractController
         }
 
         $nomComplet = $participant->getPrenom().' '.$participant->getNom();
-        foreach ($participant->getDocuments() as $document) $stockageDocuments->supprimer($document->getCheminStockage());
+        foreach ($participant->getDocuments() as $document) {
+            $stockageDocuments->supprimer($document->getCheminStockage());
+        }
         $entityManager->remove($participant);
         $entityManager->flush();
         $this->addFlash('success', sprintf('La fiche de %s a bien été supprimée.', $nomComplet));
@@ -202,9 +213,11 @@ final class ParticipantController extends AbstractController
 
     private function trouverGroupe(string $id, mixed $sejour, GroupeRepository $repository): ?Groupe
     {
-        if (!$sejour || !Uuid::isValid($id)) return null;
+        if (!$sejour || !Uuid::isValid($id)) {
+            return null;
+        }
         $groupe = $repository->find($id);
+
         return $groupe instanceof Groupe && $groupe->isActif() && $groupe->getSejour() === $sejour ? $groupe : null;
     }
-
 }

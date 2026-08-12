@@ -74,6 +74,7 @@ final class ListeCoursesPdf
 
     /**
      * @param list<Menu> $menus
+     *
      * @return array{titre: string, groupe: string, effectif: int, couleur: string, lignes: list<array{nom: string, individuelle: string, unite: string}>, legende: string}
      */
     private function fiche(Menu $menu, array $menus, Groupe $groupe, string $codePublic, int $effectif, string $couleur): array

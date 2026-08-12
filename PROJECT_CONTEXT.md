@@ -660,9 +660,9 @@ Le dépôt ne documente que les invariants nécessaires au développement :
 * les secrets et fichiers d’environnement restent hors Git ;
 * les images amont PHP, Nginx, PostgreSQL, Liquibase, Composer et Trivy sont
   épinglées par digest ;
-* les images finales PHP, Nginx, PostgreSQL et Liquibase embarquent les artefacts
-  livrés — code, dépendances, assets, scripts ou changelogs — sans bind mount du
-  dépôt pour ces éléments ;
+* les images finales PHP, Nginx, PostgreSQL, Liquibase et sauvegarde embarquent
+  les artefacts livrés — code, dépendances, assets, scripts ou changelogs — sans
+  bind mount du dépôt pour ces éléments ;
 * les conteneurs de production utilisent un utilisateur non-root explicite, une
   racine en lecture seule, `cap_drop: ALL`, `no-new-privileges` et uniquement
   les volumes ou tmpfs nécessaires en écriture ;
@@ -670,24 +670,30 @@ Le dépôt ne documente que les invariants nécessaires au développement :
   test, et Nginx n'est publié que sur `127.0.0.1` par défaut ;
 * les hôtes et proxies de confiance sont configurés explicitement ;
 * les rôles de lecture, d’écriture et de migration doivent être séparés ;
-* une sauvegarde restaurable précède toute migration de données ;
+* une sauvegarde chiffrée et restaurable de la base et des documents précède
+  toute migration de données ; la clé privée Age reste séparée du dépôt, de
+  l'application et du stockage des sauvegardes ;
 * une livraison est suivie de contrôles applicatifs, de migration, de journaux
   et de restauration ;
 * aucune commande destructive ne doit cibler un environnement contenant des
   données à conserver.
 
 La CI générale s'exécute sur `dev` et `main`, audite Composer, Importmap et npm,
-puis construit et analyse avec Trivy les quatre images finales PHP, Nginx,
-PostgreSQL et Liquibase ; le scan PHP couvre aussi `vendor/` réellement livré.
-Pour les événements concernant `main` uniquement, elle exécute en plus
-`scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
+puis construit et analyse avec Trivy les cinq images finales PHP, Nginx,
+PostgreSQL, Liquibase et sauvegarde ; le scan PHP couvre aussi `vendor/`
+réellement livré.
+Pour chaque push et pull request visant `dev` ou `main`, un job indépendant
+exécute `scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
 des images finales, base vierge, migrations, transition des rôles PostgreSQL,
-requête Doctrine avec le rôle applicatif, sauvegarde, maintenance, contrôles
-HTTP et vérification du durcissement et des limites de ressources. Les secrets
-éphémères générés par la CI sont masqués avant leur export.
+requête Doctrine avec le rôle applicatif, refus d'en-têtes `Host` et
+`X-Forwarded-Host` hostiles,
+sauvegarde chiffrée, déchiffrement et restauration effective de la base et d'un
+document témoin, maintenance et vérification du durcissement et des limites de
+ressources. Les secrets et clés éphémères générés par la CI sont masqués avant
+leur export.
 
-Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les quatre
-bases Docker. Un tag `v*` n'est publiable que si son commit provient de `main` ;
+Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les bases
+Docker. Un tag `v*` n'est publiable que si son commit provient de `main` ;
 les images correspondantes sont envoyées dans GHCR avec SBOM, provenance,
 attestation GitHub et signature keyless Cosign. Ce workflow publie des artefacts
 mais n'effectue aucun déploiement.
@@ -732,11 +738,10 @@ Le dépôt suit désormais ce cycle de publication :
 
 ## 18. Priorités recommandées
 
-1. mettre en place le chiffrement authentifié des sauvegardes avant leur sortie
-   de l'hôte, avec clé conservée séparément dans un gestionnaire de secrets,
-   copie hors site versionnée ou immuable et procédure de rotation ;
-2. tester périodiquement la restauration complète de la base, des documents et
-   des clés nécessaires au déchiffrement ;
+1. mettre en place une copie hors site versionnée ou immuable des sauvegardes
+   chiffrées, la rotation des clés Age et un exercice périodique de restauration
+   avec les clés réelles ;
+2. superviser l'âge et le succès des sauvegardes en exploitation ;
 3. assainir les informations d’infrastructure encore présentes dans les fichiers
    suivis et, après validation, dans l’historique Git distant ;
 4. augmenter la couverture fonctionnelle des parcours sensibles ;
@@ -747,6 +752,6 @@ Le dépôt suit désormais ce cycle de publication :
 Les points suivants restent à arbitrer :
 
 * les droits détaillés de consultation du journal pour `ROLE_GROUPE` ;
-* l'outil de chiffrement et le gestionnaire de clés des sauvegardes ;
+* le gestionnaire de clés Age et le stockage hors site des sauvegardes ;
 * la fréquence des tests de restauration des sauvegardes ;
 * le niveau de couverture de tests attendu pour chaque module.

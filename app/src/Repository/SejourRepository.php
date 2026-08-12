@@ -65,6 +65,7 @@ final class SejourRepository extends ServiceEntityRepository
                 ->andWhere('gestionnaire = :utilisateur')
                 ->setParameter('utilisateur', $utilisateur);
         }
+
         return $qb->getQuery()->getResult();
     }
 }

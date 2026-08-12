@@ -9,8 +9,6 @@ use App\Entity\Menu;
 use App\Entity\Sejour;
 use App\Repository\GroupeRepository;
 use App\Repository\MenuRepository;
-use RuntimeException;
-use ZipArchive;
 
 final class ArchiveListesCourses
 {
@@ -25,13 +23,13 @@ final class ArchiveListesCourses
     {
         $chemin = tempnam(sys_get_temp_dir(), 'campement-listes-courses-');
         if (false === $chemin) {
-            throw new RuntimeException('Impossible de créer l’archive temporaire.');
+            throw new \RuntimeException('Impossible de créer l’archive temporaire.');
         }
 
-        $zip = new ZipArchive();
-        if (true !== $zip->open($chemin, ZipArchive::OVERWRITE)) {
+        $zip = new \ZipArchive();
+        if (true !== $zip->open($chemin, \ZipArchive::OVERWRITE)) {
             @unlink($chemin);
-            throw new RuntimeException('Impossible d’ouvrir l’archive temporaire.');
+            throw new \RuntimeException('Impossible d’ouvrir l’archive temporaire.');
         }
 
         $groupes = $this->groupes->findActifsPourSejour($sejour);
@@ -81,6 +79,7 @@ final class ArchiveListesCourses
 
     /**
      * @param list<Menu> $menus
+     *
      * @return list<Menu>
      */
     private function menusFusionnes(Menu $menu, array $menus, Sejour $sejour): array

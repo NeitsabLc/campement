@@ -35,13 +35,14 @@ final class EnregistrementMouvementStockMultiple
     }
 
     /**
-     * @param list<object> $denrees
-     * @param list<object> $origines
-     * @param list<object> $groupes
-     * @param list<object> $fournisseurs
+     * @param list<object>                $denrees
+     * @param list<object>                $origines
+     * @param list<object>                $groupes
+     * @param list<object>                $fournisseurs
      * @param array<string, list<object>> $referencesParDenree
      * @param array<string, list<object>> $conditionnementsParReference
      * @param array<string, list<object>> $conditionnementsSortieParDenree
+     *
      * @return array{erreurs: list<string>, nombre: int}
      */
     public function enregistrer(
@@ -67,19 +68,26 @@ final class EnregistrementMouvementStockMultiple
         $origine = $this->selectionner($request->request->getString('origine'), $origines);
         $groupe = null;
         $fournisseur = null;
-        if (null === $type) $erreurs[] = 'Sélectionnez un type de mouvement valide.';
-        if (null === $origine) $erreurs[] = 'Sélectionnez une origine valide.';
-        elseif (!in_array($origine->getCode(), self::ORIGINES_PAR_TYPE[$typeCode] ?? [], true)) {
+        if (null === $type) {
+            $erreurs[] = 'Sélectionnez un type de mouvement valide.';
+        }
+        if (null === $origine) {
+            $erreurs[] = 'Sélectionnez une origine valide.';
+        } elseif (!in_array($origine->getCode(), self::ORIGINES_PAR_TYPE[$typeCode] ?? [], true)) {
             $erreurs[] = 'Sélectionnez une origine compatible avec le type de mouvement.';
             $origine = null;
         }
         if (null !== $origine && 'DISTRIBUTION' === $origine->getCode()) {
             $groupe = $this->selectionner($request->request->getString('groupe'), $groupes);
-            if (null === $groupe) $erreurs[] = 'Sélectionnez le groupe destinataire de la distribution.';
+            if (null === $groupe) {
+                $erreurs[] = 'Sélectionnez le groupe destinataire de la distribution.';
+            }
         }
 
         $lignesSaisies = $request->request->all('lignes');
-        if ([] === $lignesSaisies) $erreurs[] = 'Ajoutez au moins une denrée au mouvement.';
+        if ([] === $lignesSaisies) {
+            $erreurs[] = 'Ajoutez au moins une denrée au mouvement.';
+        }
         $lignesValides = [];
         $denreesVues = [];
         $entreeFournisseur = 'ENTREE' === $typeCode && null !== $origine && 'FOURNISSEUR' === $origine->getCode();
@@ -87,10 +95,14 @@ final class EnregistrementMouvementStockMultiple
         $mouvementConditionne = $entreeFournisseur || $mouvementInventaire;
         if ($entreeFournisseur) {
             $fournisseur = $this->selectionner($request->request->getString('fournisseur'), $fournisseurs);
-            if (null === $fournisseur) $erreurs[] = 'Sélectionnez un fournisseur valide.';
+            if (null === $fournisseur) {
+                $erreurs[] = 'Sélectionnez un fournisseur valide.';
+            }
         }
         foreach (array_values($lignesSaisies) as $index => $saisie) {
-            if (!is_array($saisie)) continue;
+            if (!is_array($saisie)) {
+                continue;
+            }
             $numero = $index + 1;
             $denree = $this->selectionner((string) ($saisie['denree'] ?? ''), $denrees);
             if (null === $denree) {
@@ -112,8 +124,12 @@ final class EnregistrementMouvementStockMultiple
             if (in_array($typeCode, ['ENTREE', 'SORTIE'], true) && !$mouvementConditionne) {
                 $conditionnementSortie = $this->selectionner((string) ($saisie['conditionnement_sortie'] ?? ''), $conditionnementsSortieParDenree[$denreeId] ?? []);
                 $quantite = $this->normaliserQuantite((string) ($saisie['quantite'] ?? ''));
-                if (null === $conditionnementSortie) $erreurs[] = sprintf('Ligne %d : sélectionnez un conditionnement valide.', $numero);
-                if (null === $quantite) $erreurs[] = sprintf('Ligne %d : saisissez une quantité strictement positive.', $numero);
+                if (null === $conditionnementSortie) {
+                    $erreurs[] = sprintf('Ligne %d : sélectionnez un conditionnement valide.', $numero);
+                }
+                if (null === $quantite) {
+                    $erreurs[] = sprintf('Ligne %d : saisissez une quantité strictement positive.', $numero);
+                }
                 if (null !== $conditionnementSortie && null !== $quantite) {
                     $quantiteReference = number_format($this->conversion->versUniteReference($denree, $conditionnementSortie, (float) $quantite), 3, '.', '');
                 }
@@ -122,7 +138,10 @@ final class EnregistrementMouvementStockMultiple
                     $reference = $this->selectionner((string) ($saisie['reference'] ?? ''), $referencesParDenree[$denreeId] ?? []);
                 } else {
                     foreach ($referencesParDenree[$denreeId] ?? [] as $referenceDenree) {
-                        if ($referenceDenree->getFournisseur() === $fournisseur) { $reference = $referenceDenree; break; }
+                        if ($referenceDenree->getFournisseur() === $fournisseur) {
+                            $reference = $referenceDenree;
+                            break;
+                        }
                     }
                 }
                 if (null === $reference) {
@@ -141,7 +160,9 @@ final class EnregistrementMouvementStockMultiple
                     foreach ($conditionnementsReference as $conditionnement) {
                         $id = (string) $conditionnement->getId();
                         $brut = trim((string) ($saisie['conditionnements'][$id] ?? ''));
-                        if ('' === $brut) continue;
+                        if ('' === $brut) {
+                            continue;
+                        }
                         $quantite = $this->normaliserQuantite($brut, true);
                         if (null === $quantite) {
                             $erreurs[] = sprintf('Ligne %d : la quantité de « %s » doit être positive ou nulle.', $numero, $conditionnement->getLibelle());
@@ -150,15 +171,20 @@ final class EnregistrementMouvementStockMultiple
                             $total += (float) $quantite * $facteurs[$id];
                         }
                     }
-                    if ([] === $quantitesConditionnements) $erreurs[] = sprintf('Ligne %d : saisissez au moins une quantité de conditionnement.', $numero);
-                    else $quantiteReference = number_format($total, 3, '.', '');
+                    if ([] === $quantitesConditionnements) {
+                        $erreurs[] = sprintf('Ligne %d : saisissez au moins une quantité de conditionnement.', $numero);
+                    } else {
+                        $quantiteReference = number_format($total, 3, '.', '');
+                    }
                 }
             }
             if (null !== $quantiteReference) {
                 $lignesValides[] = compact('denree', 'reference', 'conditionnementSortie', 'quantitesConditionnements', 'quantiteReference', 'numeroLot');
             }
         }
-        if ([] !== $erreurs || null === $type || null === $origine) return ['erreurs' => $erreurs, 'nombre' => 0];
+        if ([] !== $erreurs || null === $type || null === $origine) {
+            return ['erreurs' => $erreurs, 'nombre' => 0];
+        }
 
         $avant = null === $mouvementExistant ? null : $this->audit->instantane($mouvementExistant);
         $this->entityManager->wrapInTransaction(function () use ($sejour, $utilisateur, $type, $origine, $groupe, $request, $lignesValides, $conditionnementsParReference, $mouvementExistant, $avant, $motifAudit): void {
@@ -168,7 +194,9 @@ final class EnregistrementMouvementStockMultiple
                 $mouvement->setDateMouvement($this->dateNavigateur($request->request->getString('date_navigateur')) ?? new \DateTimeImmutable());
             } else {
                 foreach ($this->lignes->findToutesPourMouvement($mouvementExistant) as $ancienneLigne) {
-                    foreach ($this->details->findPourLigne($ancienneLigne) as $ancienDetail) $this->entityManager->remove($ancienDetail);
+                    foreach ($this->details->findPourLigne($ancienneLigne) as $ancienDetail) {
+                        $this->entityManager->remove($ancienDetail);
+                    }
                     $this->entityManager->remove($ancienneLigne);
                 }
                 $this->entityManager->flush();
@@ -184,10 +212,12 @@ final class EnregistrementMouvementStockMultiple
                 $ligne->setConditionnementSortie(null === $donnees['reference'] ? $donnees['conditionnementSortie'] : null);
                 $ligne->setNumeroLot($donnees['numeroLot']);
                 $this->entityManager->persist($ligne);
-                if (null !== $donnees['reference']) foreach ($conditionnementsParReference[(string) $donnees['reference']->getId()] ?? [] as $conditionnement) {
-                    $id = (string) $conditionnement->getId();
-                    if (isset($donnees['quantitesConditionnements'][$id])) {
-                        $this->entityManager->persist(new MouvementStockLigneConditionnement($ligne, $conditionnement, $donnees['quantitesConditionnements'][$id]));
+                if (null !== $donnees['reference']) {
+                    foreach ($conditionnementsParReference[(string) $donnees['reference']->getId()] ?? [] as $conditionnement) {
+                        $id = (string) $conditionnement->getId();
+                        if (isset($donnees['quantitesConditionnements'][$id])) {
+                            $this->entityManager->persist(new MouvementStockLigneConditionnement($ligne, $conditionnement, $donnees['quantitesConditionnements'][$id]));
+                        }
                     }
                 }
             }
@@ -196,17 +226,19 @@ final class EnregistrementMouvementStockMultiple
                 $this->audit->enregistrer($mouvement, $sejour, $utilisateur, AuditMouvementStock::MODIFICATION, $motifAudit, $avant, $this->audit->instantane($mouvement));
             }
         });
+
         return ['erreurs' => [], 'nombre' => count($lignesValides)];
     }
 
     /**
-     * @param array<string, mixed> $valeurs
-     * @param list<object> $denrees
-     * @param list<object> $origines
-     * @param list<object> $groupes
+     * @param array<string, mixed>        $valeurs
+     * @param list<object>                $denrees
+     * @param list<object>                $origines
+     * @param list<object>                $groupes
      * @param array<string, list<object>> $referencesParDenree
      * @param array<string, list<object>> $conditionnementsParReference
      * @param array<string, list<object>> $conditionnementsSortieParDenree
+     *
      * @return array{erreurs: list<string>, denree: Denree|null}
      */
     public function enregistrerSimple(
@@ -233,10 +265,15 @@ final class EnregistrementMouvementStockMultiple
         $type = '' !== $typeCode ? $this->types->findOneBy(['code' => $typeCode, 'actif' => true]) : null;
         $denree = $this->selectionner((string) $valeurs['denree'], $denrees);
         $origine = $this->selectionner((string) $valeurs['origine'], $origines);
-        if (null === $type) $erreurs[] = 'Sélectionnez un type de mouvement valide.';
-        if (!$denree instanceof Denree) $erreurs[] = 'Sélectionnez une denrée valide.';
-        if (null === $origine) $erreurs[] = 'Sélectionnez une origine valide.';
-        elseif (!in_array($origine->getCode(), self::ORIGINES_PAR_TYPE[$typeCode] ?? [], true)) {
+        if (null === $type) {
+            $erreurs[] = 'Sélectionnez un type de mouvement valide.';
+        }
+        if (!$denree instanceof Denree) {
+            $erreurs[] = 'Sélectionnez une denrée valide.';
+        }
+        if (null === $origine) {
+            $erreurs[] = 'Sélectionnez une origine valide.';
+        } elseif (!in_array($origine->getCode(), self::ORIGINES_PAR_TYPE[$typeCode] ?? [], true)) {
             $erreurs[] = 'Sélectionnez une origine compatible avec le type de mouvement.';
             $origine = null;
         }
@@ -250,7 +287,9 @@ final class EnregistrementMouvementStockMultiple
 
         if (in_array($typeCode, ['ENTREE', 'SORTIE'], true) && !$entreeFournisseur) {
             $conditionnementSortie = !$denree instanceof Denree ? null : $this->selectionner((string) $valeurs['conditionnement_sortie'], $conditionnementsSortieParDenree[(string) $denree->getId()] ?? []);
-            if (null === $conditionnementSortie) $erreurs[] = 'Sélectionnez un conditionnement valide.';
+            if (null === $conditionnementSortie) {
+                $erreurs[] = 'Sélectionnez un conditionnement valide.';
+            }
             $quantiteSaisie = $this->normaliserQuantite((string) $valeurs['quantite']);
             if (null === $quantiteSaisie) {
                 $erreurs[] = 'Saisissez une quantité strictement positive.';
@@ -259,7 +298,9 @@ final class EnregistrementMouvementStockMultiple
             }
             if (null !== $origine && 'DISTRIBUTION' === $origine->getCode()) {
                 $groupe = $this->selectionner((string) $valeurs['groupe'], $groupes);
-                if (null === $groupe) $erreurs[] = 'Sélectionnez le groupe destinataire de la distribution.';
+                if (null === $groupe) {
+                    $erreurs[] = 'Sélectionnez le groupe destinataire de la distribution.';
+                }
             }
         } elseif ($entreeFournisseur && $denree instanceof Denree) {
             $reference = $this->selectionner((string) $valeurs['reference'], $referencesParDenree[(string) $denree->getId()] ?? []);
@@ -277,7 +318,9 @@ final class EnregistrementMouvementStockMultiple
                 foreach ($conditionnementsReference as $conditionnement) {
                     $id = (string) $conditionnement->getId();
                     $brut = trim((string) ($valeurs['conditionnements'][$id] ?? ''));
-                    if ('' === $brut) continue;
+                    if ('' === $brut) {
+                        continue;
+                    }
                     $quantite = $this->normaliserQuantite($brut, true);
                     if (null === $quantite) {
                         $erreurs[] = sprintf('La quantité de « %s » doit être positive ou nulle.', $conditionnement->getLibelle());
@@ -286,8 +329,11 @@ final class EnregistrementMouvementStockMultiple
                         $total += (float) $quantite * $facteurs[$id];
                     }
                 }
-                if ([] === $quantitesConditionnements) $erreurs[] = 'Saisissez au moins une quantité de conditionnement.';
-                else $quantiteReference = number_format($total, 3, '.', '');
+                if ([] === $quantitesConditionnements) {
+                    $erreurs[] = 'Saisissez au moins une quantité de conditionnement.';
+                } else {
+                    $quantiteReference = number_format($total, 3, '.', '');
+                }
             }
         }
 
@@ -303,7 +349,9 @@ final class EnregistrementMouvementStockMultiple
                 $mouvement->setDateMouvement($this->dateNavigateur($request->request->getString('date_navigateur')) ?? new \DateTimeImmutable());
             }
             if (null !== $ligneExistante) {
-                foreach ($this->details->findPourLigne($ligneExistante) as $ancienConditionnement) $this->entityManager->remove($ancienConditionnement);
+                foreach ($this->details->findPourLigne($ligneExistante) as $ancienConditionnement) {
+                    $this->entityManager->remove($ancienConditionnement);
+                }
                 $this->entityManager->remove($ligneExistante);
                 $this->entityManager->flush();
             }
@@ -318,10 +366,12 @@ final class EnregistrementMouvementStockMultiple
             $ligne->setNumeroLot($entreeFournisseur ? $this->normaliserNumeroLot((string) $valeurs['numero_lot']) : null);
             $this->entityManager->persist($mouvement);
             $this->entityManager->persist($ligne);
-            if (null !== $reference) foreach ($conditionnementsParReference[(string) $reference->getId()] ?? [] as $conditionnement) {
-                $id = (string) $conditionnement->getId();
-                if (isset($quantitesConditionnements[$id])) {
-                    $this->entityManager->persist(new MouvementStockLigneConditionnement($ligne, $conditionnement, $quantitesConditionnements[$id]));
+            if (null !== $reference) {
+                foreach ($conditionnementsParReference[(string) $reference->getId()] ?? [] as $conditionnement) {
+                    $id = (string) $conditionnement->getId();
+                    if (isset($quantitesConditionnements[$id])) {
+                        $this->entityManager->persist(new MouvementStockLigneConditionnement($ligne, $conditionnement, $quantitesConditionnements[$id]));
+                    }
                 }
             }
             if (null !== $avant) {
@@ -336,31 +386,50 @@ final class EnregistrementMouvementStockMultiple
     private function normaliserQuantite(string $brut, bool $zeroAutorise = false): ?string
     {
         $brut = str_replace([' ', ','], ['', '.'], trim($brut));
-        if ('' === $brut || !is_numeric($brut) || ($zeroAutorise ? (float) $brut < 0 : (float) $brut <= 0)) return null;
+        if ('' === $brut || !is_numeric($brut) || ($zeroAutorise ? (float) $brut < 0 : (float) $brut <= 0)) {
+            return null;
+        }
+
         return number_format((float) $brut, 3, '.', '');
     }
 
     private function normaliserNumeroLot(string $brut): ?string
     {
         $lot = preg_replace('/\s+/u', ' ', trim($brut));
+
         return null === $lot || '' === $lot ? null : mb_substr($lot, 0, 100);
     }
 
     private function dateNavigateur(string $iso): ?\DateTimeImmutable
     {
-        if ('' === trim($iso)) return null;
-        try { return new \DateTimeImmutable($iso); } catch (\Exception) { return null; }
+        if ('' === trim($iso)) {
+            return null;
+        }
+        try {
+            return new \DateTimeImmutable($iso);
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     /**
      * @template T of object
+     *
      * @param list<T> $entites
+     *
      * @return T|null
      */
     private function selectionner(string $id, array $entites): ?object
     {
-        if (!Uuid::isValid($id)) return null;
-        foreach ($entites as $entite) if ((string) $entite->getId() === $id) return $entite;
+        if (!Uuid::isValid($id)) {
+            return null;
+        }
+        foreach ($entites as $entite) {
+            if ((string) $entite->getId() === $id) {
+                return $entite;
+            }
+        }
+
         return null;
     }
 }

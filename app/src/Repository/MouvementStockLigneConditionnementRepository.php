@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
-use App\Entity\MouvementStockLigneConditionnement;
 use App\Entity\MouvementStockLigne;
+use App\Entity\MouvementStockLigneConditionnement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 

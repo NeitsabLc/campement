@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Entity\Traits\ActivableTrait;
@@ -10,8 +11,8 @@ use App\Repository\TypeMouvementRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: TypeMouvementRepository::class)]
-#[ORM\Table(name: "type_mouvement", schema: "campement")]
-#[ORM\UniqueConstraint(name: "uq_type_mouvement_code", columns: ["code"])]
+#[ORM\Table(name: 'type_mouvement', schema: 'campement')]
+#[ORM\UniqueConstraint(name: 'uq_type_mouvement_code', columns: ['code'])]
 class TypeMouvement
 {
     use EntityIdTrait;
@@ -24,15 +25,13 @@ class TypeMouvement
     #[ORM\Column(length: 150)]
     private string $libelle;
 
-    #[ORM\Column(type: "smallint", options: ["default" => 0])]
+    #[ORM\Column(type: 'smallint', options: ['default' => 0])]
     private int $ordre = 0;
 
     public function __construct(string $code, string $libelle, int $ordre = 0)
     {
         if ($ordre < 0) {
-            throw new \InvalidArgumentException(
-                "L’ordre doit être positif ou nul.",
-            );
+            throw new \InvalidArgumentException('L’ordre doit être positif ou nul.');
         }
 
         $this->initializeId();
@@ -51,6 +50,7 @@ class TypeMouvement
     {
         $this->code = $code;
         $this->touch();
+
         return $this;
     }
 
@@ -63,6 +63,7 @@ class TypeMouvement
     {
         $this->libelle = $libelle;
         $this->touch();
+
         return $this;
     }
 
@@ -74,12 +75,11 @@ class TypeMouvement
     public function setOrdre(int $ordre): self
     {
         if ($ordre < 0) {
-            throw new \InvalidArgumentException(
-                "L’ordre doit être positif ou nul.",
-            );
+            throw new \InvalidArgumentException('L’ordre doit être positif ou nul.');
         }
         $this->ordre = $ordre;
         $this->touch();
+
         return $this;
     }
 

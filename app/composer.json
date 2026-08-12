@@ -85,6 +85,8 @@
         "symfony/polyfill-php84": "*"
     },
     "scripts": {
+        "lint:php": "php-cs-fixer fix --dry-run --diff --using-cache=no",
+        "fix:php": "php-cs-fixer fix --using-cache=no --sequential",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd",
@@ -109,6 +111,7 @@
     "require-dev": {
         "doctrine/doctrine-fixtures-bundle": "^4.3",
         "fakerphp/faker": "^1.24",
+        "friendsofphp/php-cs-fixer": "^3.95.18",
         "phpstan/phpstan": "^2.2.8",
         "phpstan/phpstan-doctrine": "^2.0.28",
         "phpstan/phpstan-symfony": "^2.0.20",

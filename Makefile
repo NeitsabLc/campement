@@ -133,6 +133,29 @@ db-shell: ## Ouvrir une console PostgreSQL
 doctrine-validate: ## Vérifier le mapping Doctrine
 	docker compose exec php php bin/console doctrine:schema:validate --skip-sync
 
+.PHONY: lint-php
+lint-php: ## Contrôler le style PHP sans modifier les fichiers
+	$(PHP) composer lint:php
+
+.PHONY: style
+style: lint-php ## Vérifier le style du code PHP
+
+.PHONY: fix-php
+fix-php: ## Corriger automatiquement le style PHP
+	$(PHP) composer fix:php
+
+.PHONY: style-fix
+style-fix: fix-php ## Corriger automatiquement le style du code PHP
+
+.PHONY: analyse-statique
+analyse-statique: ## Analyser le code PHP avec PHPStan
+	$(PHP) php bin/console cache:warmup --env=dev
+	$(PHP) vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+.PHONY: test-accessibility
+test-accessibility: db-update-dev assets-compile ## Tester l'accessibilité sur les données de développement
+	npm run test:accessibility
+
 .PHONY: test-db-reset
 test-db-reset: ## Recréer et initialiser la base de tests
 	$(DOCKER_COMPOSE) exec database sh -c \
@@ -164,6 +187,14 @@ purge-data: ## Appliquer immédiatement les délais de conservation
 .PHONY: backup-now
 backup-now: ## Créer immédiatement une sauvegarde via le service de production
 	$(DOCKER_COMPOSE_PROD) run --rm -e BACKUP_ONCE=1 backup
+
+.PHONY: backup-restore-test
+backup-restore-test: ## Chiffrer puis restaurer la base et les documents dans un environnement jetable
+	./scripts/ci-backup-restore.sh
+
+.PHONY: maintenance-now
+maintenance-now: ## Exécuter immédiatement un cycle de maintenance de production
+	$(DOCKER_COMPOSE_PROD) run --rm -e MAINTENANCE_ONCE=1 maintenance
 
 .PHONY: prod-db-roles-prepare
 prod-db-roles-prepare: ## Préparer les rôles PostgreSQL limités sans retirer les accès existants
