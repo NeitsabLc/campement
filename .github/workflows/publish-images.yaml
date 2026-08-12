@@ -132,6 +132,8 @@ jobs:
           done
 
       - name: Verifier les attestations signees
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./scripts/verify-release-images.sh
 
       - name: Preparer la configuration isolee
