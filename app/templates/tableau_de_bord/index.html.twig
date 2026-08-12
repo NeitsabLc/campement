@@ -45,7 +45,15 @@
 
             <div class="home-dashboard__content">
                 {% if not sejour_selectionne %}
-                    <section class="home-panel home-panel--empty"><h2>Sélectionnez un séjour</h2><p>Son résumé apparaîtra ici.</p></section>
+                    {% if vue_groupe %}
+                        <section class="home-panel home-panel--empty" aria-labelledby="aucun-sejour-title">
+                            <h2 id="aucun-sejour-title">Aucun séjour accessible</h2>
+                            <p>Votre compte ne possède actuellement aucun droit sur un séjour.</p>
+                            <p>Contactez les responsables de votre séjour pour faire vérifier votre rattachement.</p>
+                        </section>
+                    {% else %}
+                        <section class="home-panel home-panel--empty"><h2>Sélectionnez un séjour</h2><p>Son résumé apparaîtra ici.</p></section>
+                    {% endif %}
                 {% else %}
                     <header class="home-selected-stay">
                         <div><span>{{ sejour_en_cours ? 'Séjour en cours' : 'Séjour sélectionné' }}</span><h2>{{ sejour_selectionne.nom }}</h2></div>

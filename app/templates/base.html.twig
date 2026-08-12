@@ -34,6 +34,8 @@
                     <button type="button" data-sidebar-collapse aria-label="Replier le menu">‹</button>
                 </div>
                 <nav class="sidebar__nav" aria-label="Navigation principale">
+                    {% set compte_groupe_sans_sejour = is_granted('ROLE_GROUPE') and not sejour_actif %}
+                    {% if not compte_groupe_sans_sejour %}
                     {% set route_intendance = app.current_route starts with 'app_fournisseur' or app.current_route starts with 'app_denree' or app.current_route starts with 'app_mouvement' or app.current_route starts with 'app_recette' or app.current_route starts with 'app_menu' or app.current_route == 'app_distribution' %}
                     {% set route_administratif = app.current_route starts with 'app_participant' or app.current_route starts with 'app_presence' or app.current_route starts with 'app_export' %}
                     {% set route_gestion = (is_granted('ROLE_ADMIN') and app.current_route starts with 'app_sejour') or app.current_route starts with 'app_utilisateur' %}
@@ -56,6 +58,7 @@
                                 <a href="{{ path('app_utilisateurs') }}"{{ app.current_route starts with 'app_utilisateur' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 11a3 3 0 0 1 0 6M19 20v-2"/></svg></span><span><strong>Utilisateurs</strong><small>Comptes et accès</small></span></a>
                             </nav></div>
                         </details>
+                    {% endif %}
                     {% endif %}
                 </nav>
                 <nav class="sidebar__legal-mobile" aria-label="Informations légales">
