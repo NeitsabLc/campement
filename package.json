@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:accessibility": "playwright test --config=tests/accessibility/playwright.config.js"
+    "test:accessibility": "playwright test --config=tests/accessibility/playwright.config.js",
+    "test:e2e": "playwright test --config=tests/e2e/playwright.config.js"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
