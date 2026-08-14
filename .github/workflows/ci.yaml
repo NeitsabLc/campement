@@ -45,7 +45,7 @@ jobs:
           echo "::add-mask::${APP_SECRET_CI}"
           sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
           sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
-          echo "APP_SECRET=${APP_SECRET_CI}" >> "$GITHUB_ENV"
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" .env
           for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
             valeur="$(openssl rand -hex 24)"
             echo "::add-mask::${valeur}"
@@ -78,7 +78,10 @@ jobs:
           --no-progress
 
       - name: Demarrer l'application
-        run: docker compose up --detach database php nginx
+        run: |
+          docker compose up --detach database php nginx
+          APP_BASE_URL="http://$(docker compose port nginx 8080)"
+          echo "APP_BASE_URL=${APP_BASE_URL}" >> "$GITHUB_ENV"
 
       - name: Valider Composer
         run: docker compose exec --no-TTY php composer validate --strict --no-check-publish
@@ -136,12 +139,14 @@ jobs:
 
       - name: Reinitialiser la base de tests
         run: |
+          POSTGRES_DB="$(docker compose exec --no-TTY database printenv POSTGRES_DB)"
+          TEST_DATABASE="${POSTGRES_DB}_test"
           docker compose exec --no-TTY database sh -c \
-            'dropdb --username="$POSTGRES_USER" --force --if-exists campement_test'
+            'dropdb --username="$POSTGRES_USER" --force --if-exists "$1"' sh "$TEST_DATABASE"
           docker compose exec --no-TTY database sh -c \
-            'createdb --username="$POSTGRES_USER" --owner="$POSTGRES_USER" campement_test'
+            'createdb --username="$POSTGRES_USER" --owner="$POSTGRES_USER" "$1"' sh "$TEST_DATABASE"
           docker compose --profile tools run --rm \
-            -e LIQUIBASE_COMMAND_URL=jdbc:postgresql://database:5432/campement_test \
+            -e "LIQUIBASE_COMMAND_URL=jdbc:postgresql://database:5432/${TEST_DATABASE}" \
             liquibase update --context-filter=dev
 
       - name: Executer les tests
@@ -156,17 +161,17 @@ jobs:
       - name: Auditer les dependances npm
         run: npm audit --audit-level=high
 
-      - name: Installer Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Installer Chromium et Firefox
+        run: npx playwright install --with-deps chromium firefox
 
       - name: Attendre que l'application soit disponible
-        run: curl --fail --retry 30 --retry-delay 2 --retry-all-errors http://127.0.0.1:8080/login
+        run: curl --fail --retry 30 --retry-delay 2 --retry-all-errors "${APP_BASE_URL}/login"
 
       - name: Executer les controles d'accessibilite
         run: npm run test:accessibility
 
       - name: Executer les tests E2E
-        run: npm run test:e2e
+        run: npm run test:browser
 
       - name: Afficher les journaux en cas d'echec
         if: failure()
@@ -195,7 +200,7 @@ jobs:
           echo "::add-mask::${APP_SECRET_CI}"
           sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
           sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
-          echo "APP_SECRET=${APP_SECRET_CI}" >> "$GITHUB_ENV"
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" .env
           for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
             valeur="$(openssl rand -hex 24)"
             echo "::add-mask::${valeur}"

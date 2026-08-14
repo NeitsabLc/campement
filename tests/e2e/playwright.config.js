@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 process.env.CAMPEMENT_E2E_RUN_ID ??= `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
 
@@ -13,8 +13,23 @@ export default defineConfig({
   outputDir: '../../test-results/e2e',
   use: {
     baseURL: process.env.APP_BASE_URL ?? 'http://127.0.0.1:8080',
-    browserName: 'chromium',
     screenshot: 'only-on-failure',
     trace: 'on-first-retry',
   },
+  projects: [
+    {
+      name: 'Chromium complet',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Firefox compatibilite',
+      grep: /@compatibilite/,
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'Mobile Chromium',
+      grep: /@mobile/,
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
 });

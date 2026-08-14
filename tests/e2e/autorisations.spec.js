@@ -51,6 +51,33 @@ test('les pages d’administration et de gestion respectent les rôles', async (
   await expect(page.getByRole('heading', { name: 'Ajouter un séjour' })).toBeVisible();
 });
 
+test('les sessions et les autorisations restent isolées entre les rôles', async ({ browser }) => {
+  const options = { baseURL: process.env.APP_BASE_URL ?? 'http://127.0.0.1:8080' };
+  const contexteAdministrateur = await browser.newContext(options);
+  const contexteGroupe = await browser.newContext(options);
+  const pageAdministrateur = await contexteAdministrateur.newPage();
+  const pageGroupe = await contexteGroupe.newPage();
+
+  try {
+    await seConnecter(pageAdministrateur, comptes.administrateur);
+    await seConnecter(pageGroupe, comptes.groupe);
+
+    await expect(pageAdministrateur.locator('.user-summary')).toContainText('ROLE_ADMIN');
+    await expect(pageGroupe.locator('.user-summary')).toContainText('ROLE_GROUPE');
+
+    expect((await pageAdministrateur.goto('/sejours/ajouter'))?.status()).toBe(200);
+    expect((await pageGroupe.goto('/sejours/ajouter'))?.status()).toBe(403);
+
+    await pageAdministrateur.goto('/sejours');
+    await pageGroupe.goto('/menus');
+    await expect(pageAdministrateur.locator('.user-summary')).toContainText('ROLE_ADMIN');
+    await expect(pageGroupe.locator('.user-summary')).toContainText('ROLE_GROUPE');
+  } finally {
+    await contexteAdministrateur.close();
+    await contexteGroupe.close();
+  }
+});
+
 test('le séjour actif et les affectations isolent les données entre séjours', async ({ page }) => {
   const nomSecondaire = `Séjour E2E isolé ${suffixeUnique()}`;
 
