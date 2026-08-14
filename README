@@ -6,7 +6,7 @@ dossiers administratifs et le suivi du séjour.
 
 ## État du projet
 
-État vérifié le 13 août 2026 :
+État vérifié le 14 août 2026 :
 
 - version applicative publiée : `v1.3.0` ;
 - branche stable et livrable : `main` ;
@@ -15,6 +15,9 @@ dossiers administratifs et le suivi du séjour.
 - suite automatisée : 112 tests PHPUnit et 737 assertions, complétée par 4 scénarios
   d’accessibilité et 13 scénarios E2E dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
+- version `v1.3.0` déployée en production sur l’hôte applicatif dédié, derrière
+  un reverse proxy Traefik séparé, avec sauvegardes chiffrées et retour arrière
+  conservé ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
   du schéma.
 
@@ -31,8 +34,9 @@ contexte fonctionnel et les conventions de développement sont décrits dans
 - les correctifs appliqués exceptionnellement sur `main` doivent être reportés
   dans `dev`.
 
-Les procédures et paramètres propres à la production ne sont volontairement
-pas documentés dans ce dépôt.
+Les procédures et paramètres propres à la production restent hors des fichiers
+suivis. Ils sont maintenus localement dans `.local/PRODUCTION_RUNBOOK.md` et
+`.local/Campement_DAT_DIN_DEX.docx`, tous deux ignorés par Git.
 
 ## Fonctionnalités
 
@@ -276,8 +280,10 @@ supprimés après chiffrement.
 privée correspondante ne doit jamais être placée dans ce dépôt, dans le fichier
 `.env` de l'application ni sur le même stockage que les sauvegardes : elle doit
 être injectée uniquement lors d'une restauration depuis un gestionnaire de
-secrets séparé. `make backup-now` déclenche une sauvegarde ponctuelle avec la
-surcharge de production. `make backup-restore-test` génère une paire de clés
+secrets séparé. Sur une livraison par digest, toute sauvegarde ponctuelle doit
+utiliser explicitement les trois fichiers Compose de release afin de ne jamais
+reconstruire ni recréer un service avec une image locale. La commande exacte est
+conservée dans le runbook local. `make backup-restore-test` génère une paire de clés
 éphémère et vérifie localement le chiffrement et la restauration de la base et
 des documents dans une pile Compose de production isolée et jetable.
 

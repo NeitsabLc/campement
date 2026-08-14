@@ -16,6 +16,10 @@ suivent le versionnement sémantique.
 
 ### Modifié
 
+- documentation locale DAT/DIN/DEX et runbook d’exploitation alignés sur la
+  migration de la production vers un hôte applicatif dédié derrière Traefik,
+  avec filtrage `DOCKER-USER`, sauvegardes chiffrées et procédure de retour
+  arrière ;
 - les comptes groupe sans séjour accessible arrivent sur un accueil explicite,
   sans liens dans le menu métier, et sont invités à contacter leurs responsables ;
 - les lignes du registre de présence utilisent un lien unique au lieu de cibles
