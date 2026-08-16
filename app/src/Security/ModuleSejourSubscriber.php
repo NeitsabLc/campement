@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Security;
 
+use App\Entity\Utilisateur;
 use App\Service\ContexteSejour;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
@@ -20,8 +22,11 @@ final class ModuleSejourSubscriber
     private const SEJOUR_REQUIS = ['app_groupe'];
     private const SITUATIONS_PARTICULIERES = ['app_situation_particuliere', 'app_situations_particulieres'];
 
-    public function __construct(private readonly ContexteSejour $contexte, private readonly UrlGeneratorInterface $urls)
-    {
+    public function __construct(
+        private readonly ContexteSejour $contexte,
+        private readonly UrlGeneratorInterface $urls,
+        private readonly Security $security,
+    ) {
     }
 
     public function __invoke(ControllerEvent $event): void
@@ -43,7 +48,12 @@ final class ModuleSejourSubscriber
             || ('situations_particulieres' === $module && !$sejour->isModuleSituationsParticulieresActif())) {
             $session = $request->getSession();
             if ($session instanceof FlashBagAwareSessionInterface) {
-                $session->getFlashBag()->add('error', null === $sejour ? 'Sélectionnez d’abord un séjour.' : 'Ce module n’est pas actif pour le séjour sélectionné.');
+                $message = null === $sejour
+                    ? ($this->security->isGranted(Utilisateur::ROLE_GROUPE)
+                        ? 'Votre compte ne possède actuellement aucun droit sur un séjour. Contactez les responsables de votre séjour.'
+                        : 'Sélectionnez d’abord un séjour.')
+                    : 'Ce module n’est pas actif pour le séjour sélectionné.';
+                $session->getFlashBag()->add('error', $message);
             }
             $url = $this->urls->generate('app_tableau_de_bord');
             $event->setController(static fn () => new RedirectResponse($url));

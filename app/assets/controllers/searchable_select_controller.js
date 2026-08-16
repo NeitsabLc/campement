@@ -124,7 +124,12 @@ export default class extends Controller {
             button.dataset.value = option.value;
             button.setAttribute('role', 'option');
             button.setAttribute('aria-selected', option.selected ? 'true' : 'false');
-            button.addEventListener('click', () => {
+            button.addEventListener('click', (event) => {
+                // The custom control can live inside the same label as the native
+                // select. Prevent Safari from forwarding the completed tap to that
+                // select when the popover is closed below.
+                event.preventDefault();
+                event.stopPropagation();
                 if (this.select.multiple) {
                     option.selected = !option.selected;
                 } else {

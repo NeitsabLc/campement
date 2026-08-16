@@ -21,9 +21,11 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 12 août 2026 : version `v1.3.0` préparée sur la branche de
-développement `dev`, branche stable `main`, schéma Liquibase `V032`. Le projet
-est fonctionnel. Toute évolution doit
+État vérifié le 14 août 2026 : version `v1.3.0` publiée depuis la branche stable
+`main`, branche de développement `dev`, schéma Liquibase `V032`. Cette version
+est déployée sur un hôte applicatif dédié derrière un reverse proxy Traefik
+séparé ; l’ancienne installation est arrêtée et conservée pour le retour
+arrière. Le projet est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
@@ -715,7 +717,10 @@ de services dédiés. Les limites de longueur doivent être vérifiées côté s
 et, pour les invariants métier, dans les entités.
 
 Le runbook opérationnel est maintenu localement dans
-`.local/PRODUCTION_RUNBOOK.md`. Le répertoire `.local/` est ignoré par Git et ne
+`.local/PRODUCTION_RUNBOOK.md` et l’architecture DAT/DIN/DEX dans
+`.local/Campement_DAT_DIN_DEX.docx`. Ces documents décrivent l’hôte applicatif,
+le reverse proxy, les règles `DOCKER-USER`, les sauvegardes et le retour arrière
+de l’installation courante. Le répertoire `.local/` est ignoré par Git et ne
 doit jamais être forcé dans un commit.
 
 ## 17. Règles de collaboration
@@ -752,8 +757,9 @@ Le dépôt suit désormais ce cycle de publication :
    chiffrées, la rotation des clés Age et un exercice périodique de restauration
    avec les clés réelles ;
 2. superviser l'âge et le succès des sauvegardes en exploitation ;
-3. assainir les informations d’infrastructure encore présentes dans les fichiers
-   suivis et, après validation, dans l’historique Git distant ;
+3. maintenir le runbook local et le DAT/DIN/DEX après chaque changement
+   d’infrastructure, puis versionner séparément la route Traefik après validation
+   explicite de l’opérateur ;
 4. augmenter la couverture fonctionnelle des parcours sensibles ;
 5. poursuivre l’accessibilité de l’interface.
 

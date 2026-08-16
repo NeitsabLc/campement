@@ -6,15 +6,18 @@ dossiers administratifs et le suivi du séjour.
 
 ## État du projet
 
-État vérifié le 12 août 2026 :
+État vérifié le 14 août 2026 :
 
-- version applicative préparée : `v1.3.0` ;
+- version applicative publiée : `v1.3.0` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
 - schéma Liquibase : `V032` ;
-- suite automatisée : 111 tests et 719 assertions, complétée par 4 scénarios
-  d’accessibilité dans le navigateur ;
+- suite automatisée : 112 tests PHPUnit et 737 assertions, complétée par 4 scénarios
+  d’accessibilité et 13 scénarios E2E dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
+- version `v1.3.0` déployée en production sur l’hôte applicatif dédié, derrière
+  un reverse proxy Traefik séparé, avec sauvegardes chiffrées et retour arrière
+  conservé ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
   du schéma.
 
@@ -31,8 +34,9 @@ contexte fonctionnel et les conventions de développement sont décrits dans
 - les correctifs appliqués exceptionnellement sur `main` doivent être reportés
   dans `dev`.
 
-Les procédures et paramètres propres à la production ne sont volontairement
-pas documentés dans ce dépôt.
+Les procédures et paramètres propres à la production restent hors des fichiers
+suivis. Ils sont maintenus localement dans `.local/PRODUCTION_RUNBOOK.md` et
+`.local/Campement_DAT_DIN_DEX.docx`, tous deux ignorés par Git.
 
 ## Fonctionnalités
 
@@ -90,6 +94,12 @@ Les fichiers `.env` sont locaux et ignorés par Git. Avant `make install`, une
 valeur locale doit être définie pour `POSTGRES_PASSWORD` dans le `.env` racine.
 Les fichiers `.env.example` servent uniquement de modèles sans secret.
 
+Les dépendances Composer sont conservées dans le volume Docker nommé
+`composer_dependencies`, séparé du montage du code source. Ce volume évite les
+erreurs de lecture intermittentes de Docker Desktop sur macOS. Il est alimenté
+par `make composer-install` et supprimé, comme les autres volumes locaux, par
+`make reset`.
+
 ## Commandes locales
 
 ### Cycle de développement
@@ -145,6 +155,7 @@ make analyse-statique
 make style
 make test
 make test-accessibility
+make test-e2e
 make backup-restore-test
 ```
 
@@ -166,12 +177,15 @@ Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
 Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
 vulnérabilités élevées ou critiques des cinq images finales PHP, Nginx,
 PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi
-les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit et les
-scénarios d'accessibilité dans le navigateur.
+les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit, les
+scénarios d'accessibilité et les parcours E2E dans le navigateur.
 
-Sur chaque push et chaque pull request visant `dev` ou `main`, un job requis et
-indépendant construit puis démarre la surcharge Compose de production. Ce smoke
-test initialise une base vierge, applique Liquibase, vérifie les rôles
+Sur chaque push et chaque pull request visant `dev` ou `main`, un job indépendant
+construit puis démarre la surcharge Compose de production. Le ruleset de `main`
+exige uniquement le contrôle `Qualite et tests` : le smoke test reste un signal
+complémentaire volontairement non bloquant, et aucun contrôle n'est imposé à
+`dev`, afin de conserver un cycle de développement léger. Ce smoke test initialise
+une base vierge, applique Liquibase, vérifie les rôles
 PostgreSQL limités et authentifiés en SCRAM, la connexion applicative, le refus
 d'en-têtes `Host` et `X-Forwarded-Host` hostiles, puis une sauvegarde chiffrée
 ponctuelle. Cette sauvegarde de la base et des documents est déchiffrée et
@@ -183,7 +197,10 @@ Les secrets et clés utilisés sont éphémères et masqués dans les journaux ;
 ne déploie rien.
 
 Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
-et Docker vers `dev`. Chaque commit intégré à `main` produit une seule fois les
+et Docker vers `dev`. Les mises à jour mineures et correctives sont regroupées
+pour Symfony, pour les outils de test navigateur Playwright/Axe et pour les
+GitHub Actions ; les mises à jour majeures restent proposées séparément. Chaque
+commit intégré à `main` produit une seule fois les
 cinq images candidates dans GHCR sous une étiquette immuable
 `sha-<commit>`, avec SBOM, provenance BuildKit et attestation GitHub signée via
 Sigstore. Lorsqu'un tag `v*` désigne ce commit, le
@@ -263,8 +280,10 @@ supprimés après chiffrement.
 privée correspondante ne doit jamais être placée dans ce dépôt, dans le fichier
 `.env` de l'application ni sur le même stockage que les sauvegardes : elle doit
 être injectée uniquement lors d'une restauration depuis un gestionnaire de
-secrets séparé. `make backup-now` déclenche une sauvegarde ponctuelle avec la
-surcharge de production. `make backup-restore-test` génère une paire de clés
+secrets séparé. Sur une livraison par digest, toute sauvegarde ponctuelle doit
+utiliser explicitement les trois fichiers Compose de release afin de ne jamais
+reconstruire ni recréer un service avec une image locale. La commande exacte est
+conservée dans le runbook local. `make backup-restore-test` génère une paire de clés
 éphémère et vérifie localement le chiffrement et la restauration de la base et
 des documents dans une pile Compose de production isolée et jetable.
 

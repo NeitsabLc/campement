@@ -45,6 +45,10 @@ function formaterViolations(violations) {
 async function verifierPage(page, chemin) {
   const reponse = await page.goto(chemin);
   expect(reponse?.ok(), `La page ${chemin} doit répondre sans erreur`).toBeTruthy();
+  expect(
+    new URL(page.url()).pathname,
+    `La page ${chemin} ne doit pas rediriger vers une autre page`,
+  ).toBe(new URL(chemin, 'http://campement.local').pathname);
 
   const resultat = await new AxeBuilder({ page })
     .exclude('.sf-toolbar')

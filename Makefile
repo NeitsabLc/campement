@@ -186,6 +186,10 @@ analyse-statique: ## Analyser le code PHP avec PHPStan
 test-accessibility: db-update-dev assets-compile ## Tester l'accessibilité sur les données de développement
 	npm run test:accessibility
 
+.PHONY: test-e2e
+test-e2e: db-update-dev assets-compile ## Tester les parcours E2E sur les données de développement
+	npm run test:e2e
+
 .PHONY: test-db-reset
 test-db-reset: ## Recréer et initialiser la base de tests
 	$(DOCKER_COMPOSE) exec database sh -c \

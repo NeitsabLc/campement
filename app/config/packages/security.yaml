@@ -28,7 +28,7 @@ security:
                 enable_csrf: true
             login_throttling:
                 max_attempts: 5
-                interval: '1 minute'
+                interval: '15 minutes'
             logout:
                 path: app_deconnexion
                 target: app_connexion
