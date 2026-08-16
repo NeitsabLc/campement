@@ -40,7 +40,7 @@ test('@mobile le sélecteur recherché ne réactive pas la liste native après u
   const optionLabel = (await firstOption.textContent()).trim();
   await field.locator('.searchable-select__search').fill(optionLabel);
 
-  const option = field.getByRole('option', { name: optionLabel, exact: true });
+  const option = field.getByRole('listbox').getByRole('option', { name: optionLabel, exact: true });
   const optionValue = await option.getAttribute('data-value');
   await option.evaluate((element) => {
     element.addEventListener('click', (event) => {
