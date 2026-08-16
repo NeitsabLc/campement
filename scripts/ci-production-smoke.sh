@@ -18,11 +18,48 @@ compose() {
     fi
 }
 
-: "${POSTGRES_USER:=campement}"
-: "${POSTGRES_DB:=campement}"
+lire_variable_env() {
+    variable=$1
+    fichier=${2:-.env}
+    valeur=$(sed -n "s/^${variable}=//p" "$fichier" | tail -n 1)
+    if [ -z "$valeur" ] && [ "$fichier" = ".env" ]; then
+        valeur=$(sed -n "s/^${variable}=//p" .env.example | tail -n 1)
+    fi
+    printf '%s\n' "$valeur"
+}
+
+: "${APP_SECRET:=$(lire_variable_env APP_SECRET app/.env)}"
+: "${POSTGRES_USER:=$(lire_variable_env POSTGRES_USER)}"
+: "${POSTGRES_DB:=$(lire_variable_env POSTGRES_DB)}"
+: "${POSTGRES_APP_USER:=$(lire_variable_env POSTGRES_APP_USER)}"
+: "${POSTGRES_MIGRATOR_USER:=$(lire_variable_env POSTGRES_MIGRATOR_USER)}"
+: "${POSTGRES_BACKUP_USER:=$(lire_variable_env POSTGRES_BACKUP_USER)}"
+: "${POSTGRES_HEALTHCHECK_USER:=$(lire_variable_env POSTGRES_HEALTHCHECK_USER)}"
+: "${POSTGRES_USER:?POSTGRES_USER doit etre renseigne pour le smoke test}"
+: "${POSTGRES_DB:?POSTGRES_DB doit etre renseigne pour le smoke test}"
+: "${POSTGRES_APP_USER:?POSTGRES_APP_USER doit etre renseigne pour le smoke test}"
+: "${POSTGRES_MIGRATOR_USER:?POSTGRES_MIGRATOR_USER doit etre renseigne pour le smoke test}"
+: "${POSTGRES_BACKUP_USER:?POSTGRES_BACKUP_USER doit etre renseigne pour le smoke test}"
+: "${POSTGRES_HEALTHCHECK_USER:?POSTGRES_HEALTHCHECK_USER doit etre renseigne pour le smoke test}"
+: "${APP_SECRET:?APP_SECRET doit etre renseigne pour le smoke test}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD doit etre renseigne pour le smoke test}"
+: "${POSTGRES_APP_PASSWORD:?POSTGRES_APP_PASSWORD doit etre renseigne pour le smoke test}"
+: "${POSTGRES_MIGRATOR_PASSWORD:?POSTGRES_MIGRATOR_PASSWORD doit etre renseigne pour le smoke test}"
+: "${POSTGRES_BACKUP_PASSWORD:?POSTGRES_BACKUP_PASSWORD doit etre renseigne pour le smoke test}"
 : "${POSTGRES_HEALTHCHECK_PASSWORD:?POSTGRES_HEALTHCHECK_PASSWORD doit etre renseigne pour le smoke test}"
-export POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD
+export POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD
+export POSTGRES_APP_USER POSTGRES_APP_PASSWORD
+export POSTGRES_MIGRATOR_USER POSTGRES_MIGRATOR_PASSWORD
+export POSTGRES_BACKUP_USER POSTGRES_BACKUP_PASSWORD
+export POSTGRES_HEALTHCHECK_USER POSTGRES_HEALTHCHECK_PASSWORD
+export APP_SECRET
+
+for commande in docker jq; do
+    if ! command -v "$commande" >/dev/null 2>&1; then
+        echo "Commande requise absente : ${commande}" >&2
+        exit 1
+    fi
+done
 
 repertoire_temporaire=$(mktemp -d)
 export BACKUP_AGE_RECIPIENT=age1configuration-temporaire-remplacee-avant-sauvegarde
@@ -98,6 +135,22 @@ compose up --detach php nginx
 curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors \
     --output /dev/null \
     "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login"
+
+entetes_connexion=$(curl --silent --show-error --dump-header - --output /dev/null \
+    "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login" | tr -d '\r')
+printf '%s\n' "$entetes_connexion" | grep -Eiq '^Cross-Origin-Opener-Policy:[[:space:]]*same-origin$'
+printf '%s\n' "$entetes_connexion" | grep -Eiq '^Cross-Origin-Resource-Policy:[[:space:]]*same-origin$'
+printf '%s\n' "$entetes_connexion" | grep -Eiq '^X-Permitted-Cross-Domain-Policies:[[:space:]]*none$'
+
+for route_sensible in \
+    /reinitialiser-mot-de-passe/0000000000000000000000000000000000000000000000000000000000000000 \
+    /distribution/00000000-0000-0000-0000-000000000000; do
+    entetes_sensibles=$(curl --silent --show-error --dump-header - --output /dev/null \
+        "http://127.0.0.1:${NGINX_HOST_PORT:-8080}${route_sensible}" | tr -d '\r')
+    printf '%s\n' "$entetes_sensibles" | grep -Eiq '^Cache-Control:[[:space:]]*no-store$'
+    printf '%s\n' "$entetes_sensibles" | grep -Eiq '^Referrer-Policy:[[:space:]]*no-referrer$'
+done
+
 test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
     --header 'Host: attaquant.example' \
     "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login")" = "400"
@@ -128,10 +181,10 @@ compose exec --no-TTY database sh -ec '
         exit 1
     fi
     grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -q "scram-sha-256"
-    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+campement[[:space:]]+campement_app[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
-    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+campement[[:space:]]+campement_migrator[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
-    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+campement[[:space:]]+campement_backup[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
-    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+all[[:space:]]+campement_admin[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+${POSTGRES_DB}[[:space:]]+${POSTGRES_APP_USER}[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+${POSTGRES_DB}[[:space:]]+${POSTGRES_MIGRATOR_USER}[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+${POSTGRES_DB}[[:space:]]+${POSTGRES_BACKUP_USER}[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
+    grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+all[[:space:]]+${POSTGRES_HEALTHCHECK_USER}[[:space:]]+172[.]30[.]0[.]0/16[[:space:]]+scram-sha-256"
     grep -Ev "^[[:space:]]*(#|$)" "$hba_file" | grep -Eq "host[[:space:]]+all[[:space:]]+all[[:space:]]+0[.]0[.]0[.]0/0[[:space:]]+reject"
 
     app=$(PGPASSWORD="$POSTGRES_APP_PASSWORD" psql --host=127.0.0.1 --username="$POSTGRES_APP_USER" --dbname="$POSTGRES_DB" \
@@ -157,7 +210,8 @@ compose exec --no-TTY --env PGPASSWORD="$POSTGRES_PASSWORD" database \
     psql --host=127.0.0.1 --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" \
     --set=ON_ERROR_STOP=1 \
     --command="CREATE ROLE role_interdit LOGIN PASSWORD 'mot-de-passe'"
-if docker run --rm --network "${COMPOSE_PROJECT_NAME}_campement" \
+network_name=$(compose config --format json | jq -er '.networks.campement.name')
+if docker run --rm --network "$network_name" \
     --entrypoint psql "$postgres_image" \
     "postgresql://role_interdit:mot-de-passe@database:5432/${POSTGRES_DB}" \
     --command='SELECT 1'; then

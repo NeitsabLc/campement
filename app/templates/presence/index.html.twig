@@ -15,12 +15,17 @@
      {% for personne in personnes %}
       {% set cellule=jour[personne.id~''] %}{% set exception=cellule.exception %}
       {% set modificationUrl=path('app_presence_modifier',{participantId:personne.id,date:dateSelection|date('Y-m-d')}) %}
-      <div class="presence-daily-row{{ cellule.modifiable ? ' clickable-row' : '' }}"{% if cellule.modifiable %} role="link" tabindex="0" data-controller="clickable-row" data-url="{{ modificationUrl }}" data-action="click->clickable-row#open keydown->clickable-row#open"{% endif %}>
+      {% if cellule.modifiable %}<a class="presence-daily-row clickable-row" href="{{ modificationUrl }}" aria-label="Modifier la présence de {{ personne.prenom }} {{ personne.nom }}">
        <div><strong>{{ personne.prenom }} {{ personne.nom }}</strong><small>{{ personne.type|title }}</small></div>
        <span class="presence-status is-{{ cellule.statut }}">{{ cellule.statut=='present'?'Présent':(cellule.statut=='absent'?'Absent ce jour':(cellule.statut=='departed'?'A quitté le séjour':'Non prévu')) }}</span>
        <span>{{ exception and exception.commentaire ? exception.commentaire : '' }}</span>
-       {% if cellule.modifiable %}<a class="action-icon-button presence-edit-button" href="{{ modificationUrl }}" aria-label="Modifier la présence de {{ personne.prenom }} {{ personne.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>{% else %}<button class="action-icon-button presence-edit-button" type="button" aria-label="Présence non modifiable pour {{ personne.prenom }} {{ personne.nom }}" title="Non modifiable" disabled><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>{% endif %}
-      </div>
+       <span class="action-icon-button presence-edit-button" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+      </a>{% else %}<div class="presence-daily-row">
+       <div><strong>{{ personne.prenom }} {{ personne.nom }}</strong><small>{{ personne.type|title }}</small></div>
+       <span class="presence-status is-{{ cellule.statut }}">{{ cellule.statut=='present'?'Présent':(cellule.statut=='absent'?'Absent ce jour':(cellule.statut=='departed'?'A quitté le séjour':'Non prévu')) }}</span>
+       <span>{{ exception and exception.commentaire ? exception.commentaire : '' }}</span>
+       <button class="action-icon-button presence-edit-button" type="button" aria-label="Présence non modifiable pour {{ personne.prenom }} {{ personne.nom }}" title="Non modifiable" disabled><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
+      </div>{% endif %}
      {% endfor %}
     </div>
    {% endif %}
