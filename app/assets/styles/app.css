@@ -2406,3 +2406,12 @@ body.app-shell .page-content { max-width: none; margin: 0; padding: clamp(1.25re
 @media(max-width:60rem){
     .presence-group .presence-daily-row,.presence-group>p{padding-inline:1.25rem}
 }
+
+/* Les listes gardent une graisse normale, même dans un libellé en gras. */
+:root select,
+:root select option,
+:root .searchable-select__trigger,
+:root .searchable-select__search,
+:root .searchable-select__option{
+    font-weight:400;
+}
