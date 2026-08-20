@@ -8,6 +8,7 @@ dossiers administratifs et le suivi du séjour.
 
 État vérifié le 21 août 2026 :
 
+- version applicative préparée : `v1.4.0` ;
 - dernier tag stable publié : `v1.3.1` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;

@@ -22,11 +22,12 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 21 août 2026 : dernier tag stable `v1.3.1`, branche stable
-`main`, branche de développement `dev`, schéma Liquibase courant `V034`. La
-production est hébergée sur un hôte applicatif dédié derrière un reverse proxy
-Traefik séparé ; l’ancienne installation est arrêtée et conservée pour le retour
-arrière. Le projet est fonctionnel. Toute évolution doit
+État vérifié le 21 août 2026 : version applicative `v1.4.0` préparée, dernier
+tag stable `v1.3.1`, branche stable `main`, branche de développement `dev`,
+schéma Liquibase courant `V034`. La production est hébergée sur un hôte
+applicatif dédié derrière un reverse proxy Traefik séparé ; l’ancienne
+installation est arrêtée et conservée pour le retour arrière. Le projet est
+fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
 
