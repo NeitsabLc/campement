@@ -4,6 +4,7 @@
 <main class="admin-page distribution-admin" data-controller="distribution-admin">
     <header class="page-heading"><div><h1>Distribution</h1></div></header>
     {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
 
     <div class="distribution-admin__grid">
         <section class="admin-card distribution-config-card"><div class="admin-card__header"><div><h2>Configuration</h2><p>Ces réglages concernent le séjour <strong>{{ sejour.nom }}</strong>.</p></div></div>
@@ -24,8 +25,24 @@
         <section class="admin-card shopping-lists-card">
             <div class="admin-card__header"><div><h2>Listes de course</h2><p>Préparez les fiches à remettre aux unités pour chaque repas distribué.</p></div></div>
             <p>L’archive contient un dossier par jour et repas, puis un PDF nominatif par unité participante.</p>
-            <a class="button button--primary" href="{{ path('app_distribution_listes_courses') }}">Télécharger les listes de course</a>
+            <button class="button button--primary" type="button" data-open-dialog="shopping-lists-period">Télécharger les listes de course</button>
         </section>
     </div>
+
+    <dialog class="group-dialog export-period-dialog" id="shopping-lists-period" aria-labelledby="shopping-lists-period-title">
+        <section class="group-dialog__content">
+            <header class="group-dialog__header">
+                <div><h2 id="shopping-lists-period-title">Période des fiches à extraire</h2><p>Seuls les repas et les unités participantes sur cette période seront inclus.</p></div>
+                <button class="group-dialog__close" type="button" aria-label="Fermer" data-close-dialog>×</button>
+            </header>
+            <form method="get" action="{{ path('app_distribution_listes_courses') }}">
+                <div class="export-period-fields">
+                    <label for="shopping-lists-start">Date de début<input id="shopping-lists-start" type="date" name="date_debut" value="{{ sejour.dateDebut|date('Y-m-d') }}" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required></label>
+                    <label for="shopping-lists-end">Date de fin<input id="shopping-lists-end" type="date" name="date_fin" value="{{ sejour.dateFin|date('Y-m-d') }}" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required></label>
+                </div>
+                <footer class="group-dialog__actions"><button class="cancel-group-button" type="button" data-close-dialog>Annuler</button><button class="save-group-button" type="submit">Télécharger les fiches</button></footer>
+            </form>
+        </section>
+    </dialog>
 </main>
 {% endblock %}

@@ -611,6 +611,7 @@ body.app-shell { padding-left: 14.5rem; }
 .distribution-config-card { grid-area: configuration; }
 .public-link-card { grid-area: public; }
 .shopping-lists-card { grid-area: courses; }
+.export-period-fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.export-period-fields label{font-weight:800}.export-period-fields input{display:block;width:100%;min-height:3rem;margin-top:.45rem;padding:.65rem .8rem;border:1px solid #aebfca;border-radius:.3rem;color:var(--sgdf-blue);background:white}.export-period-fields input:focus{border-color:var(--sgdf-blue-light);outline:0;box-shadow:0 0 0 3px rgb(0 119 179 / 14%)}
 .admin-card { padding: 1.5rem; border-top:.35rem solid var(--sgdf-mint); border-radius: .65rem; background: white; box-shadow: 0 8px 24px rgb(0 58 93 / 8%); }
 .admin-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.3rem; }
 .admin-card__header h2 { margin: 0; font-family: var(--font-title); font-size: 1.35rem; }
@@ -632,6 +633,7 @@ body.app-shell { padding-left: 14.5rem; }
 .button--danger-outline { border: 1px solid var(--danger); color: var(--danger); background: white; }
 @media (max-width: 62rem) { .distribution-admin__grid { grid-template-areas: "configuration" "public" "courses"; grid-template-columns: 1fr; } }
 @media (max-width: 34rem) { .distribution-qr { grid-template-columns: 1fr; } .distribution-qr img { margin: 0 auto; } }
+@media (max-width: 34rem) { .export-period-fields { grid-template-columns: 1fr; } .export-period-dialog .group-dialog__actions { align-items: stretch; flex-direction: column-reverse; } .export-period-dialog .group-dialog__actions button { width: 100%; } }
 
 .button {
     display: inline-flex;
