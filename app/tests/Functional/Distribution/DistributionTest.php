@@ -97,6 +97,9 @@ final class DistributionTest extends WebTestCase
         self::assertInstanceOf(Sejour::class, $sejour);
         self::assertSelectorExists('button[data-open-dialog="shopping-lists-period"]');
         self::assertSelectorExists('dialog#shopping-lists-period[aria-labelledby="shopping-lists-period-title"]');
+        self::assertSelectorExists('[data-distribution-admin-target="downloadStatus"][aria-live="polite"]');
+        self::assertSelectorExists('form[data-action="submit->distribution-admin#download"]');
+        self::assertSelectorExists('button[type="submit"][data-distribution-admin-target="downloadButton"]');
         self::assertSelectorExists(sprintf('input[name="date_debut"][value="%s"][required]', $sejour->getDateDebut()->format('Y-m-d')));
         self::assertSelectorExists(sprintf('input[name="date_fin"][value="%s"][required]', $sejour->getDateFin()->format('Y-m-d')));
     }

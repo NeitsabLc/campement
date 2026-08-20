@@ -25,6 +25,7 @@
         <section class="admin-card shopping-lists-card">
             <div class="admin-card__header"><div><h2>Listes de course</h2><p>Préparez les fiches à remettre aux unités pour chaque repas distribué.</p></div></div>
             <p>L’archive contient un dossier par jour et repas, puis un PDF nominatif par unité participante.</p>
+            <div class="flash" role="status" aria-live="polite" hidden data-distribution-admin-target="downloadStatus"></div>
             <button class="button button--primary" type="button" data-open-dialog="shopping-lists-period">Télécharger les listes de course</button>
         </section>
     </div>
@@ -35,12 +36,12 @@
                 <div><h2 id="shopping-lists-period-title">Période des fiches à extraire</h2><p>Seuls les repas et les unités participantes sur cette période seront inclus.</p></div>
                 <button class="group-dialog__close" type="button" aria-label="Fermer" data-close-dialog>×</button>
             </header>
-            <form method="get" action="{{ path('app_distribution_listes_courses') }}">
+            <form method="get" action="{{ path('app_distribution_listes_courses') }}" data-action="submit->distribution-admin#download">
                 <div class="export-period-fields">
                     <label for="shopping-lists-start">Date de début<input id="shopping-lists-start" type="date" name="date_debut" value="{{ sejour.dateDebut|date('Y-m-d') }}" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required></label>
                     <label for="shopping-lists-end">Date de fin<input id="shopping-lists-end" type="date" name="date_fin" value="{{ sejour.dateFin|date('Y-m-d') }}" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" required></label>
                 </div>
-                <footer class="group-dialog__actions"><button class="cancel-group-button" type="button" data-close-dialog>Annuler</button><button class="save-group-button" type="submit">Télécharger les fiches</button></footer>
+                <footer class="group-dialog__actions"><button class="cancel-group-button" type="button" data-close-dialog>Annuler</button><button class="save-group-button" type="submit" data-distribution-admin-target="downloadButton">Télécharger les fiches</button></footer>
             </form>
         </section>
     </dialog>

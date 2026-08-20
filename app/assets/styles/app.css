@@ -1533,6 +1533,7 @@ select {
 
 .flash--success { color: #146c49; background: #e7f6ef; }
 .flash--error { color: var(--danger); background: var(--danger-surface); }
+.flash--info { color: var(--sgdf-blue); background: #e7f2f8; }
 
 .empty-state {
     padding: 2rem;
