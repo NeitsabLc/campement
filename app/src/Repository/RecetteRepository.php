@@ -41,4 +41,21 @@ final class RecetteRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function existeAvecNomPourSejour(Sejour $sejour, string $nom, ?Recette $recetteExclue = null): bool
+    {
+        $requete = $this->createQueryBuilder('recette')
+            ->select('recette.id')
+            ->andWhere('recette.sejour = :sejour')
+            ->andWhere('LOWER(recette.nom) = LOWER(:nom)')
+            ->setParameter('sejour', $sejour)
+            ->setParameter('nom', $nom);
+
+        if (null !== $recetteExclue) {
+            $requete->andWhere('recette != :recetteExclue')
+                ->setParameter('recetteExclue', $recetteExclue);
+        }
+
+        return null !== $requete->setMaxResults(1)->getQuery()->getOneOrNullResult();
+    }
 }
