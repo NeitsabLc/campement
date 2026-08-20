@@ -27,6 +27,15 @@ const programmerDisparitionMessages = () => {
 document.addEventListener('DOMContentLoaded', programmerDisparitionMessages);
 document.addEventListener('turbo:load', programmerDisparitionMessages);
 
+// Turbo conserve une copie du body sans les écouteurs ajoutés avec
+// addEventListener. Retirer leurs marqueurs avant la mise en cache permet à
+// initialiserNavigation de les rattacher lors d'un retour navigateur.
+document.addEventListener('turbo:before-cache', () => {
+    document.querySelectorAll('[data-navigation-bound]').forEach((element) => element.removeAttribute('data-navigation-bound'));
+    document.querySelectorAll('[data-dialog-bound]').forEach((element) => element.removeAttribute('data-dialog-bound'));
+    document.querySelectorAll('[data-backdrop-bound]').forEach((element) => element.removeAttribute('data-backdrop-bound'));
+});
+
 // Prépare chaque nouveau body avec les panneaux fermés avant que Turbo ne
 // l'affiche. Une section ne s'ouvre ainsi que sur un clic explicite.
 document.addEventListener('turbo:before-render', (event) => {
