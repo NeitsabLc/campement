@@ -56,7 +56,7 @@
                         {{ _self.composition(composition_menu['']|default({}), publicsCibles, '') }}
                     </section>
                 {% endif %}
-                {% if not lecture_seule|default(false) %}<div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button></div>{% endif %}
+                {% if not lecture_seule|default(false) %}<div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button>{% if repas_suivant %}<button class="save-next-meal-button" name="action" value="suivant">Enregistrer et passer au repas suivant</button>{% endif %}</div>{% endif %}
                 </fieldset>
             </form>
         </section>

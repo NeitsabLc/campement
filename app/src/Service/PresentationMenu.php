@@ -33,6 +33,34 @@ final class PresentationMenu
         return $repas[0];
     }
 
+    /**
+     * @param list<SejourTypeRepas> $repas
+     *
+     * @return array{date: \DateTimeImmutable, repas: SejourTypeRepas}|null
+     */
+    public function repasSuivant(
+        \DateTimeImmutable $date,
+        SejourTypeRepas $repasSelectionne,
+        array $repas,
+        \DateTimeImmutable $dateFin,
+    ): ?array {
+        foreach ($repas as $index => $configuration) {
+            if ($configuration !== $repasSelectionne) {
+                continue;
+            }
+            if (isset($repas[$index + 1])) {
+                return ['date' => $date, 'repas' => $repas[$index + 1]];
+            }
+            if ($date < $dateFin) {
+                return ['date' => $date->modify('+1 day'), 'repas' => $repas[0]];
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     public function avecCategories(string $code): bool
     {
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);

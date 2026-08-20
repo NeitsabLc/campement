@@ -36,6 +36,8 @@ final class MenuTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Menus');
         self::assertSelectorExists('.meal-calendar[data-turbo-prefetch="false"]');
+        self::assertSelectorExists('button.save-next-meal-button[name="action"][value="suivant"]');
+        self::assertSelectorTextContains('.save-next-meal-button', 'Enregistrer et passer au repas suivant');
     }
 
     public function testUnUtilisateurGroupeConsulteLesMenusEnLectureSeule(): void

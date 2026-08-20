@@ -1495,11 +1495,14 @@ select {
 
 .meal-editor__actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
     justify-content: flex-end;
     margin-top: 2rem;
 }
 
-.save-meal-button {
+.save-meal-button,
+.save-next-meal-button {
     min-width: 15rem;
     min-height: 3.2rem;
     padding: 0.75rem 1.2rem;
@@ -1510,6 +1513,8 @@ select {
     font-weight: 800;
     cursor: pointer;
 }
+.save-next-meal-button { border: 1px solid var(--sgdf-blue);color:var(--sgdf-blue);background:white; }
+.save-next-meal-button:hover { background:#edf7fc; }
 
 .flash {
     margin-bottom: 1rem;

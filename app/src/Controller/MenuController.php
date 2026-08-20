@@ -90,6 +90,9 @@ final class MenuController extends AbstractController
             : $menus->findPourRepas($sejour, $date, $repasSelectionne);
         $publicsActifs = $publics->findActifsPourSejour($sejour);
         $avecCategories = null === $special && $presentation->avecCategories($repasSelectionne->getTypeRepas()->getCode());
+        $repasSuivant = null === $special
+            ? $presentation->repasSuivant($date, $repasSelectionne, $repas, $sejour->getDateFin())
+            : null;
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
@@ -167,6 +170,10 @@ final class MenuController extends AbstractController
             $entityManager->flush();
             $this->addFlash('success', 'Le repas a bien été enregistré.');
 
+            if ('suivant' === $request->request->getString('action') && null !== $repasSuivant) {
+                return $this->redirectMenu($repasSuivant['date'], $repasSuivant['repas'], null);
+            }
+
             return $this->redirectMenu($date, $repasSelectionne, $special);
         }
 
@@ -187,6 +194,7 @@ final class MenuController extends AbstractController
             'sejour' => $sejour,
             'repas' => $repas,
             'repas_selectionne' => $repasSelectionne,
+            'repas_suivant' => $repasSuivant,
             'date_selectionnee' => $date,
             'menu' => $menu,
             'jours' => $jours,
