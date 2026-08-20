@@ -31,11 +31,17 @@ final class RecetteController extends AbstractController
     {
         $sejour = $contexte->actif();
         $actives = !$request->query->getBoolean('desactivees');
+        $tri = in_array($request->query->getString('tri'), ['nom', 'categorie'], true)
+            ? $request->query->getString('tri')
+            : 'nom';
+        $ordre = 'desc' === mb_strtolower($request->query->getString('ordre')) ? 'desc' : 'asc';
 
         return $this->render('recette/index.html.twig', [
             'sejour' => $sejour,
             'actives' => $actives,
-            'recettes' => null === $sejour ? [] : $recettes->findPourGestion($sejour, $actives),
+            'tri' => $tri,
+            'ordre' => $ordre,
+            'recettes' => null === $sejour ? [] : $recettes->findPourGestion($sejour, $actives, $tri, $ordre),
         ]);
     }
 
