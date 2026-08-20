@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Menu;
 
+use App\Entity\Recette;
+use App\Entity\Sejour;
+use App\Repository\SejourTypeRepasRepository;
 use App\Repository\UtilisateurRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class MenuTest extends WebTestCase
@@ -52,5 +56,49 @@ final class MenuTest extends WebTestCase
 
         $client->request('POST', '/menus', ['_token' => 'lecture-seule']);
         self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testLesRecettesSontFiltreesPourLePetitDejeunerEtLeGouter(): void
+    {
+        $client = static::createClient();
+        $container = static::getContainer();
+        $utilisateur = $container->get(UtilisateurRepository::class)->findOneBy(['email' => 'gestionnaire@campement.local']);
+        self::assertNotNull($utilisateur);
+        $client->loginUser($utilisateur);
+
+        $sejour = $utilisateur->getDernierSejour();
+        if (!$sejour instanceof Sejour || !$sejour->isActif()) {
+            $sejour = $utilisateur->getSejoursGeres()->filter(static fn (Sejour $candidat): bool => $candidat->isActif())->first();
+        }
+        self::assertInstanceOf(Sejour::class, $sejour);
+
+        $suffixe = bin2hex(random_bytes(4));
+        $petitDejeuner = (new Recette($sejour))->setNom('Petit-déjeuner '.$suffixe)->setCategorie('PETIT_DEJEUNER');
+        $gouter = (new Recette($sejour))->setNom('Goûter '.$suffixe)->setCategorie('GOUTER');
+        $plat = (new Recette($sejour))->setNom('Plat '.$suffixe)->setCategorie('PLAT');
+        $entityManager = $container->get(EntityManagerInterface::class);
+        $entityManager->persist($petitDejeuner);
+        $entityManager->persist($gouter);
+        $entityManager->persist($plat);
+        $entityManager->flush();
+
+        $repas = [];
+        foreach ($container->get(SejourTypeRepasRepository::class)->findActifsPourSejour($sejour) as $configuration) {
+            $repas[$configuration->getTypeRepas()->getCode()] = (string) $configuration->getId();
+        }
+        self::assertArrayHasKey('PETIT_DEJEUNER', $repas);
+        self::assertArrayHasKey('GOUTER', $repas);
+
+        $client->request('GET', '/menus?repas='.$repas['PETIT_DEJEUNER']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-recipe-picker]', $petitDejeuner->getNom());
+        self::assertSelectorTextNotContains('[data-recipe-picker]', $gouter->getNom());
+        self::assertSelectorTextNotContains('[data-recipe-picker]', $plat->getNom());
+
+        $client->request('GET', '/menus?repas='.$repas['GOUTER']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-recipe-picker]', $gouter->getNom());
+        self::assertSelectorTextNotContains('[data-recipe-picker]', $petitDejeuner->getNom());
+        self::assertSelectorTextNotContains('[data-recipe-picker]', $plat->getNom());
     }
 }

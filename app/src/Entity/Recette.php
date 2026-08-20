@@ -19,7 +19,8 @@ class Recette
     use EntityIdTrait;
     use TimestampableTrait;
     use ActivableTrait;
-    public const CATEGORIES = ['ENTREE', 'PLAT', 'FROMAGE', 'DESSERT'];
+    public const CATEGORIES = ['PETIT_DEJEUNER', 'ENTREE', 'PLAT', 'FROMAGE', 'DESSERT', 'GOUTER'];
+    public const CATEGORIES_MENU = ['ENTREE', 'PLAT', 'FROMAGE', 'DESSERT'];
     #[ORM\ManyToOne] #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private Sejour $sejour;
     #[ORM\Column(length: 150)] private string $nom = '';

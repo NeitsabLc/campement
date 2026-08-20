@@ -38,6 +38,11 @@ final class PresentationMenu
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
     }
 
+    public function categorieRecettesPourRepas(string $code): ?string
+    {
+        return in_array($code, ['PETIT_DEJEUNER', 'GOUTER'], true) ? $code : null;
+    }
+
     public function libelleDate(\DateTimeImmutable $date): string
     {
         $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
@@ -174,7 +179,7 @@ final class PresentationMenu
             $codeRepas = $configuration->getTypeRepas()->getCode();
             $avecCategories = $this->avecCategories($codeRepas);
             $categories = [];
-            foreach ($avecCategories ? Recette::CATEGORIES : [''] as $codeCategorie) {
+            foreach ($avecCategories ? Recette::CATEGORIES_MENU : [''] as $codeCategorie) {
                 $recettes = [];
                 $supplementaires = [];
                 if (null !== $menu) {
