@@ -7,7 +7,7 @@
     {% if erreurs %}<div class="flash flash--error" role="alert">{% for e in erreurs %}<p>{{ e }}</p>{% endfor %}</div>{% endif %}
     <form id="recipe-form" method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_recette') }}">
         <section class="food-form-card"><h2>Informations générales</h2><div class="food-general-grid recipe-name-grid"><label>Nom de la recette <b>*</b><input name="nom" required maxlength="150" value="{{ recette.nom }}"></label><label>Catégorie <b>*</b><select name="categorie" required>{% for code, libelle in {'PETIT_DEJEUNER':'Petit-déjeuner','ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert','GOUTER':'Goûter'} %}<option value="{{ code }}"{{ recette.categorie == code ? ' selected' : '' }}>{{ libelle }}</option>{% endfor %}</select></label></div></section>
-        <section class="food-form-card recipe-lines-card"><header><div><h2>Composition</h2><p>Définissez les quantités individuelles pour chaque public.</p></div><button class="food-secondary" type="button" data-action="recipe-editor#add">＋ Ajouter une denrée</button></header>
+        <section class="food-form-card recipe-lines-card"><header><div><h2>Composition</h2><p>Définissez les quantités individuelles pour chaque public.</p></div></header>
             <div class="recipe-table" data-public-count="{{ publics|length }}">
                 <div class="recipe-row recipe-row--head"><span>Denrée et conditionnement</span><span>Quantités par type de public</span><span></span></div>
                 <div data-recipe-editor-target="rows">
@@ -17,6 +17,7 @@
                         <div class="recipe-line-foods">
                             <label class="recipe-field"><span>Denrée</span><select name="lignes[{{ ri }}][denree]" data-controller="searchable-select" data-field="denree" data-action="change->recipe-editor#refresh" required>{% for d in denrees %}<option value="{{ d.id }}"{{ d == ligne.denree ? ' selected' : '' }}>{{ d.nom }}</option>{% endfor %}</select></label>
                             <label class="recipe-field"><span>Conditionnement</span><select name="lignes[{{ ri }}][conditionnement]" data-field="conditionnement" data-selected="{{ ligne.conditionnement.id }}"></select></label>
+                            <label class="recipe-field"><span>Régime alimentaire</span><select name="lignes[{{ ri }}][regime]" data-field="regime"><option value="">Standard</option>{% for code, libelle in regimes %}<option value="{{ code }}"{{ ligne.regime and ligne.regime.value == code ? ' selected' : '' }}>{{ libelle }}</option>{% endfor %}</select></label>
                         </div>
                         <section class="recipe-quantities">
                             <h3>Quantités par type de public</h3>
@@ -27,9 +28,10 @@
                 {% endfor %}
                 </div>
             </div>
+            <div class="recipe-lines-add"><button class="food-secondary" type="button" data-action="recipe-editor#add">＋ Ajouter une denrée</button></div>
         </section><div class="food-form-actions"><a href="{{ path('app_recettes') }}" class="food-secondary">Annuler</a><button class="food-primary">Enregistrer la recette</button></div>
     </form>
-    <template data-recipe-editor-target="template"><div class="recipe-row"><div class="recipe-line-foods"><label class="recipe-field"><span>Denrée</span><select data-controller="searchable-select" data-field="denree" data-action="change->recipe-editor#refresh" required>{% for d in denrees %}<option value="{{ d.id }}">{{ d.nom }}</option>{% endfor %}</select></label><label class="recipe-field"><span>Conditionnement</span><select data-field="conditionnement" required></select></label></div><section class="recipe-quantities"><h3>Quantités par type de public</h3><div class="recipe-quantities-grid">{% for p in publics %}<label class="recipe-field recipe-quantity-field"><span>{{ p.publicCible.libelle }}</span><input data-public="{{ p.id }}" required></label>{% endfor %}</div></section><div class="recipe-line-action"><button type="button" class="recipe-remove-line" data-action="recipe-editor#remove">Retirer</button></div></div></template>
+    <template data-recipe-editor-target="template"><div class="recipe-row"><div class="recipe-line-foods"><label class="recipe-field"><span>Denrée</span><select data-controller="searchable-select" data-field="denree" data-action="change->recipe-editor#refresh" required>{% for d in denrees %}<option value="{{ d.id }}">{{ d.nom }}</option>{% endfor %}</select></label><label class="recipe-field"><span>Conditionnement</span><select data-field="conditionnement" required></select></label><label class="recipe-field"><span>Régime alimentaire</span><select data-field="regime"><option value="">Standard</option>{% for code, libelle in regimes %}<option value="{{ code }}">{{ libelle }}</option>{% endfor %}</select></label></div><section class="recipe-quantities"><h3>Quantités par type de public</h3><div class="recipe-quantities-grid">{% for p in publics %}<label class="recipe-field recipe-quantity-field"><span>{{ p.publicCible.libelle }}</span><input data-public="{{ p.id }}" required></label>{% endfor %}</div></section><div class="recipe-line-action"><button type="button" class="recipe-remove-line" data-action="recipe-editor#remove">Retirer</button></div></div></template>
     <script nonce="{{ app.request.attributes.get('csp_nonce') }}" type="application/json" data-recipe-editor-target="catalog">{{ catalogue|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
 </main>
 {% endblock %}

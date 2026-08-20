@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['group', 'date', 'menu', 'menuBlock', 'regularSelectors', 'specialMeal', 'portion'];
+    static targets = ['group', 'date', 'menu', 'menuBlock', 'regularSelectors', 'specialMeal', 'portion', 'food', 'foodCount'];
 
     connect() {
         this.stampBrowserTime();
@@ -11,6 +11,7 @@ export default class extends Controller {
             this.groupTarget.value = rememberedGroup;
         }
         this.refreshPortions();
+        this.refreshFoods();
         this.refreshDates();
         this.refreshSpecialMeal();
     }
@@ -26,6 +27,7 @@ export default class extends Controller {
     rememberGroup() {
         localStorage.setItem('campement.distribution.group', this.groupTarget.value);
         this.refreshPortions();
+        this.refreshFoods();
     }
 
     refreshPortions() {
@@ -35,6 +37,28 @@ export default class extends Controller {
 
         this.portionTargets.forEach((portion) => {
             portion.hidden = visibleCodes.size > 0 && !visibleCodes.has(portion.dataset.publicCode);
+        });
+    }
+
+    refreshFoods() {
+        const option = this.groupTarget.selectedOptions[0];
+        const counts = {
+            VEGETARIEN: Number(option?.dataset.regimeVegetarien || 0),
+            SANS_GLUTEN: Number(option?.dataset.regimeSansGluten || 0),
+            SANS_LACTOSE: Number(option?.dataset.regimeSansLactose || 0),
+        };
+        this.foodTargets.forEach((food) => {
+            const count = food.dataset.regime ? counts[food.dataset.regime] || 0 : null;
+            food.hidden = null !== count && count <= 0;
+            const menuHidden = food.closest('[data-distribution-target~="menuBlock"]')?.hidden ?? false;
+            food.querySelectorAll('input').forEach((input) => input.disabled = food.hidden || menuHidden);
+            const label = food.querySelector('[data-diet-count]');
+            if (label) label.textContent = count > 0 ? ` · ${count} pers.` : '';
+        });
+        this.menuBlockTargets.forEach((block) => {
+            const count = block.querySelectorAll('[data-distribution-target~="food"]:not([hidden])').length;
+            const label = block.querySelector('[data-distribution-target~="foodCount"]');
+            if (label) label.textContent = `${count} denrée${count > 1 ? 's' : ''}`;
         });
     }
 
@@ -115,7 +139,7 @@ export default class extends Controller {
         this.menuBlockTargets.forEach((block) => {
             const active = block.dataset.menuId === selected;
             block.hidden = !active;
-            block.querySelectorAll('input').forEach((input) => input.disabled = !active);
         });
+        this.refreshFoods();
     }
 }

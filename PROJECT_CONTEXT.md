@@ -11,20 +11,21 @@ L’application couvre actuellement :
 * l’authentification et la gestion des mots de passe ;
 * l’administration des utilisateurs, rôles et accès ;
 * la création, l’activation et la sélection de plusieurs séjours ;
-* la gestion des unités participantes, des participants, de leurs documents et
-  de leurs présences ;
+* la gestion des unités participantes, de leurs besoins alimentaires, des
+  participants, de leurs documents et de leurs présences ;
 * le suivi des situations particulières et des tâches associées ;
-* la gestion des menus et des quantités individuelles par public cible ;
+* la gestion des recettes, des menus, des régimes alimentaires et des quantités
+  individuelles par public cible ;
 * la gestion des denrées, fournisseurs, références et conditionnements ;
 * la saisie et la consultation des mouvements de stock ;
 * la distribution publique sécurisée par un lien propre à chaque séjour ;
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 14 août 2026 : version `v1.3.0` publiée depuis la branche stable
-`main`, branche de développement `dev`, schéma Liquibase `V032`. Cette version
-est déployée sur un hôte applicatif dédié derrière un reverse proxy Traefik
-séparé ; l’ancienne installation est arrêtée et conservée pour le retour
+État vérifié le 21 août 2026 : dernier tag stable `v1.3.1`, branche stable
+`main`, branche de développement `dev`, schéma Liquibase courant `V034`. La
+production est hébergée sur un hôte applicatif dédié derrière un reverse proxy
+Traefik séparé ; l’ancienne installation est arrêtée et conservée pour le retour
 arrière. Le projet est fonctionnel. Toute évolution doit
 préserver les données existantes et rester compatible avec les schémas déjà
 appliqués.
@@ -55,9 +56,9 @@ campement/
 │   └── changelog/
 │       ├── db.changelog-master.yaml
 │       ├── versioned/        # changements communs à tous les environnements
-│       │   └── V001...V032
+│       │   └── V001...V034
 │       └── dev/              # données réservées au développement et aux tests
-│           └── D000...D004
+│           └── D000...D006
 └── app/
     ├── assets/               # JavaScript, Stimulus, CSS, images et polices
     ├── bin/
@@ -67,6 +68,7 @@ campement/
     │   ├── Controller/
     │   ├── Doctrine/
     │   ├── Entity/
+    │   ├── Enum/
     │   ├── Repository/
     │   ├── Security/
     │   ├── Service/
@@ -254,7 +256,7 @@ L’application permet de gérer :
 * leurs rattachements aux séjours ou à une unité participante ;
 * les séjours, leurs dates, leurs gestionnaires et leurs modules ;
 * les types de repas et publics cibles utilisés par chaque séjour ;
-* les unités participantes et leurs effectifs.
+* les unités participantes, leurs effectifs et leurs besoins alimentaires.
 
 ### Intendance
 
@@ -263,10 +265,12 @@ Pour le séjour sélectionné, le module Intendance permet de gérer :
 * les fournisseurs ;
 * les denrées et leurs unités de référence ;
 * les références fournisseur et leurs conditionnements ;
-* les menus et les quantités individuelles par public ;
+* les recettes, les menus, leurs variantes alimentaires et les quantités
+  individuelles par public ;
 * les entrées, sorties et corrections de stock ;
 * la consultation des mouvements ;
-* le lien et le QR code de distribution publique.
+* le lien et le QR code de distribution publique ;
+* les archives PDF de listes de courses, limitées à une période choisie.
 
 ### Référentiels globaux
 
@@ -386,8 +390,11 @@ nom et un commentaire, ainsi qu’un statut actif. Il ne référence pas directe
 ### Unités participantes
 
 Une unité participante appartient à un séjour. Elle possède notamment un nom,
-un effectif jeune, un effectif adulte, un commentaire éventuel et un statut
-actif.
+un effectif jeune, un effectif adulte, des dates de présence et un statut actif.
+Lorsque le module Intendance est actif, trois compteurs indiquent le nombre de
+personnes végétariennes, sans lactose et sans gluten. Chaque compteur est positif
+ou nul et ne peut pas dépasser l’effectif total ; une même personne peut relever
+de plusieurs besoins.
 
 Les effectifs décrivent l’unité mais ne sont pas utilisés automatiquement pour
 calculer les quantités du menu. Ils sont indépendants des publics cibles.
@@ -420,15 +427,25 @@ menu
                     └── public_cible
 ```
 
-`menu_denree` associe une denrée à un menu et porte son ordre d’affichage. Une
-denrée ne peut apparaître qu’une fois dans un même menu.
+`menu_denree` associe une denrée à un menu et porte son ordre d’affichage, son
+conditionnement, sa catégorie éventuelle, son origine recette et un régime
+alimentaire facultatif. Les valeurs admises sont `VEGETARIEN`, `SANS_LACTOSE`
+et `SANS_GLUTEN` ; l’absence de valeur représente la ligne standard. Une même
+denrée peut donc apparaître en ligne standard et dans une ou plusieurs variantes.
 
-`menu_denree_quantite` porte une quantité individuelle exprimée dans l’unité de
-référence de la denrée pour un public cible donné. Une seule quantité peut être
+`menu_denree_quantite` porte une quantité individuelle exprimée dans le
+conditionnement choisi pour un public cible donné. Une seule quantité peut être
 définie pour le couple `menu_denree + sejour_public_cible`.
 
 Ces quantités sont informatives. L’application ne calcule pas automatiquement
 une quantité totale à partir des effectifs de l’unité.
+
+Les lignes de `recette_denree` portent le même régime facultatif. À l’ajout
+d’une recette dans un menu, quantité, conditionnement et régime sont copiés dans
+les lignes du menu. Leur modification reste locale au menu. L’action de
+resynchronisation remplace ces valeurs par celles de la recette, sans modifier
+la recette source. Les denrées ajoutées hors recette peuvent également recevoir
+un régime.
 
 ### Denrées et fournisseurs
 
@@ -471,7 +488,8 @@ Le parcours est le suivant :
 2. sélection du jour ;
 3. sélection du repas ;
 4. chargement du menu correspondant ;
-5. affichage de ses denrées et quantités individuelles ;
+5. affichage de ses denrées et quantités individuelles, en retirant les variantes
+   dont le compteur est nul pour l’unité ;
 6. saisie de la quantité totale réellement prise pour chaque denrée ;
 7. validation définitive du mouvement.
 
@@ -486,6 +504,18 @@ repas proposés sont uniquement ceux pour lesquels un menu actif existe.
 
 L’application ne combine pas automatiquement les effectifs, les publics cibles
 et les quantités individuelles du menu.
+
+Une denrée standard et ses variantes restent distinctes pendant la saisie. Au
+moment de créer le mouvement de stock, leurs quantités sont converties puis
+agrégées par denrée afin de respecter l’unicité d’une ligne de stock par
+mouvement.
+
+Depuis l’administration de la distribution, l’extraction des listes de courses
+demande une date de début et une date de fin inclusives. L’archive ne contient
+que les menus compris dans cette période et les unités dont la présence la
+recoupe. Les lignes soumises à un régime sont incluses dans le PDF uniquement si
+le compteur correspondant de l’unité est supérieur à zéro ; le libellé indique
+le régime et le nombre de personnes concernées.
 
 Pour une sortie publique, le serveur impose :
 
@@ -559,15 +589,15 @@ Sont fonctionnels dans le dépôt actuel :
 * l’authentification et le contrôle des utilisateurs actifs ;
 * la création d’utilisateurs et la réinitialisation des mots de passe par e-mail ;
 * l’administration et la sélection multi-séjour ;
-* la gestion des unités participantes ;
+* la gestion des unités participantes et de leurs besoins alimentaires ;
 * les dossiers des participants, leurs documents et leur registre de présence ;
 * les situations particulières, leurs participants et leurs tâches ;
 * la gestion des fournisseurs, denrées, références et conditionnements ;
-* la gestion des menus, recettes et publics cibles ;
+* la gestion des menus, recettes, régimes alimentaires et publics cibles ;
 * la distribution publique multi-séjour par jeton et QR code, sans écriture lors
   d’un GET et avec confirmation idempotente ;
 * la saisie et la consultation des mouvements de stock ;
-* les exports PDF ;
+* les exports PDF, dont les listes de courses filtrées par période et unité ;
 * l’anonymisation et la purge selon les délais de conservation ;
 * la détection des références de documents manquantes et des fichiers
   orphelins ;

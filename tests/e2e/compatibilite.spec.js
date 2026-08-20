@@ -72,3 +72,31 @@ test('@mobile le sélecteur recherché ne réactive pas la liste native après u
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   await expect.poll(() => page.evaluate(() => window.searchableSelectClickDefaultPrevented)).toBe(true);
 });
+
+test('entrée sélectionne l’unique résultat recherché sans valider le formulaire', async ({ page }) => {
+  await seConnecter(page, comptes.gestionnaire);
+  await page.goto('/stocks/mouvement');
+
+  const formulaire = page.locator('#movement-form');
+  await formulaire.evaluate((element) => {
+    window.searchableSelectTriggeredFormValidation = false;
+    element.addEventListener('invalid', () => {
+      window.searchableSelectTriggeredFormValidation = true;
+    }, true);
+  });
+
+  const field = page.locator('.movement-line-food').first();
+  const nativeSelect = field.locator('select[data-line-food]');
+  await field.locator('.searchable-select__trigger').click();
+  const firstOption = field.locator('.searchable-select__option').first();
+  const optionLabel = (await firstOption.textContent()).trim();
+  await field.locator('.searchable-select__search').fill(optionLabel);
+  await expect(field.locator('.searchable-select__option')).toHaveCount(1);
+  const optionValue = await field.locator('.searchable-select__option').getAttribute('data-value');
+
+  await field.locator('.searchable-select__search').press('Enter');
+
+  await expect(nativeSelect).toHaveValue(optionValue);
+  await expect(field.locator('.searchable-select__trigger')).toHaveAttribute('aria-expanded', 'false');
+  expect(await page.evaluate(() => window.searchableSelectTriggeredFormValidation)).toBe(false);
+});

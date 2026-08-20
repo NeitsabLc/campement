@@ -29,6 +29,37 @@ test('les principales pages de création CRUD sont accessibles au gestionnaire',
   }
 });
 
+test('les nouvelles lignes de denrée sont ajoutées en bas des formulaires', async ({ page }) => {
+  for (const configuration of [
+    {
+      chemin: '/recettes/ajouter',
+      conteneur: '[data-recipe-editor-target="rows"]',
+      ligne: '.recipe-row',
+      bouton: '[data-action="recipe-editor#add"]',
+    },
+    {
+      chemin: '/stocks/mouvement',
+      conteneur: '[data-stock-movement-target="lines"]',
+      ligne: '[data-stock-movement-target~="line"]',
+      bouton: '[data-action="stock-movement#addLine"]',
+    },
+  ]) {
+    await page.goto(configuration.chemin);
+    const lignes = page.locator(`${configuration.conteneur} > ${configuration.ligne}`);
+    const bouton = page.locator(configuration.bouton);
+
+    await bouton.click();
+    await lignes.last().evaluate((element) => element.dataset.testFirstAddedLine = 'true');
+    await bouton.click();
+
+    await expect(lignes.last()).not.toHaveAttribute('data-test-first-added-line');
+    expect(await bouton.evaluate((element, selector) => {
+      const conteneur = document.querySelector(selector);
+      return Boolean(conteneur.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING);
+    }, configuration.conteneur)).toBe(true);
+  }
+});
+
 test('une unité participante peut être créée, consultée, modifiée puis désactivée', async ({ page }) => {
   const suffixe = suffixeUnique();
   const nomInitial = `Unité E2E ${suffixe}`;

@@ -19,7 +19,7 @@ final class ArchiveListesCourses
     ) {
     }
 
-    public function generer(Sejour $sejour): string
+    public function generer(Sejour $sejour, \DateTimeImmutable $dateDebut, \DateTimeImmutable $dateFin): string
     {
         $chemin = tempnam(sys_get_temp_dir(), 'campement-listes-courses-');
         if (false === $chemin) {
@@ -36,13 +36,22 @@ final class ArchiveListesCourses
         $menus = $this->menus->findActifsPourSejour($sejour);
         $nombreRepas = 0;
         foreach ($menus as $menu) {
-            if ($this->ignorer($menu, $sejour)) {
+            $dateMenu = $menu->getDateMenu();
+            if (
+                $this->ignorer($menu, $sejour)
+                || null === $dateMenu
+                || $dateMenu < $dateDebut
+                || $dateMenu > $dateFin
+            ) {
                 continue;
             }
             ++$nombreRepas;
             $dossier = $this->dossier($menu);
             $zip->addEmptyDir($dossier);
             foreach ($groupes as $groupe) {
+                if (!$groupe->estPresentLe($dateMenu)) {
+                    continue;
+                }
                 $zip->addFromString(
                     $dossier.'/'.$this->nomFichier($menu, $groupe),
                     $this->pdf->generer($menu, $groupe, $this->menusFusionnes($menu, $menus, $sejour)),
@@ -52,7 +61,7 @@ final class ArchiveListesCourses
         if (0 === $nombreRepas) {
             $zip->addFromString(
                 'AUCUNE_LISTE.txt',
-                "Aucun repas daté et actif n’est actuellement configuré pour ce séjour.\n",
+                "Aucun repas daté et actif n’est configuré sur la période sélectionnée.\n",
             );
         }
         $zip->close();

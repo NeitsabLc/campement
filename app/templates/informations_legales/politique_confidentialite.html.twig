@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Politique de confidentialité | Campement{% endblock %}
-{% block body_class %}legal-shell{% endblock %}
+{% block body_class %}legal-shell{{ app.user ? ' app-shell' : '' }}{% endblock %}
 
 {% block body %}
 <main class="legal-page">
@@ -9,7 +9,7 @@
         <a class="legal-brand" href="{{ app.user ? path('app_tableau_de_bord') : path('app_connexion') }}" aria-label="Retour à Campement"><span aria-hidden="true">CA</span><strong>Campement</strong></a>
         <p>Vos données</p>
         <h1>Politique de confidentialité</h1>
-        <p class="legal-updated">Dernière mise à jour : 12 août 2026</p>
+        <p class="legal-updated">Dernière mise à jour : 20 août 2026</p>
     </header>
 
     <article class="legal-content">
@@ -50,7 +50,7 @@
             <li><strong>Unités et données d’intendance :</strong> conservation sans échéance automatique afin de préserver l’historique opérationnel des séjours ; ces données peuvent être supprimées lorsqu’elles ne sont plus nécessaires.</li>
             <li><strong>Historique des mouvements de stock :</strong> le nom, l’adresse e-mail, le motif et les états avant et après l’opération sont conservés sans échéance automatique afin d’assurer la traçabilité des modifications et annulations. Le lien technique vers le compte est supprimé avec celui-ci, mais le libellé nominatif reste conservé.</li>
             <li><strong>Sauvegardes :</strong> rotation automatique après 7 jours.</li>
-            <li><strong>Journaux applicatifs Symfony :</strong> deux fichiers rotés sont conservés au maximum. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
+            <li><strong>Journaux applicatifs Symfony :</strong> seuls les deux fichiers de journalisation les plus récents sont conservés. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
             <li><strong>Journaux des conteneurs :</strong> Docker conserve au maximum cinq fichiers de 10 Mo par service.</li>
             <li><strong>Journaux Nginx :</strong> aucune rotation automatique n’est configurée. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
         </ul>

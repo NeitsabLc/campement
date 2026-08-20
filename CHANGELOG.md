@@ -8,6 +8,20 @@ suivent le versionnement sémantique.
 
 ### Ajouté
 
+- gestion des variantes alimentaires `Végétarien`, `Sans lactose` et
+  `Sans gluten` sur les lignes de recette et de menu, avec reprise des données
+  de la recette lors de l’ajout ou de la resynchronisation dans un menu ;
+- saisie, sur chaque unité participante lorsque l’intendance est active, du
+  nombre de personnes concernées par chaque besoin alimentaire ;
+- filtrage des variantes sur la distribution publique et dans les listes de
+  courses PDF selon les besoins de l’unité sélectionnée ;
+- choix d’une période lors de l’extraction des fiches de recette, afin de ne
+  générer que les repas et unités présents sur cette période ;
+- bouton permettant d’enregistrer un menu puis d’ouvrir directement le repas
+  suivant ;
+- affichage ou masquage du mot de passe sur la page de connexion ;
+- tri des listes de recettes et de denrées, avec pictogrammes associant barres
+  et flèche ;
 - suite Playwright E2E couvrant l’authentification, les restrictions par rôle,
   l’isolation multi-séjour et les CRUD des unités, fournisseurs, denrées,
   recettes, menus, situations particulières et présences, exécutée dans la CI ;
@@ -16,6 +30,14 @@ suivent le versionnement sémantique.
 
 ### Modifié
 
+- ajout des denrées en bas des formulaires de recette et de mouvement de stock ;
+- les listes déroulantes recherchées valident leur résultat avec Entrée sans
+  soumettre le formulaire parent et utilisent une graisse typographique
+  homogène ;
+- la duplication des quantités de menu tient compte du type de repas et de la
+  catégorie de la ligne ;
+- les pages légales sont recentrées et la formulation relative à la rotation
+  des journaux a été clarifiée ;
 - documentation locale DAT/DIN/DEX et runbook d’exploitation alignés sur la
   migration de la production vers un hôte applicatif dédié derrière Traefik,
   avec filtrage `DOCKER-USER`, sauvegardes chiffrées et procédure de retour
@@ -26,6 +48,13 @@ suivent le versionnement sémantique.
   interactives imbriquées ;
 - le contrôle d’accessibilité vérifie que chaque URL attendue n’a pas été
   remplacée silencieusement par une redirection.
+
+### Corrigé
+
+- restauration du fonctionnement des sous-menus après un retour avec la
+  navigation du navigateur ;
+- rendu des lignes et affichage des commandes de tri sur la page des denrées ;
+- téléchargement effectif des fiches de recette après validation de la période.
 
 ## [1.3.0] - 2026-08-12
 

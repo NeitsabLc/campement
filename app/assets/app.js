@@ -27,21 +27,19 @@ const programmerDisparitionMessages = () => {
 document.addEventListener('DOMContentLoaded', programmerDisparitionMessages);
 document.addEventListener('turbo:load', programmerDisparitionMessages);
 
-// Turbo conserve une copie du body sans les écouteurs ajoutés avec
-// addEventListener. Retirer leurs marqueurs avant la mise en cache permet à
-// initialiserNavigation de les rattacher lors d'un retour navigateur.
-document.addEventListener('turbo:before-cache', () => {
-    document.querySelectorAll('[data-navigation-bound]').forEach((element) => element.removeAttribute('data-navigation-bound'));
-    document.querySelectorAll('[data-dialog-bound]').forEach((element) => element.removeAttribute('data-dialog-bound'));
-    document.querySelectorAll('[data-backdrop-bound]').forEach((element) => element.removeAttribute('data-backdrop-bound'));
-});
-
 // Prépare chaque nouveau body avec les panneaux fermés avant que Turbo ne
 // l'affiche. Une section ne s'ouvre ainsi que sur un clic explicite.
 document.addEventListener('turbo:before-render', (event) => {
     event.detail.newBody.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.removeAttribute('open'));
     event.detail.newBody.classList.remove('sidebar-panel-open');
 });
+
+// Une copie restaurée par Turbo conserve ses attributs HTML, mais pas les
+// écouteurs ajoutés avec addEventListener. Un WeakSet suit les vrais nœuds déjà
+// initialisés sans laisser de marqueur susceptible d'être copié dans l'historique.
+const navigationInitialisee = new WeakSet();
+const dialogueInitialise = new WeakSet();
+const arrierePlanInitialise = new WeakSet();
 
 const initialiserNavigation = () => {
     const body = document.body;
@@ -53,8 +51,8 @@ const initialiserNavigation = () => {
     document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
     body.classList.toggle('sidebar-collapsed', !navigationMobile && localStorage.getItem('campement-sidebar') === 'collapsed');
     document.querySelectorAll('[data-sidebar-collapse]').forEach((button) => {
-        if (button.dataset.navigationBound) return;
-        button.dataset.navigationBound = 'true';
+        if (navigationInitialisee.has(button)) return;
+        navigationInitialisee.add(button);
         button.addEventListener('click', () => {
             if (window.matchMedia('(max-width: 760px)').matches) {
                 document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
@@ -68,8 +66,8 @@ const initialiserNavigation = () => {
         });
     });
     document.querySelectorAll('[data-sidebar-toggle]').forEach((button) => {
-        if (button.dataset.navigationBound) return;
-        button.dataset.navigationBound = 'true';
+        if (navigationInitialisee.has(button)) return;
+        navigationInitialisee.add(button);
         button.addEventListener('click', () => {
             if (body.classList.contains('sidebar-open')) {
                 document.querySelectorAll('[data-sidebar-section][open]').forEach((section) => section.open = false);
@@ -79,8 +77,8 @@ const initialiserNavigation = () => {
         });
     });
     document.querySelectorAll('[data-sidebar-section]').forEach((section) => {
-        if (section.dataset.navigationBound) return;
-        section.dataset.navigationBound = 'true';
+        if (navigationInitialisee.has(section)) return;
+        navigationInitialisee.add(section);
         section.addEventListener('toggle', () => {
             if (section.open) {
                 document.querySelectorAll('[data-sidebar-section]').forEach((otherSection) => {
@@ -92,32 +90,32 @@ const initialiserNavigation = () => {
     });
     body.classList.toggle('sidebar-panel-open', Boolean(document.querySelector('[data-sidebar-section][open]')));
     document.querySelectorAll('[data-sidebar-panel-close]').forEach((button) => {
-        if (button.dataset.navigationBound) return;
-        button.dataset.navigationBound = 'true';
+        if (navigationInitialisee.has(button)) return;
+        navigationInitialisee.add(button);
         button.addEventListener('click', () => {
             button.closest('[data-sidebar-section]')?.removeAttribute('open');
         });
     });
     document.querySelectorAll('.sidebar-module-panel a').forEach((link) => {
-        if (link.dataset.navigationBound) return;
-        link.dataset.navigationBound = 'true';
+        if (navigationInitialisee.has(link)) return;
+        navigationInitialisee.add(link);
         link.addEventListener('click', () => {
             sessionStorage.setItem('campement-close-sidebar-panel', 'true');
         });
     });
     document.querySelectorAll('[data-open-dialog]').forEach((button) => {
-        if (button.dataset.dialogBound) return;
-        button.dataset.dialogBound = 'true';
+        if (dialogueInitialise.has(button)) return;
+        dialogueInitialise.add(button);
         button.addEventListener('click', () => document.getElementById(button.dataset.openDialog)?.showModal());
     });
     document.querySelectorAll('[data-close-dialog]').forEach((button) => {
-        if (button.dataset.dialogBound) return;
-        button.dataset.dialogBound = 'true';
+        if (dialogueInitialise.has(button)) return;
+        dialogueInitialise.add(button);
         button.addEventListener('click', () => button.closest('dialog')?.close());
     });
     document.querySelectorAll('.stay-delete-dialog').forEach((dialog) => {
-        if (dialog.dataset.backdropBound) return;
-        dialog.dataset.backdropBound = 'true';
+        if (arrierePlanInitialise.has(dialog)) return;
+        arrierePlanInitialise.add(dialog);
         dialog.addEventListener('click', (event) => {
             if (event.target === dialog) dialog.close();
         });

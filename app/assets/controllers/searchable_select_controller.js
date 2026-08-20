@@ -32,6 +32,13 @@ export default class extends Controller {
         this.isOpen = false;
         this.toggle = () => this.isOpen ? this.close() : this.open();
         this.filter = () => this.render();
+        this.selectSingleResult = (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            event.stopPropagation();
+            const results = this.options.querySelectorAll('.searchable-select__option');
+            if (results.length === 1) results[0].click();
+        };
         this.sync = () => { this.updateTrigger(); this.render(); };
         this.clickOutside = (event) => {
             if (!event.composedPath().includes(this.wrapper)) this.close();
@@ -56,6 +63,7 @@ export default class extends Controller {
 
         this.trigger.addEventListener('click', this.toggle);
         this.search.addEventListener('input', this.filter);
+        this.search.addEventListener('keydown', this.selectSingleResult);
         this.wrapper.addEventListener('keydown', this.keydown);
         this.select.addEventListener('change', this.sync);
         document.addEventListener('click', this.clickOutside);
@@ -72,6 +80,7 @@ export default class extends Controller {
         window.removeEventListener('resize', this.reposition);
         window.removeEventListener('scroll', this.reposition, true);
         this.select.classList.remove('searchable-select__native');
+        this.search?.removeEventListener('keydown', this.selectSingleResult);
         this.wrapper?.remove();
     }
 

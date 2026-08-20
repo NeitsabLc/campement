@@ -8,6 +8,7 @@ use App\Entity\Recette;
 use App\Entity\RecetteDenree;
 use App\Entity\RecetteDenreeQuantite;
 use App\Entity\Utilisateur;
+use App\Enum\RegimeAlimentaire;
 use App\Repository\DenreeRepository;
 use App\Repository\RecetteRepository;
 use App\Repository\SejourPublicCibleRepository;
@@ -31,11 +32,17 @@ final class RecetteController extends AbstractController
     {
         $sejour = $contexte->actif();
         $actives = !$request->query->getBoolean('desactivees');
+        $tri = in_array($request->query->getString('tri'), ['nom', 'categorie'], true)
+            ? $request->query->getString('tri')
+            : 'nom';
+        $ordre = 'desc' === mb_strtolower($request->query->getString('ordre')) ? 'desc' : 'asc';
 
         return $this->render('recette/index.html.twig', [
             'sejour' => $sejour,
             'actives' => $actives,
-            'recettes' => null === $sejour ? [] : $recettes->findPourGestion($sejour, $actives),
+            'tri' => $tri,
+            'ordre' => $ordre,
+            'recettes' => null === $sejour ? [] : $recettes->findPourGestion($sejour, $actives, $tri, $ordre),
         ]);
     }
 
@@ -125,7 +132,13 @@ final class RecetteController extends AbstractController
                     }
                     $quantites[(string) $public->getId()] = number_format((float) $valeur, 3, '.', '');
                 }
-                $composition[] = ['denree' => $denree, 'conditionnement' => $unite, 'quantites' => $quantites];
+                $regimeBrut = (string) ($donnees['regime'] ?? '');
+                $regime = '' === $regimeBrut ? null : RegimeAlimentaire::tryFrom($regimeBrut);
+                if ('' !== $regimeBrut && null === $regime) {
+                    $erreurs[] = sprintf('Régime alimentaire invalide ligne %d.', $index + 1);
+                    continue;
+                }
+                $composition[] = ['denree' => $denree, 'conditionnement' => $unite, 'regime' => $regime, 'quantites' => $quantites];
             }
 
             if ([] === $composition) {
@@ -140,6 +153,7 @@ final class RecetteController extends AbstractController
                     $ligne = (new RecetteDenree())
                         ->setDenree($donnees['denree'])
                         ->setConditionnement($donnees['conditionnement'])
+                        ->setRegime($donnees['regime'])
                         ->setOrdre($ordre);
                     foreach ($publicsActifs as $public) {
                         $ligne->addQuantite((new RecetteDenreeQuantite())
@@ -176,6 +190,7 @@ final class RecetteController extends AbstractController
             'denrees' => $denreesActives,
             'publics' => $publicsActifs,
             'catalogue' => $catalogue,
+            'regimes' => RegimeAlimentaire::choix(),
             'erreurs' => $erreurs,
         ], $response);
     }

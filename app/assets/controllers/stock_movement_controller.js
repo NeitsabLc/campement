@@ -48,8 +48,8 @@ export default class extends Controller {
 
     addLine() {
         const index = this.nextIndex();
-        this.linesTarget.insertAdjacentHTML('afterbegin', this.lineTemplateTarget.innerHTML.replaceAll('__INDEX__', String(index)));
-        this.updateLine(this.lineTargets[0]);
+        this.linesTarget.insertAdjacentHTML('beforeend', this.lineTemplateTarget.innerHTML.replaceAll('__INDEX__', String(index)));
+        this.updateLine(this.lineTargets[this.lineTargets.length - 1]);
         this.numberLines();
     }
 
