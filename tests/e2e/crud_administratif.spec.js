@@ -15,13 +15,13 @@ test('une situation particulière peut être créée, consultée, modifiée puis
 
   await page.goto('/situations-particulieres/nouvelle');
   await page.locator('input[name="libelle"]').fill(nom);
-  await page.locator('input[name="date_situation"]').fill('2026-07-10');
+  await page.locator('input[name="date_situation"]').fill('2026-07-02');
   await page.getByRole('button', { name: 'Créer la situation' }).click();
   await expect(page).toHaveURL(/\/situations-particulieres\/[0-9a-f-]+\/modifier$/);
   await expect(page.getByRole('status')).toContainText('La situation particulière a été créée.');
 
   await page.locator('input[name="libelle"]').fill(nomModifie);
-  await page.locator('input[name="date_situation"]').fill('2026-07-11');
+  await page.locator('input[name="date_situation"]').fill('2026-07-03');
   await page.locator('input[name="informations[]"]').first().check();
   await page.getByRole('button', { name: 'Enregistrer les modifications' }).click();
   await expect(page.getByRole('status')).toContainText('La situation particulière a été mise à jour.');
