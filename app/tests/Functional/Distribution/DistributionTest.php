@@ -13,6 +13,7 @@ use App\Entity\SejourTypeRepas;
 use App\Entity\TypeRepas;
 use App\Entity\Unite;
 use App\Entity\Utilisateur;
+use App\Enum\RegimeAlimentaire;
 use App\Repository\TypeRepasRepository;
 use App\Repository\UniteRepository;
 use App\Repository\UtilisateurRepository;
@@ -195,7 +196,7 @@ final class DistributionTest extends WebTestCase
             $formulaire = $crawler->selectButton('Vérifier la distribution')->form([
                 'groupe' => $fixture['groupe'],
                 'menu' => $fixture['menu'],
-                'quantites['.$fixture['denree'].']' => '1',
+                'quantites['.$fixture['denree'].'|STANDARD]' => '1',
             ]);
             $client->submit($formulaire);
             self::assertResponseIsSuccessful();
@@ -239,6 +240,56 @@ final class DistributionTest extends WebTestCase
             self::assertResponseIsSuccessful();
             self::assertSelectorTextContains('.distribution-empty', 'Aucun menu n’est configuré.');
             self::assertSelectorTextNotContains('.distribution-empty', 'Aucune unité n’est présente aujourd’hui.');
+        } finally {
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
+    }
+
+    public function testLesRegimesDuGroupeFiltrentLaDistributionEtLesSortiesSontAgregees(): void
+    {
+        $client = static::createClient();
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+
+        try {
+            $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+            $groupe = $entityManager->find(Groupe::class, $fixture['groupe']);
+            $menu = $entityManager->find(Menu::class, $fixture['menu']);
+            $denree = $entityManager->find(Denree::class, $fixture['denree']);
+            self::assertInstanceOf(Groupe::class, $groupe);
+            self::assertInstanceOf(Menu::class, $menu);
+            self::assertInstanceOf(Denree::class, $denree);
+            $groupe->setNombreVegetariens(3);
+            $menu->addDenree((new MenuDenree())
+                ->setDenree($denree)
+                ->setConditionnement($denree->getUniteReference())
+                ->setRegime(RegimeAlimentaire::VEGETARIEN));
+            $entityManager->flush();
+
+            $crawler = $client->request('GET', '/distribution/'.$fixture['jeton']);
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('[data-regime="VEGETARIEN"]');
+            self::assertSelectorTextContains('[data-regime="VEGETARIEN"]', 'Végétarien');
+            self::assertSelectorExists(sprintf('option[value="%s"][data-regime-vegetarien="3"]', $fixture['groupe']));
+
+            $formulaire = $crawler->selectButton('Vérifier la distribution')->form([
+                'groupe' => $fixture['groupe'],
+                'menu' => $fixture['menu'],
+                'quantites['.$fixture['denree'].'|STANDARD]' => '1',
+                'quantites['.$fixture['denree'].'|VEGETARIEN]' => '2',
+            ]);
+            $client->submit($formulaire);
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('.distribution-summary', 'Végétarien');
+
+            $client->submit($client->getCrawler()->selectButton('Confirmer la distribution')->form());
+            self::assertResponseIsSuccessful();
+            $sortie = static::getContainer()->get(Connection::class)->fetchAssociative(
+                'SELECT COUNT(*) AS nombre, MAX(quantite_unite_reference) AS quantite FROM campement.mouvement_stock_ligne ligne JOIN campement.mouvement_stock mouvement ON mouvement.id = ligne.mouvement_stock_id WHERE mouvement.menu_id = :menu AND ligne.denree_id = :denree',
+                ['menu' => $fixture['menu'], 'denree' => $fixture['denree']],
+            );
+            self::assertIsArray($sortie);
+            self::assertSame(1, (int) $sortie['nombre']);
+            self::assertSame(3.0, (float) $sortie['quantite']);
         } finally {
             $this->supprimerFixtureDistribution($fixture['sejour']);
         }

@@ -122,6 +122,7 @@ final class PresentationMenu
                 $lignes[] = [
                     'denree' => (string) $ligne->getDenree()->getId(),
                     'conditionnement' => (string) $ligne->getConditionnement()->getId(),
+                    'regime' => $ligne->getRegime()?->value,
                     'quantites' => $quantites,
                 ];
             }
@@ -209,6 +210,7 @@ final class PresentationMenu
             $categories = [];
             foreach ($avecCategories ? Recette::CATEGORIES_MENU : [''] as $codeCategorie) {
                 $recettes = [];
+                $regimesRecettes = [];
                 $supplementaires = [];
                 if (null !== $menu) {
                     foreach ($menu->getDenrees() as $ligne) {
@@ -217,10 +219,21 @@ final class PresentationMenu
                             continue;
                         }
                         if (null !== ($recette = $ligne->getRecette())) {
-                            $recettes[(string) ($ligne->getRecetteInstanceId() ?? $recette->getId())] = $recette->getNom();
+                            $instance = (string) ($ligne->getRecetteInstanceId() ?? $recette->getId());
+                            $recettes[$instance] = $recette->getNom();
+                            if (null !== ($regime = $ligne->getRegime())) {
+                                $regimesRecettes[$instance][$regime->value] = $regime->libelle();
+                            }
                         } else {
-                            $supplementaires[] = $ligne->getDenree()->getNom();
+                            $supplementaires[] = $ligne->getDenree()->getNom().(null === $ligne->getRegime()
+                                ? ''
+                                : ' — '.$ligne->getRegime()->libelle());
                         }
+                    }
+                }
+                foreach ($recettes as $instance => $nom) {
+                    if (isset($regimesRecettes[$instance])) {
+                        $recettes[$instance] = $nom.' — '.implode(', ', $regimesRecettes[$instance]);
                     }
                 }
                 $categories[] = [

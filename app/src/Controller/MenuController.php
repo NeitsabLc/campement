@@ -10,6 +10,7 @@ use App\Entity\MenuDenreeQuantite;
 use App\Entity\Recette;
 use App\Entity\SejourTypeRepas;
 use App\Entity\Utilisateur;
+use App\Enum\RegimeAlimentaire;
 use App\Repository\DenreeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\RecetteRepository;
@@ -129,6 +130,13 @@ final class MenuController extends AbstractController
                 $categorie = $avecCategories && in_array($donnees['categorie'] ?? null, self::CATEGORIES, true)
                     ? $donnees['categorie']
                     : null;
+                $regimeBrut = (string) ($donnees['regime'] ?? '');
+                $regime = '' === $regimeBrut ? null : RegimeAlimentaire::tryFrom($regimeBrut);
+                if ('' !== $regimeBrut && null === $regime) {
+                    $this->addFlash('error', sprintf('Régime alimentaire invalide pour %s.', $denree->getNom()));
+
+                    return $this->redirectMenu($date, $repasSelectionne, $special);
+                }
                 $recetteId = (string) ($donnees['recette'] ?? '');
                 $instanceId = (string) ($donnees['recette_instance'] ?? '');
                 $recette = Uuid::isValid($recetteId) ? $recettes->find($recetteId) : null;
@@ -137,7 +145,7 @@ final class MenuController extends AbstractController
                     $recette = null;
                     $instance = null;
                 }
-                $composition[] = [$denree, $unite, $categorie, $quantites, $recette, $instance];
+                $composition[] = [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance];
             }
 
             $menu ??= (new Menu())->setSejour($sejour);
@@ -149,11 +157,12 @@ final class MenuController extends AbstractController
             foreach ($menu->getDenrees()->toArray() as $ancienne) {
                 $menu->removeDenree($ancienne);
             }
-            foreach ($composition as $ordre => [$denree, $unite, $categorie, $quantites, $recette, $instance]) {
+            foreach ($composition as $ordre => [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance]) {
                 $ligne = (new MenuDenree())
                     ->setDenree($denree)
                     ->setConditionnement($unite)
                     ->setCategorie($categorie)
+                    ->setRegime($regime)
                     ->setRecette($recette)
                     ->setRecetteInstanceId($instance)
                     ->setOrdre($ordre);
@@ -203,6 +212,7 @@ final class MenuController extends AbstractController
             'menus_existants' => $menusExistants,
             'publicsCibles' => $publicsActifs,
             'catalogue' => $catalogue,
+            'regimes' => RegimeAlimentaire::choix(),
             'recettes' => $recettesActives,
             'recettes_json' => $recettesJson,
             'categorie_recettes' => $categorieRecettes,

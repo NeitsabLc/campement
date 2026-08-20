@@ -12,6 +12,22 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class RecetteTest extends WebTestCase
 {
+    public function testLeFormulairePermetDeChoisirLeRegimeDeChaqueDenree(): void
+    {
+        $client = static::createClient();
+        $utilisateur = static::getContainer()->get(UtilisateurRepository::class)
+            ->findOneBy(['email' => 'gestionnaire@campement.local']);
+        self::assertNotNull($utilisateur);
+        $client->loginUser($utilisateur);
+
+        $client->request('GET', '/recettes/ajouter');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('template select[data-field="regime"] option[value="VEGETARIEN"]');
+        self::assertSelectorExists('template select[data-field="regime"] option[value="SANS_LACTOSE"]');
+        self::assertSelectorExists('template select[data-field="regime"] option[value="SANS_GLUTEN"]');
+    }
+
     public function testDeuxRecettesNePeuventPasPorterLeMemeNomPourUnSejour(): void
     {
         $client = static::createClient();

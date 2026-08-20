@@ -51,6 +51,9 @@ final class GroupeController extends AbstractController
             'nom' => trim($request->request->getString('nom')),
             'effectif_jeune' => $request->request->getString('effectif_jeune'),
             'effectif_adulte' => $request->request->getString('effectif_adulte'),
+            'nombre_vegetariens' => $request->request->getString('nombre_vegetariens', (string) ($groupeRoute?->getNombreVegetariens() ?? 0)),
+            'nombre_sans_lactose' => $request->request->getString('nombre_sans_lactose', (string) ($groupeRoute?->getNombreSansLactose() ?? 0)),
+            'nombre_sans_gluten' => $request->request->getString('nombre_sans_gluten', (string) ($groupeRoute?->getNombreSansGluten() ?? 0)),
             'type' => $request->request->getString('type'),
             'date_debut_presence' => $request->request->getString('date_debut_presence'),
             'date_fin_presence' => $request->request->getString('date_fin_presence'),
@@ -65,6 +68,9 @@ final class GroupeController extends AbstractController
                 'nom' => $groupeRoute->getNom(),
                 'effectif_jeune' => (string) $groupeRoute->getEffectifJeune(),
                 'effectif_adulte' => (string) $groupeRoute->getEffectifAdulte(),
+                'nombre_vegetariens' => (string) $groupeRoute->getNombreVegetariens(),
+                'nombre_sans_lactose' => (string) $groupeRoute->getNombreSansLactose(),
+                'nombre_sans_gluten' => (string) $groupeRoute->getNombreSansGluten(),
                 'type' => $groupeRoute->getType(),
                 'date_debut_presence' => $groupeRoute->getDateDebutPresence()->format('Y-m-d'),
                 'date_fin_presence' => $groupeRoute->getDateFinPresence()->format('Y-m-d'),
@@ -105,6 +111,24 @@ final class GroupeController extends AbstractController
                 }
             }
 
+            if ($sejour->isModuleIntendanceActif()) {
+                $effectifTotal = filter_var($donnees['effectif_jeune'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                $effectifAdulte = filter_var($donnees['effectif_adulte'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                $effectifTotal = false !== $effectifTotal && false !== $effectifAdulte ? $effectifTotal + $effectifAdulte : null;
+                foreach ([
+                    'nombre_vegetariens' => 'végétariennes',
+                    'nombre_sans_lactose' => 'sans lactose',
+                    'nombre_sans_gluten' => 'sans gluten',
+                ] as $champ => $libelle) {
+                    $nombre = filter_var($donnees[$champ], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                    if (false === $nombre) {
+                        $erreurs[] = sprintf('Le nombre de personnes %s doit être un entier positif ou nul.', $libelle);
+                    } elseif (null !== $effectifTotal && $nombre > $effectifTotal) {
+                        $erreurs[] = sprintf('Le nombre de personnes %s ne peut pas dépasser l’effectif total.', $libelle);
+                    }
+                }
+            }
+
             if (!isset($types[$donnees['type']])) {
                 $erreurs[] = 'Sélectionnez un type de public disponible pour ce séjour.';
             }
@@ -135,6 +159,12 @@ final class GroupeController extends AbstractController
                     ->setType($donnees['type'])
                     ->setDateDebutPresence($dateDebutPresence)
                     ->setDateFinPresence($dateFinPresence);
+                if ($sejour->isModuleIntendanceActif()) {
+                    $groupe
+                        ->setNombreVegetariens((int) $donnees['nombre_vegetariens'])
+                        ->setNombreSansLactose((int) $donnees['nombre_sans_lactose'])
+                        ->setNombreSansGluten((int) $donnees['nombre_sans_gluten']);
+                }
                 if ($creation) {
                     $entityManager->persist($groupe);
                 }

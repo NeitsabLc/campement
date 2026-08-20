@@ -53,6 +53,9 @@ final class GroupeTest extends WebTestCase
             'type' => 'adulte',
             'effectif_jeune' => '0',
             'effectif_adulte' => '10',
+            'nombre_vegetariens' => '3',
+            'nombre_sans_gluten' => '2',
+            'nombre_sans_lactose' => '1',
         ]);
         $client->submit($form);
 
@@ -60,6 +63,11 @@ final class GroupeTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorTextContains('.flash--success', sprintf('L’unité « %s » a bien été créée.', $nom));
         self::assertSelectorTextContains('.group-type--adulte', 'Adulte');
+        $groupe = static::getContainer()->get(GroupeRepository::class)->findOneBy(['nom' => $nom]);
+        self::assertNotNull($groupe);
+        self::assertSame(3, $groupe->getNombreVegetariens());
+        self::assertSame(2, $groupe->getNombreSansGluten());
+        self::assertSame(1, $groupe->getNombreSansLactose());
     }
 
     public function testLeRepositoryNeRetourneQueLesGroupesPresentsALaDateDemandee(): void
