@@ -14,6 +14,7 @@ use App\Repository\SejourPublicCibleRepository;
 use App\Repository\UniteRepository;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -89,6 +90,8 @@ final class RecetteController extends AbstractController
             $nom = trim($request->request->getString('nom'));
             if ('' === $nom) {
                 $erreurs[] = 'Le nom est obligatoire.';
+            } elseif ($recettes->existeAvecNomPourSejour($sejour, $nom, null !== $id ? $recette : null)) {
+                $erreurs[] = 'Une recette portant ce nom existe déjà pour ce séjour.';
             }
             $categorie = $request->request->getString('categorie');
             if (!in_array($categorie, Recette::CATEGORIES, true)) {
@@ -147,10 +150,14 @@ final class RecetteController extends AbstractController
                 }
 
                 $entityManager->persist($recette);
-                $entityManager->flush();
-                $this->addFlash('success', 'La recette a bien été enregistrée.');
+                try {
+                    $entityManager->flush();
+                    $this->addFlash('success', 'La recette a bien été enregistrée.');
 
-                return $this->redirectToRoute('app_recettes');
+                    return $this->redirectToRoute('app_recettes');
+                } catch (UniqueConstraintViolationException) {
+                    $erreurs[] = 'Une recette portant ce nom existe déjà pour ce séjour.';
+                }
             }
         }
 
@@ -162,12 +169,14 @@ final class RecetteController extends AbstractController
             );
         }
 
+        $response = [] === $erreurs ? null : new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY);
+
         return $this->render('recette/form.html.twig', [
             'recette' => $recette,
             'denrees' => $denreesActives,
             'publics' => $publicsActifs,
             'catalogue' => $catalogue,
             'erreurs' => $erreurs,
-        ]);
+        ], $response);
     }
 }
