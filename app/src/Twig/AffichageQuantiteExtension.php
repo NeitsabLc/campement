@@ -18,6 +18,7 @@ final class AffichageQuantiteExtension extends AbstractExtension
     {
         return [
             new TwigFilter('quantite_par_personne', $this->affichageQuantite->parPersonne(...)),
+            new TwigFilter('quantite', $this->affichageQuantite->nombre(...)),
         ];
     }
 }

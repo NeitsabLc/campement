@@ -26,7 +26,12 @@ final class AffichageQuantite
             }
         }
 
-        $arrondi = round($nombre, 3);
+        return $this->nombre($nombre);
+    }
+
+    public function nombre(float|int|string $quantite): string
+    {
+        $arrondi = round((float) $quantite, 3);
         if (abs($arrondi - round($arrondi)) < self::TOLERANCE) {
             return (string) (int) round($arrondi);
         }

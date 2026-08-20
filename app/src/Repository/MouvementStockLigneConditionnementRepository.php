@@ -40,6 +40,8 @@ final class MouvementStockLigneConditionnementRepository extends ServiceEntityRe
             ->join('detail.conditionnement', 'conditionnement')
             ->andWhere('ligne IN (:lignes)')
             ->setParameter('lignes', $lignes)
+            ->orderBy('ligne.id', 'ASC')
+            ->addOrderBy('conditionnement.ordre', 'ASC')
             ->getQuery()
             ->getResult();
     }
