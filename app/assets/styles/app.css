@@ -1689,7 +1689,9 @@ select {
 
 .foods-sort-link { display:inline-flex;align-items:center;gap:.35rem;color:inherit;text-decoration:none; }
 .foods-sort-link:hover,.foods-sort-link:focus-visible { color:var(--sgdf-blue);text-decoration:underline; }
-.foods-sort-indicator { min-width:1em;color:var(--sgdf-blue-light);font-size:1rem;line-height:1;text-align:center; }
+.foods-sort-indicator { display:inline-grid;width:1.35rem;height:1.35rem;flex:0 0 1.35rem;place-items:center;color:var(--text-muted);opacity:.7; }
+.foods-sort-indicator--active { color:var(--sgdf-blue-light);opacity:1; }
+.foods-sort-indicator svg { width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round; }
 
 .foods-swipe-row { position:relative; }
 .foods-swipe-action,.foods-swipe-history { display:none; }

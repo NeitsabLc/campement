@@ -48,6 +48,8 @@ final class TriCataloguesTest extends WebTestCase
                 $this->nomsAffiches($crawler, $prefixe),
             );
             self::assertSelectorExists('[role="columnheader"][aria-sort="descending"] .foods-sort-link');
+            self::assertSelectorExists('[role="columnheader"][aria-sort="descending"] [data-sort-state="descending"]');
+            self::assertSelectorExists('[role="columnheader"][aria-sort="none"] [data-sort-state="none"]');
 
             $crawler = $client->request('GET', '/recettes?tri=categorie&ordre=asc');
             self::assertSame(
@@ -115,6 +117,7 @@ final class TriCataloguesTest extends WebTestCase
                 $this->nomsAffiches($crawler, $prefixe),
             );
             self::assertSelectorExists('.foods-row--head .foods-sort-link[aria-label^="Trier les stocks"]');
+            self::assertSelectorExists('.foods-row--head [data-sort-state="ascending"]');
 
             $crawler = $client->request('GET', '/denrees?tri=stock&ordre=desc');
             self::assertSame(
