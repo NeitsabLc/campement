@@ -35,6 +35,30 @@ test('le mot de passe peut être affiché puis masqué', async ({ page }) => {
   await expect(champ).toHaveValue(motDePasse);
 });
 
+test('les informations légales sont centrées à côté de la navigation', async ({ page }) => {
+  await seConnecter(page, comptes.gestionnaire);
+
+  for (const chemin of ['/conditions-utilisation', '/politique-confidentialite']) {
+    await page.goto(chemin);
+    await expect(page.locator('body')).toHaveClass(/\blegal-shell\b/);
+    await expect(page.locator('body')).toHaveClass(/\bapp-shell\b/);
+
+    const ecartDeCentrage = await page.locator('.legal-page').evaluate((element) => {
+      const navigation = document.querySelector('.sidebar').getBoundingClientRect();
+      const pageLegale = element.getBoundingClientRect();
+      const centreDisponible = navigation.right + ((window.innerWidth - navigation.right) / 2);
+      const centrePage = pageLegale.left + (pageLegale.width / 2);
+
+      return Math.abs(centreDisponible - centrePage);
+    });
+    expect(ecartDeCentrage).toBeLessThan(2);
+    if ('/politique-confidentialite' === chemin) {
+      await expect(page.locator('.legal-content')).toContainText('seuls les deux fichiers de journalisation les plus récents sont conservés');
+      await expect(page.locator('.legal-content')).not.toContainText('fichiers rotés');
+    }
+  }
+});
+
 test('un administrateur peut se connecter puis se déconnecter', async ({ page }) => {
   await seConnecter(page, `  ${comptes.administrateur.toUpperCase()}  `);
 
