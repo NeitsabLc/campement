@@ -14,7 +14,7 @@
             {% for recette in recettes %}<div data-food-catalog-target="row" data-name="{{ recette.nom|lower }}">
                 <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_recette_modifier',{id:recette.id}) }}"><form id="delete-recipe-{{ recette.id }}" class="foods-swipe-action{{ recette.actif ? '' : ' foods-swipe-action--reactivate' }}" method="post" action="{{ path('app_recette_supprimer',{id:recette.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_recette_'~recette.id) }}"><button type="submit">{{ recette.actif ? 'Désactiver' : 'Réactiver' }}</button></form><div class="foods-row recipes-row clickable-row" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
                     <strong role="cell">{{ recette.nom }}</strong>
-                    <span role="cell">{{ {'ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert'}[recette.categorie] }}</span>
+                    <span role="cell">{{ {'PETIT_DEJEUNER':'Petit-déjeuner','ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert','GOUTER':'Goûter'}[recette.categorie] }}</span>
                     <span role="cell">{{ recette.denrees|length }} denrée{{ recette.denrees|length > 1 ? 's' : '' }}</span>
                     <span class="food-actions" role="cell">
                         <a class="action-icon-button" href="{{ path('app_recette_modifier', {id: recette.id}) }}" aria-label="Modifier {{ recette.nom }}" title="Modifier">

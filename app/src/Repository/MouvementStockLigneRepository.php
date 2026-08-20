@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Entity\Denree;
 use App\Entity\MouvementStock;
 use App\Entity\MouvementStockLigne;
 use App\Entity\Sejour;
@@ -30,6 +31,23 @@ final class MouvementStockLigneRepository extends ServiceEntityRepository
             ->andWhere('m.sejour = :sejour')->setParameter('sejour', $sejour)
             ->orderBy('m.dateMouvement', 'DESC')->addOrderBy('m.createdAt', 'DESC')
             ->getQuery()->getResult();
+    }
+
+    /** @return list<MouvementStockLigne> */
+    public function findPourDenree(Denree $denree): array
+    {
+        return $this->createQueryBuilder('l')
+            ->addSelect('m', 'tm', 'o', 'us')
+            ->join('l.mouvementStock', 'm')
+            ->join('m.typeMouvement', 'tm')
+            ->join('m.origineMouvement', 'o')
+            ->leftJoin('l.conditionnementSortie', 'us')
+            ->andWhere('l.denree = :denree')
+            ->setParameter('denree', $denree)
+            ->orderBy('m.dateMouvement', 'DESC')
+            ->addOrderBy('m.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
     }
 
     public function findPourMouvement(MouvementStock $mouvement): ?MouvementStockLigne

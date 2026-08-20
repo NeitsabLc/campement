@@ -12,6 +12,25 @@ test('@compatibilite la connexion et la navigation fonctionnent dans Firefox', a
   await expect(page.getByRole('heading', { name: 'Menus', exact: true })).toBeVisible();
 });
 
+test('@compatibilite le sous-menu reste fonctionnel après un retour navigateur', async ({ page }) => {
+  await seConnecter(page, comptes.gestionnaire);
+  await page.goto('/denrees');
+
+  await page.getByRole('link', { name: /^Modifier / }).first().click();
+  await expect(page).toHaveURL(/\/denrees\/[0-9a-f-]+\/modifier$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/denrees$/);
+
+  const sectionIntendance = page.locator('details[data-sidebar-section]').filter({
+    has: page.locator('summary').filter({ hasText: 'Intendance' }),
+  });
+  await sectionIntendance.locator('summary').click();
+
+  await expect(sectionIntendance).toHaveAttribute('open', '');
+  await expect(sectionIntendance.locator('.sidebar-module-panel')).toBeVisible();
+});
+
 test('@mobile un gestionnaire réalise le parcours critique vers les unités', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 851 });
   await seConnecter(page, comptes.gestionnaire);
