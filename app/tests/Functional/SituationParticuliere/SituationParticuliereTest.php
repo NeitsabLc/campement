@@ -63,7 +63,7 @@ final class SituationParticuliereTest extends WebTestCase
         self::assertSelectorExists('[data-controller="situation-people"] button[data-action="situation-people#add"]');
         $form = $crawler->selectButton('Créer la situation')->form([
             'libelle' => 'Incident test fonctionnel',
-            'date_situation' => '2026-07-10',
+            'date_situation' => '2026-07-02',
             'informations' => ['SINISTRE_MATERIEL'],
         ]);
         $client->submit($form);
@@ -71,7 +71,7 @@ final class SituationParticuliereTest extends WebTestCase
         $client->followRedirect();
         self::assertSelectorExists('input[name="libelle"][value="Incident test fonctionnel"]');
         self::assertSelectorTextContains('.task-cards', 'Déclaration d’accident SGDF');
-        self::assertSelectorExists('input[name="date_echeance"][disabled][value="2026-07-15"]');
+        self::assertSelectorExists('input[name="date_echeance"][disabled][value="2026-07-07"]');
         self::assertSelectorExists('[data-controller="situation-task-form"] option[value=""]');
         self::assertSelectorTextContains('[data-controller="situation-task-form"] option[value=""]', 'Autre tâche');
 
@@ -82,7 +82,7 @@ final class SituationParticuliereTest extends WebTestCase
         self::assertSelectorTextContains('.tasks-section', 'Déclaration d’accident SGDF');
         self::assertSelectorTextContains('.tasks-section', 'À faire');
         $form = $crawler->selectButton('Enregistrer')->form([
-            'libelle' => 'Incident modifié', 'date_situation' => '2026-07-11', 'informations' => [],
+            'libelle' => 'Incident modifié', 'date_situation' => '2026-07-03', 'informations' => [],
         ]);
         $client->submit($form);
         self::assertResponseRedirects('/situations-particulieres/'.$situation->getId().'/modifier');
@@ -100,8 +100,8 @@ final class SituationParticuliereTest extends WebTestCase
         self::assertNotNull($utilisateur);
         $client->loginUser($utilisateur);
         $sejour = $this->activerModule();
-        $situation = new SituationParticuliere($sejour, 'Situation protégée', new \DateTimeImmutable('2026-07-12'));
-        TacheSituationParticuliere::libre($situation, 'Tâche terminée')->setStatut(TacheSituationParticuliere::STATUT_REALISE, new \DateTimeImmutable('2026-07-12'));
+        $situation = new SituationParticuliere($sejour, 'Situation protégée', new \DateTimeImmutable('2026-07-04'));
+        TacheSituationParticuliere::libre($situation, 'Tâche terminée')->setStatut(TacheSituationParticuliere::STATUT_REALISE, new \DateTimeImmutable('2026-07-04'));
         $em = static::getContainer()->get(EntityManagerInterface::class);
         $em->persist($situation);
         $em->flush();

@@ -71,7 +71,7 @@ final class GroupeTest extends WebTestCase
 
         $pendantLeSejour = $repository->findActifsPresentsPourSejour(
             $groupe->getSejour(),
-            new \DateTimeImmutable('2026-07-15'),
+            new \DateTimeImmutable('2026-07-03'),
         );
         $apresLeSejour = $repository->findActifsPresentsPourSejour(
             $groupe->getSejour(),
