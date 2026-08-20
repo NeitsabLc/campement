@@ -10,6 +10,7 @@ use App\Entity\MenuDenreeQuantite;
 use App\Entity\Recette;
 use App\Entity\SejourTypeRepas;
 use App\Entity\Utilisateur;
+use App\Enum\RegimeAlimentaire;
 use App\Repository\DenreeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\RecetteRepository;
@@ -32,7 +33,7 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted(new Expression("is_granted('ROLE_GESTIONNAIRE') or is_granted('ROLE_GROUPE')"))]
 final class MenuController extends AbstractController
 {
-    private const CATEGORIES = Recette::CATEGORIES;
+    private const CATEGORIES = Recette::CATEGORIES_MENU;
     private const SPECIAUX = [
         'EXPLO' => 'Explo',
         'PIQUE_NIQUE_1' => 'Pique-nique 1',
@@ -90,6 +91,9 @@ final class MenuController extends AbstractController
             : $menus->findPourRepas($sejour, $date, $repasSelectionne);
         $publicsActifs = $publics->findActifsPourSejour($sejour);
         $avecCategories = null === $special && $presentation->avecCategories($repasSelectionne->getTypeRepas()->getCode());
+        $repasSuivant = null === $special
+            ? $presentation->repasSuivant($date, $repasSelectionne, $repas, $sejour->getDateFin())
+            : null;
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
@@ -126,6 +130,13 @@ final class MenuController extends AbstractController
                 $categorie = $avecCategories && in_array($donnees['categorie'] ?? null, self::CATEGORIES, true)
                     ? $donnees['categorie']
                     : null;
+                $regimeBrut = (string) ($donnees['regime'] ?? '');
+                $regime = '' === $regimeBrut ? null : RegimeAlimentaire::tryFrom($regimeBrut);
+                if ('' !== $regimeBrut && null === $regime) {
+                    $this->addFlash('error', sprintf('Régime alimentaire invalide pour %s.', $denree->getNom()));
+
+                    return $this->redirectMenu($date, $repasSelectionne, $special);
+                }
                 $recetteId = (string) ($donnees['recette'] ?? '');
                 $instanceId = (string) ($donnees['recette_instance'] ?? '');
                 $recette = Uuid::isValid($recetteId) ? $recettes->find($recetteId) : null;
@@ -134,7 +145,7 @@ final class MenuController extends AbstractController
                     $recette = null;
                     $instance = null;
                 }
-                $composition[] = [$denree, $unite, $categorie, $quantites, $recette, $instance];
+                $composition[] = [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance];
             }
 
             $menu ??= (new Menu())->setSejour($sejour);
@@ -146,11 +157,12 @@ final class MenuController extends AbstractController
             foreach ($menu->getDenrees()->toArray() as $ancienne) {
                 $menu->removeDenree($ancienne);
             }
-            foreach ($composition as $ordre => [$denree, $unite, $categorie, $quantites, $recette, $instance]) {
+            foreach ($composition as $ordre => [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance]) {
                 $ligne = (new MenuDenree())
                     ->setDenree($denree)
                     ->setConditionnement($unite)
                     ->setCategorie($categorie)
+                    ->setRegime($regime)
                     ->setRecette($recette)
                     ->setRecetteInstanceId($instance)
                     ->setOrdre($ordre);
@@ -167,6 +179,10 @@ final class MenuController extends AbstractController
             $entityManager->flush();
             $this->addFlash('success', 'Le repas a bien été enregistré.');
 
+            if ('suivant' === $request->request->getString('action') && null !== $repasSuivant) {
+                return $this->redirectMenu($repasSuivant['date'], $repasSuivant['repas'], null);
+            }
+
             return $this->redirectMenu($date, $repasSelectionne, $special);
         }
 
@@ -176,6 +192,9 @@ final class MenuController extends AbstractController
 
         $recettesActives = $recettes->findActivesPourSejour($sejour);
         $recettesJson = $presentation->recettesJson($recettesActives);
+        $categorieRecettes = null === $special
+            ? $presentation->categorieRecettesPourRepas($repasSelectionne->getTypeRepas()->getCode())
+            : null;
         $menusExistants = $presentation->menusExistants($menus->findStatutsPourSejour($sejour));
         $jours = $presentation->jours($sejour);
         $compositionMenu = $presentation->composition($menu, $avecCategories);
@@ -184,6 +203,7 @@ final class MenuController extends AbstractController
             'sejour' => $sejour,
             'repas' => $repas,
             'repas_selectionne' => $repasSelectionne,
+            'repas_suivant' => $repasSuivant,
             'date_selectionnee' => $date,
             'menu' => $menu,
             'jours' => $jours,
@@ -192,8 +212,10 @@ final class MenuController extends AbstractController
             'menus_existants' => $menusExistants,
             'publicsCibles' => $publicsActifs,
             'catalogue' => $catalogue,
+            'regimes' => RegimeAlimentaire::choix(),
             'recettes' => $recettesActives,
             'recettes_json' => $recettesJson,
+            'categorie_recettes' => $categorieRecettes,
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
             'lecture_seule' => $lectureSeule,

@@ -13,9 +13,11 @@ use App\Entity\SejourTypeRepas;
 use App\Entity\TypeRepas;
 use App\Entity\Unite;
 use App\Entity\Utilisateur;
+use App\Enum\RegimeAlimentaire;
 use App\Repository\TypeRepasRepository;
 use App\Repository\UniteRepository;
 use App\Repository\UtilisateurRepository;
+use App\Service\ArchiveListesCourses;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -66,7 +68,13 @@ final class DistributionTest extends WebTestCase
         self::assertInstanceOf(Utilisateur::class, $gestionnaire);
         $client->loginUser($gestionnaire);
 
-        $client->request('GET', '/intendance/distribution/listes-courses');
+        $sejour = $gestionnaire->getDernierSejour();
+        self::assertInstanceOf(Sejour::class, $sejour);
+        $client->request('GET', sprintf(
+            '/intendance/distribution/listes-courses?date_debut=%s&date_fin=%s',
+            $sejour->getDateDebut()->format('Y-m-d'),
+            $sejour->getDateFin()->format('Y-m-d'),
+        ));
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('content-type', 'application/zip');
@@ -86,10 +94,71 @@ final class DistributionTest extends WebTestCase
         $crawler = $client->request('GET', '/intendance/distribution');
 
         self::assertResponseIsSuccessful();
-        self::assertSame(
-            '/intendance/distribution/listes-courses',
-            $crawler->selectLink('Télécharger les listes de course')->attr('href'),
-        );
+        $sejour = $gestionnaire->getDernierSejour();
+        self::assertInstanceOf(Sejour::class, $sejour);
+        self::assertSelectorExists('button[data-open-dialog="shopping-lists-period"]');
+        self::assertSelectorExists('dialog#shopping-lists-period[aria-labelledby="shopping-lists-period-title"]');
+        self::assertSelectorExists('[data-distribution-admin-target="downloadStatus"][aria-live="polite"]');
+        self::assertSelectorExists('form[data-action="submit->distribution-admin#download"]');
+        self::assertSelectorExists('button[type="submit"][data-distribution-admin-target="downloadButton"]');
+        self::assertSelectorExists(sprintf('input[name="date_debut"][value="%s"][required]', $sejour->getDateDebut()->format('Y-m-d')));
+        self::assertSelectorExists(sprintf('input[name="date_fin"][value="%s"][required]', $sejour->getDateFin()->format('Y-m-d')));
+    }
+
+    public function testLaPeriodeDesListesDeCoursesEstValideeCoteServeur(): void
+    {
+        $client = static::createClient();
+        $gestionnaire = static::getContainer()->get(UtilisateurRepository::class)->findOneBy([
+            'email' => 'gestionnaire@campement.local',
+        ]);
+        self::assertInstanceOf(Utilisateur::class, $gestionnaire);
+        $client->loginUser($gestionnaire);
+
+        $client->request('GET', '/intendance/distribution/listes-courses?date_debut=2026-07-04&date_fin=2026-07-03');
+
+        self::assertResponseRedirects('/intendance/distribution');
+        $client->followRedirect();
+        self::assertSelectorTextContains('[role="alert"]', 'Sélectionnez une période valide');
+    }
+
+    public function testLArchiveNeContientQueLesRepasEtUnitesPresentsSurLaPeriode(): void
+    {
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+        $archive = null;
+        $archiveVide = null;
+
+        try {
+            $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+            $sejour = $entityManager->find(Sejour::class, $fixture['sejour']);
+            self::assertInstanceOf(Sejour::class, $sejour);
+            $aujourdhui = new \DateTimeImmutable('today');
+            $groupeAbsent = (new Groupe())
+                ->setSejour($sejour)
+                ->setNom('Groupe absent')
+                ->setType('scouts-guides')
+                ->setDateDebutPresence($aujourdhui->modify('+1 day'))
+                ->setDateFinPresence($aujourdhui->modify('+1 day'));
+            $entityManager->persist($groupeAbsent);
+            $entityManager->flush();
+
+            $generateur = static::getContainer()->get(ArchiveListesCourses::class);
+            $archive = $generateur->generer($sejour, $aujourdhui, $aujourdhui);
+            $fichiers = $this->fichiersArchive($archive);
+            self::assertTrue(array_any($fichiers, static fn (string $fichier): bool => str_contains($fichier, '/groupe-de-test_')));
+            self::assertFalse(array_any($fichiers, static fn (string $fichier): bool => str_contains($fichier, '/groupe-absent_')));
+
+            $demain = $aujourdhui->modify('+1 day');
+            $archiveVide = $generateur->generer($sejour, $demain, $demain);
+            self::assertContains('AUCUNE_LISTE.txt', $this->fichiersArchive($archiveVide));
+        } finally {
+            if (is_string($archive)) {
+                @unlink($archive);
+            }
+            if (is_string($archiveVide)) {
+                @unlink($archiveVide);
+            }
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
     }
 
     public function testConsulterLeLienPublicNeCreePlusDeMenu(): void
@@ -127,7 +196,7 @@ final class DistributionTest extends WebTestCase
             $formulaire = $crawler->selectButton('Vérifier la distribution')->form([
                 'groupe' => $fixture['groupe'],
                 'menu' => $fixture['menu'],
-                'quantites['.$fixture['denree'].']' => '1',
+                'quantites['.$fixture['denree'].'|STANDARD]' => '1',
             ]);
             $client->submit($formulaire);
             self::assertResponseIsSuccessful();
@@ -171,6 +240,56 @@ final class DistributionTest extends WebTestCase
             self::assertResponseIsSuccessful();
             self::assertSelectorTextContains('.distribution-empty', 'Aucun menu n’est configuré.');
             self::assertSelectorTextNotContains('.distribution-empty', 'Aucune unité n’est présente aujourd’hui.');
+        } finally {
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
+    }
+
+    public function testLesRegimesDuGroupeFiltrentLaDistributionEtLesSortiesSontAgregees(): void
+    {
+        $client = static::createClient();
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+
+        try {
+            $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+            $groupe = $entityManager->find(Groupe::class, $fixture['groupe']);
+            $menu = $entityManager->find(Menu::class, $fixture['menu']);
+            $denree = $entityManager->find(Denree::class, $fixture['denree']);
+            self::assertInstanceOf(Groupe::class, $groupe);
+            self::assertInstanceOf(Menu::class, $menu);
+            self::assertInstanceOf(Denree::class, $denree);
+            $groupe->setNombreVegetariens(3);
+            $menu->addDenree((new MenuDenree())
+                ->setDenree($denree)
+                ->setConditionnement($denree->getUniteReference())
+                ->setRegime(RegimeAlimentaire::VEGETARIEN));
+            $entityManager->flush();
+
+            $crawler = $client->request('GET', '/distribution/'.$fixture['jeton']);
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('[data-regime="VEGETARIEN"]');
+            self::assertSelectorTextContains('[data-regime="VEGETARIEN"]', 'Végétarien');
+            self::assertSelectorExists(sprintf('option[value="%s"][data-regime-vegetarien="3"]', $fixture['groupe']));
+
+            $formulaire = $crawler->selectButton('Vérifier la distribution')->form([
+                'groupe' => $fixture['groupe'],
+                'menu' => $fixture['menu'],
+                'quantites['.$fixture['denree'].'|STANDARD]' => '1',
+                'quantites['.$fixture['denree'].'|VEGETARIEN]' => '2',
+            ]);
+            $client->submit($formulaire);
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('.distribution-summary', 'Végétarien');
+
+            $client->submit($client->getCrawler()->selectButton('Confirmer la distribution')->form());
+            self::assertResponseIsSuccessful();
+            $sortie = static::getContainer()->get(Connection::class)->fetchAssociative(
+                'SELECT COUNT(*) AS nombre, MAX(quantite_unite_reference) AS quantite FROM campement.mouvement_stock_ligne ligne JOIN campement.mouvement_stock mouvement ON mouvement.id = ligne.mouvement_stock_id WHERE mouvement.menu_id = :menu AND ligne.denree_id = :denree',
+                ['menu' => $fixture['menu'], 'denree' => $fixture['denree']],
+            );
+            self::assertIsArray($sortie);
+            self::assertSame(1, (int) $sortie['nombre']);
+            self::assertSame(3.0, (float) $sortie['quantite']);
         } finally {
             $this->supprimerFixtureDistribution($fixture['sejour']);
         }
@@ -298,5 +417,22 @@ final class DistributionTest extends WebTestCase
         $connexion->executeStatement('DELETE FROM campement.menu WHERE sejour_id = :sejour', $parametres);
         $connexion->executeStatement('DELETE FROM campement.denree WHERE sejour_id = :sejour', $parametres);
         $connexion->executeStatement('DELETE FROM campement.sejour WHERE id = :sejour', $parametres);
+    }
+
+    /** @return list<string> */
+    private function fichiersArchive(string $chemin): array
+    {
+        $archive = new \ZipArchive();
+        self::assertTrue($archive->open($chemin));
+        $fichiers = [];
+        for ($index = 0; $index < $archive->numFiles; ++$index) {
+            $nom = $archive->getNameIndex($index);
+            if (false !== $nom) {
+                $fichiers[] = $nom;
+            }
+        }
+        $archive->close();
+
+        return $fichiers;
     }
 }

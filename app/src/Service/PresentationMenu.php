@@ -33,9 +33,42 @@ final class PresentationMenu
         return $repas[0];
     }
 
+    /**
+     * @param list<SejourTypeRepas> $repas
+     *
+     * @return array{date: \DateTimeImmutable, repas: SejourTypeRepas}|null
+     */
+    public function repasSuivant(
+        \DateTimeImmutable $date,
+        SejourTypeRepas $repasSelectionne,
+        array $repas,
+        \DateTimeImmutable $dateFin,
+    ): ?array {
+        foreach ($repas as $index => $configuration) {
+            if ($configuration !== $repasSelectionne) {
+                continue;
+            }
+            if (isset($repas[$index + 1])) {
+                return ['date' => $date, 'repas' => $repas[$index + 1]];
+            }
+            if ($date < $dateFin) {
+                return ['date' => $date->modify('+1 day'), 'repas' => $repas[0]];
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     public function avecCategories(string $code): bool
     {
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
+    }
+
+    public function categorieRecettesPourRepas(string $code): ?string
+    {
+        return in_array($code, ['PETIT_DEJEUNER', 'GOUTER'], true) ? $code : null;
     }
 
     public function libelleDate(\DateTimeImmutable $date): string
@@ -89,6 +122,7 @@ final class PresentationMenu
                 $lignes[] = [
                     'denree' => (string) $ligne->getDenree()->getId(),
                     'conditionnement' => (string) $ligne->getConditionnement()->getId(),
+                    'regime' => $ligne->getRegime()?->value,
                     'quantites' => $quantites,
                 ];
             }
@@ -174,8 +208,9 @@ final class PresentationMenu
             $codeRepas = $configuration->getTypeRepas()->getCode();
             $avecCategories = $this->avecCategories($codeRepas);
             $categories = [];
-            foreach ($avecCategories ? Recette::CATEGORIES : [''] as $codeCategorie) {
+            foreach ($avecCategories ? Recette::CATEGORIES_MENU : [''] as $codeCategorie) {
                 $recettes = [];
+                $regimesRecettes = [];
                 $supplementaires = [];
                 if (null !== $menu) {
                     foreach ($menu->getDenrees() as $ligne) {
@@ -184,10 +219,21 @@ final class PresentationMenu
                             continue;
                         }
                         if (null !== ($recette = $ligne->getRecette())) {
-                            $recettes[(string) ($ligne->getRecetteInstanceId() ?? $recette->getId())] = $recette->getNom();
+                            $instance = (string) ($ligne->getRecetteInstanceId() ?? $recette->getId());
+                            $recettes[$instance] = $recette->getNom();
+                            if (null !== ($regime = $ligne->getRegime())) {
+                                $regimesRecettes[$instance][$regime->value] = $regime->libelle();
+                            }
                         } else {
-                            $supplementaires[] = $ligne->getDenree()->getNom();
+                            $supplementaires[] = $ligne->getDenree()->getNom().(null === $ligne->getRegime()
+                                ? ''
+                                : ' — '.$ligne->getRegime()->libelle());
                         }
+                    }
+                }
+                foreach ($recettes as $instance => $nom) {
+                    if (isset($regimesRecettes[$instance])) {
+                        $recettes[$instance] = $nom.' — '.implode(', ', $regimesRecettes[$instance]);
                     }
                 }
                 $categories[] = [

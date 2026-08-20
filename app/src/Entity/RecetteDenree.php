@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Entity\Traits\EntityIdTrait;
 use App\Entity\Traits\TimestampableTrait;
+use App\Enum\RegimeAlimentaire;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -18,6 +19,7 @@ class RecetteDenree
     #[ORM\ManyToOne(inversedBy: 'denrees')] #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')] private Recette $recette;
     #[ORM\ManyToOne] #[ORM\JoinColumn(nullable: false, onDelete: 'RESTRICT')] private Denree $denree;
     #[ORM\ManyToOne] #[ORM\JoinColumn(name: 'conditionnement_id', nullable: false, onDelete: 'RESTRICT')] private Unite $conditionnement;
+    #[ORM\Column(length: 20, nullable: true, enumType: RegimeAlimentaire::class)] private ?RegimeAlimentaire $regime = null;
     #[ORM\Column(type: 'smallint')] private int $ordre = 0;
     /** @var Collection<int, RecetteDenreeQuantite> */
     #[ORM\OneToMany(mappedBy: 'recetteDenree', targetEntity: RecetteDenreeQuantite::class, cascade: ['persist'], orphanRemoval: true)] private Collection $quantites;
@@ -61,6 +63,18 @@ class RecetteDenree
     public function setConditionnement(Unite $v): self
     {
         $this->conditionnement = $v;
+
+        return $this;
+    }
+
+    public function getRegime(): ?RegimeAlimentaire
+    {
+        return $this->regime;
+    }
+
+    public function setRegime(?RegimeAlimentaire $regime): self
+    {
+        $this->regime = $regime;
 
         return $this;
     }

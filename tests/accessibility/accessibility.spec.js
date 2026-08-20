@@ -77,7 +77,7 @@ async function verifierPage(page, chemin) {
 async function seConnecter(page, email) {
   await page.goto('/login');
   await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill('Campement?2026!');
+  await page.getByLabel('Mot de passe', { exact: true }).fill('Campement?2026!');
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).not.toHaveURL(/\/login$/);
 }

@@ -19,6 +19,8 @@ final class ConnexionTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Ravi de vous revoir');
         self::assertSelectorExists('a[href="/mot-de-passe-oublie"]');
+        self::assertSelectorExists('.login-password[data-controller="password-visibility"] input[type="password"][data-password-visibility-target="field"]');
+        self::assertSelectorExists('button[data-action="password-visibility#toggle"][aria-label="Afficher le mot de passe"]');
 
         $politique = $client->getResponse()->headers->get('Content-Security-Policy');
         self::assertNotNull($politique);

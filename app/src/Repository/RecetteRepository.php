@@ -24,9 +24,12 @@ final class RecetteRepository extends ServiceEntityRepository
     }
 
     /** @return list<Recette> */
-    public function findPourGestion(Sejour $sejour, bool $actif): array
+    public function findPourGestion(Sejour $sejour, bool $actif, string $tri = 'nom', string $ordre = 'asc'): array
     {
-        return $this->createQueryBuilder('r')
+        $colonneTri = 'categorie' === $tri ? 'r.categorie' : 'r.nom';
+        $directionTri = 'desc' === mb_strtolower($ordre) ? 'DESC' : 'ASC';
+
+        $requete = $this->createQueryBuilder('r')
             ->addSelect('l', 'd', 'u', 'q', 'p')
             ->leftJoin('r.denrees', 'l')
             ->leftJoin('l.denree', 'd')
@@ -37,8 +40,28 @@ final class RecetteRepository extends ServiceEntityRepository
             ->andWhere('r.actif = :actif')
             ->setParameter('sejour', $sejour)
             ->setParameter('actif', $actif)
-            ->orderBy('r.nom', 'ASC')
-            ->getQuery()
-            ->getResult();
+            ->orderBy($colonneTri, $directionTri);
+        if ('categorie' === $tri) {
+            $requete->addOrderBy('r.nom', 'ASC');
+        }
+
+        return $requete->getQuery()->getResult();
+    }
+
+    public function existeAvecNomPourSejour(Sejour $sejour, string $nom, ?Recette $recetteExclue = null): bool
+    {
+        $requete = $this->createQueryBuilder('recette')
+            ->select('recette.id')
+            ->andWhere('recette.sejour = :sejour')
+            ->andWhere('LOWER(recette.nom) = LOWER(:nom)')
+            ->setParameter('sejour', $sejour)
+            ->setParameter('nom', $nom);
+
+        if (null !== $recetteExclue) {
+            $requete->andWhere('recette != :recetteExclue')
+                ->setParameter('recetteExclue', $recetteExclue);
+        }
+
+        return null !== $requete->setMaxResults(1)->getQuery()->getOneOrNullResult();
     }
 }

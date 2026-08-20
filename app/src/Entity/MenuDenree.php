@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\RegimeAlimentaire;
 use App\Repository\MenuDenreeRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -34,6 +35,9 @@ class MenuDenree
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'conditionnement_id', nullable: false, onDelete: 'RESTRICT')]
     private Unite $conditionnement;
+
+    #[ORM\Column(length: 20, nullable: true, enumType: RegimeAlimentaire::class)]
+    private ?RegimeAlimentaire $regime = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(name: 'recette_id', nullable: true, onDelete: 'RESTRICT')]
@@ -109,6 +113,18 @@ class MenuDenree
     public function setConditionnement(Unite $conditionnement): self
     {
         $this->conditionnement = $conditionnement;
+
+        return $this;
+    }
+
+    public function getRegime(): ?RegimeAlimentaire
+    {
+        return $this->regime;
+    }
+
+    public function setRegime(?RegimeAlimentaire $regime): self
+    {
+        $this->regime = $regime;
 
         return $this;
     }

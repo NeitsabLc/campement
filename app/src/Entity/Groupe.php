@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\RegimeAlimentaire;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
@@ -34,6 +35,15 @@ class Groupe
 
     #[ORM\Column(name: 'effectif_adulte', options: ['default' => 0])]
     private int $effectifAdulte = 0;
+
+    #[ORM\Column(name: 'nombre_vegetariens', options: ['default' => 0])]
+    private int $nombreVegetariens = 0;
+
+    #[ORM\Column(name: 'nombre_sans_lactose', options: ['default' => 0])]
+    private int $nombreSansLactose = 0;
+
+    #[ORM\Column(name: 'nombre_sans_gluten', options: ['default' => 0])]
+    private int $nombreSansGluten = 0;
 
     #[ORM\Column(length: 30)]
     private string $type;
@@ -122,6 +132,56 @@ class Groupe
         $this->effectifAdulte = $effectifAdulte;
 
         return $this;
+    }
+
+    public function getNombreVegetariens(): int
+    {
+        return $this->nombreVegetariens;
+    }
+
+    public function setNombreVegetariens(int $nombre): self
+    {
+        $this->nombreVegetariens = $this->nombreRegimeValide($nombre);
+
+        return $this;
+    }
+
+    public function getNombreSansLactose(): int
+    {
+        return $this->nombreSansLactose;
+    }
+
+    public function setNombreSansLactose(int $nombre): self
+    {
+        $this->nombreSansLactose = $this->nombreRegimeValide($nombre);
+
+        return $this;
+    }
+
+    public function getNombreSansGluten(): int
+    {
+        return $this->nombreSansGluten;
+    }
+
+    public function setNombreSansGluten(int $nombre): self
+    {
+        $this->nombreSansGluten = $this->nombreRegimeValide($nombre);
+
+        return $this;
+    }
+
+    public function nombrePourRegime(RegimeAlimentaire $regime): int
+    {
+        return match ($regime) {
+            RegimeAlimentaire::VEGETARIEN => $this->nombreVegetariens,
+            RegimeAlimentaire::SANS_LACTOSE => $this->nombreSansLactose,
+            RegimeAlimentaire::SANS_GLUTEN => $this->nombreSansGluten,
+        };
+    }
+
+    public function aBesoinDuRegime(?RegimeAlimentaire $regime): bool
+    {
+        return null === $regime || $this->nombrePourRegime($regime) > 0;
     }
 
     public function getType(): string
@@ -229,5 +289,14 @@ class Groupe
     public function getParticipants(): Collection
     {
         return $this->participants;
+    }
+
+    private function nombreRegimeValide(int $nombre): int
+    {
+        if ($nombre < 0) {
+            throw new \InvalidArgumentException('Le nombre de personnes concernées par un régime ne peut pas être négatif.');
+        }
+
+        return $nombre;
     }
 }

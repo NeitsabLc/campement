@@ -109,6 +109,11 @@ test('une recette peut être créée, consultée, modifiée, désactivée puis r
   const ligne = page.locator('[data-recipe-editor-target="rows"] .recipe-row').first();
   await ligne.locator('select[data-field="denree"]').selectOption({ label: denree });
   await expect(ligne.locator('select[data-field="conditionnement"] option')).not.toHaveCount(0);
+  const quantites = await ligne.locator('input[data-public]').all();
+  for (const quantite of quantites) {
+    await expect(quantite).toHaveValue('');
+    await quantite.fill('1');
+  }
   await page.getByRole('button', { name: 'Enregistrer la recette' }).click();
   await expect(page).toHaveURL(/\/recettes$/);
   await expect(page.getByRole('status')).toContainText('La recette a bien été enregistrée.');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Groupe;
 use App\Entity\Menu;
 use App\Entity\MouvementStock;
 use App\Entity\MouvementStockLigne;
@@ -96,16 +97,17 @@ final class SortieConsommationController extends AbstractController
             }
 
             $quantites = [];
-            if ($menu instanceof Menu) {
+            $vueSelectionnee = null;
+            if ($menu instanceof Menu && $groupe instanceof Groupe) {
+                $vueSelectionnee = $this->vuePourGroupe($vues[(string) $menu->getId()], $groupe);
                 $quantitesSoumises = $request->request->all('quantites');
-                foreach ($vues[(string) $menu->getId()]['lignes'] as $ligne) {
-                    $denreeId = (string) $ligne['denree']->getId();
-                    $brut = str_replace([' ', ','], ['', '.'], trim((string) ($quantitesSoumises[$denreeId] ?? '')));
+                foreach ($vueSelectionnee['lignes'] as $ligne) {
+                    $brut = str_replace([' ', ','], ['', '.'], trim((string) ($quantitesSoumises[$ligne['cle']] ?? '')));
                     if ('' === $brut || !is_numeric($brut) || (float) $brut < 0) {
                         $erreurs[] = sprintf('Renseignez une quantité positive ou nulle pour %s.', $ligne['denree']->getNom());
                         continue;
                     }
-                    $quantites[$denreeId] = number_format((float) $brut, 3, '.', '');
+                    $quantites[$ligne['cle']] = number_format((float) $brut, 3, '.', '');
                 }
                 if ([] === array_filter($quantites, static fn (string $quantite): bool => (float) $quantite > 0)) {
                     $erreurs[] = 'Au moins une denrée doit avoir une quantité supérieure à zéro.';
@@ -116,7 +118,7 @@ final class SortieConsommationController extends AbstractController
                 $selection = [
                     'groupe' => $groupe,
                     'menu' => $menu,
-                    'vue' => $vues[(string) $menu->getId()],
+                    'vue' => $vueSelectionnee,
                     'quantites' => $quantites,
                 ];
                 if ('confirmer' === $request->request->getString('action')) {
@@ -137,21 +139,37 @@ final class SortieConsommationController extends AbstractController
                         ->setCleSoumission(Uuid::fromString($cleSoumission))
                         ->setDateMouvement($this->dateMouvementNavigateur($request, $menu));
                     $entityManager->persist($mouvement);
+                    $sorties = [];
                     foreach ($selection['vue']['lignes'] as $ligne) {
-                        $denreeId = (string) $ligne['denree']->getId();
-                        $quantite = (float) $quantites[$denreeId];
+                        $quantite = (float) $quantites[$ligne['cle']];
                         if ($quantite <= 0) {
                             continue;
                         }
+                        $denreeId = (string) $ligne['denree']->getId();
+                        $sorties[$denreeId] ??= [
+                            'denree' => $ligne['denree'],
+                            'conditionnement' => $ligne['unite'],
+                            'quantite' => 0.0,
+                        ];
+                        if ($sorties[$denreeId]['conditionnement'] !== $ligne['unite']) {
+                            $sorties[$denreeId]['conditionnement'] = $ligne['denree']->getUniteReference();
+                        }
+                        $sorties[$denreeId]['quantite'] += $conversion->versUniteReference(
+                            $ligne['denree'],
+                            $ligne['unite'],
+                            $quantite,
+                        );
+                    }
+                    foreach ($sorties as $sortie) {
                         $mouvementLigne = new MouvementStockLigne(
                             $mouvement,
-                            $ligne['denree'],
-                            number_format($conversion->versUniteReference($ligne['denree'], $ligne['unite'], $quantite), 3, '.', ''),
+                            $sortie['denree'],
+                            number_format($sortie['quantite'], 3, '.', ''),
                         );
                         $mouvementLigne->setQuantiteUniteInventaire($conversion->formaterQuantiteInventaire(
-                            $conversion->quantiteInventaireExacte($ligne['denree'], (float) $mouvementLigne->getQuantiteUniteReference()),
+                            $conversion->quantiteInventaireExacte($sortie['denree'], (float) $mouvementLigne->getQuantiteUniteReference()),
                         ));
-                        $mouvementLigne->setConditionnementSortie($ligne['unite']);
+                        $mouvementLigne->setConditionnementSortie($sortie['conditionnement']);
                         $entityManager->persist($mouvementLigne);
                     }
                     try {
@@ -214,8 +232,12 @@ final class SortieConsommationController extends AbstractController
         foreach ($sources as $source) {
             foreach ($source->getDenrees() as $ligne) {
                 $denreeId = (string) $ligne->getDenree()->getId();
-                $groupes[$denreeId]['denree'] = $ligne->getDenree();
-                $groupes[$denreeId]['sources'][] = $ligne;
+                $regime = $ligne->getRegime();
+                $cle = $denreeId.'|'.(null === $regime ? 'STANDARD' : $regime->value);
+                $groupes[$cle]['cle'] = $cle;
+                $groupes[$cle]['denree'] = $ligne->getDenree();
+                $groupes[$cle]['regime'] = $regime;
+                $groupes[$cle]['sources'][] = $ligne;
             }
         }
 
@@ -249,10 +271,31 @@ final class SortieConsommationController extends AbstractController
 
                 return $ordreA <=> $ordreB ?: $a['libelle'] <=> $b['libelle'];
             });
-            $resultat[] = ['denree' => $groupe['denree'], 'unite' => $unite, 'quantites' => $quantites];
+            $resultat[] = [
+                'cle' => $groupe['cle'],
+                'denree' => $groupe['denree'],
+                'regime' => $groupe['regime'],
+                'unite' => $unite,
+                'quantites' => $quantites,
+            ];
         }
 
         return ['menu' => $menu, 'lignes' => $resultat];
+    }
+
+    /**
+     * @param array{menu: Menu, lignes: list<array<string, mixed>>} $vue
+     *
+     * @return array{menu: Menu, lignes: list<array<string, mixed>>}
+     */
+    private function vuePourGroupe(array $vue, Groupe $groupe): array
+    {
+        $vue['lignes'] = array_values(array_filter(
+            $vue['lignes'],
+            static fn (array $ligne): bool => $groupe->aBesoinDuRegime($ligne['regime']),
+        ));
+
+        return $vue;
     }
 
     /**

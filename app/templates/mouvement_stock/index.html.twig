@@ -33,7 +33,6 @@
 
             <section class="stock-movement-card food-form-card movement-lines-card">
                 <div class="movement-lines-heading"><h2>Denrées</h2></div>
-                <div class="movement-lines-add"><button class="food-secondary" type="button" data-action="stock-movement#addLine">+ Ajouter une denrée</button></div>
                 <div class="movement-lines-table">
                     <div class="movement-lines-header"><span>Denrée</span><span>Conditionnement et quantité</span><span></span></div>
                     <div data-stock-movement-target="lines">
@@ -42,6 +41,7 @@
                         {% endfor %}
                     </div>
                 </div>
+                <div class="movement-lines-add"><button class="food-secondary" type="button" data-action="stock-movement#addLine">+ Ajouter une denrée</button></div>
             </section>
 
             {% if mouvementExistant %}

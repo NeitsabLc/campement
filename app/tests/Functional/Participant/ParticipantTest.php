@@ -97,7 +97,7 @@ final class ParticipantTest extends WebTestCase
         $form = $crawler->selectButton('Ajouter le participant')->form([
             'type' => 'jeune', 'groupe_id' => (string) $groupe->getId(), 'nom' => 'Martin', 'prenom' => 'Camille',
             'date_naissance' => '2013-05-12', 'telephone_parent_1' => '0601020304',
-            'email_parents' => 'parents@example.test', 'date_debut_presence' => '2026-07-10', 'date_fin_presence' => '2026-07-24',
+            'email_parents' => 'parents@example.test', 'date_debut_presence' => '2026-07-02', 'date_fin_presence' => '2026-07-04',
         ]);
         $client->submit($form);
         self::assertResponseRedirects('/administratif/participants');
@@ -118,7 +118,7 @@ final class ParticipantTest extends WebTestCase
             'contact_urgence_telephone' => '0600000000',
             'telephone' => '0611223344', 'email' => 'alex.durand@example.test',
             'qualifications' => ['BAFD'], 'stagiaire_bafa' => '1',
-            'date_debut_presence' => '2026-07-10', 'date_fin_presence' => '2026-07-24',
+            'date_debut_presence' => '2026-07-02', 'date_fin_presence' => '2026-07-04',
         ]);
         $client->submit($form);
         self::assertResponseRedirects('/administratif/participants');
@@ -157,7 +157,7 @@ final class ParticipantTest extends WebTestCase
         $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
             ->setNom('Avant')->setPrenom('Modification')->setDateNaissance(new \DateTimeImmutable('2013-05-12'))
             ->setTelephoneParent1('0601020304')->setEmailParents('parents@example.test')
-            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-10'))->setDateFinPresence(new \DateTimeImmutable('2026-07-24'));
+            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-02'))->setDateFinPresence(new \DateTimeImmutable('2026-07-04'));
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($participant);
         $entityManager->flush();
@@ -185,7 +185,7 @@ final class ParticipantTest extends WebTestCase
         $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
             ->setNom('À supprimer')->setPrenom('Fiche')->setDateNaissance(new \DateTimeImmutable('2013-05-12'))
             ->setTelephoneParent1('0601020304')->setEmailParents('parents@example.test')
-            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-10'))->setDateFinPresence(new \DateTimeImmutable('2026-07-24'));
+            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-02'))->setDateFinPresence(new \DateTimeImmutable('2026-07-04'));
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($participant);
         $entityManager->flush();
@@ -235,7 +235,7 @@ final class ParticipantTest extends WebTestCase
             'type' => 'jeune', 'groupe_id' => (string) $utilisateur->getGroupe()->getId(),
             'nom' => 'Groupe', 'prenom' => 'Ajout', 'date_naissance' => '2013-05-12',
             'telephone_parent_1' => '0601020304', 'email_parents' => 'parents-groupe@example.test',
-            'date_debut_presence' => '2026-07-10', 'date_fin_presence' => '2026-07-24',
+            'date_debut_presence' => '2026-07-02', 'date_fin_presence' => '2026-07-04',
         ]);
         $client->submit($form);
         self::assertResponseRedirects('/administratif/participants');
@@ -272,7 +272,7 @@ final class ParticipantTest extends WebTestCase
         $participant = (new Participant())->setGroupe($groupe)->setType(Participant::TYPE_JEUNE)
             ->setNom('Documents')->setPrenom('Jeune')->setDateNaissance(new \DateTimeImmutable('2013-05-12'))
             ->setTelephoneParent1('0601020304')->setEmailParents('documents@example.test')
-            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-10'))->setDateFinPresence(new \DateTimeImmutable('2026-07-24'));
+            ->setDateDebutPresence(new \DateTimeImmutable('2026-07-02'))->setDateFinPresence(new \DateTimeImmutable('2026-07-04'));
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($participant);
         $entityManager->flush();

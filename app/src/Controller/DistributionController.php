@@ -85,22 +85,43 @@ final class DistributionController extends AbstractController
     }
 
     #[Route('/intendance/distribution/listes-courses', name: 'app_distribution_listes_courses', methods: ['GET'])]
-    public function listesCourses(ContexteSejour $contexte, ArchiveListesCourses $archive): Response
+    public function listesCourses(Request $request, ContexteSejour $contexte, ArchiveListesCourses $archive): Response
     {
         $sejour = $contexte->actif();
         if (null === $sejour) {
             throw $this->createNotFoundException();
         }
 
-        $reponse = new BinaryFileResponse($archive->generer($sejour));
+        $dateDebut = $this->date($request->query->getString('date_debut'));
+        $dateFin = $this->date($request->query->getString('date_fin'));
+        if (
+            null === $dateDebut
+            || null === $dateFin
+            || $dateDebut < $sejour->getDateDebut()
+            || $dateFin > $sejour->getDateFin()
+            || $dateDebut > $dateFin
+        ) {
+            $this->addFlash('error', 'Sélectionnez une période valide comprise dans les dates du séjour.');
+
+            return $this->redirectToRoute('app_distribution');
+        }
+
+        $reponse = new BinaryFileResponse($archive->generer($sejour, $dateDebut, $dateFin));
         $reponse->setContentDisposition(
             ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-            'listes-courses-'.$sejour->getDateDebut()->format('Y-m-d').'.zip',
+            sprintf('listes-courses-%s-au-%s.zip', $dateDebut->format('Y-m-d'), $dateFin->format('Y-m-d')),
         );
         $reponse->headers->set('Content-Type', 'application/zip');
         $reponse->headers->addCacheControlDirective('no-store');
         $reponse->deleteFileAfterSend();
 
         return $reponse;
+    }
+
+    private function date(string $valeur): ?\DateTimeImmutable
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $valeur);
+
+        return false !== $date && $date->format('Y-m-d') === $valeur ? $date : null;
     }
 }

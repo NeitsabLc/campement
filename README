@@ -6,18 +6,17 @@ dossiers administratifs et le suivi du séjour.
 
 ## État du projet
 
-État vérifié le 14 août 2026 :
+État vérifié le 21 août 2026 :
 
-- version applicative publiée : `v1.3.0` ;
+- dernier tag stable publié : `v1.3.1` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
-- schéma Liquibase : `V032` ;
-- suite automatisée : 112 tests PHPUnit et 737 assertions, complétée par 4 scénarios
-  d’accessibilité et 13 scénarios E2E dans le navigateur ;
+- schéma Liquibase de la branche courante : `V034` ;
+- suite automatisée : 127 tests PHPUnit et 883 assertions, complétée par 4 scénarios
+  d’accessibilité et 26 scénarios E2E dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
-- version `v1.3.0` déployée en production sur l’hôte applicatif dédié, derrière
-  un reverse proxy Traefik séparé, avec sauvegardes chiffrées et retour arrière
-  conservé ;
+- production hébergée sur l’hôte applicatif dédié derrière un reverse proxy
+  Traefik séparé, avec sauvegardes chiffrées et retour arrière conservé ;
 - Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
   du schéma.
 
@@ -42,13 +41,16 @@ suivis. Ils sont maintenus localement dans `.local/PRODUCTION_RUNBOOK.md` et
 
 - authentification, invitations, mots de passe, rôles et comptes actifs ;
 - gestion multi-séjour et affectation des gestionnaires ;
-- unités participantes, participants, documents et registre de présence ;
+- unités participantes, effectifs et besoins alimentaires, participants,
+  documents et registre de présence ;
 - situations particulières et tâches associées ;
-- menus, recettes, fournisseurs, denrées et conditionnements ;
+- menus, recettes et variantes végétariennes, sans lactose ou sans gluten,
+  fournisseurs, denrées et conditionnements ;
 - journal et mouvements de stock ;
-- distribution de denrées par lien public, protégée contre les doubles
-  confirmations ;
-- exports PDF et envoi d’e-mails ;
+- distribution de denrées par lien public, filtrée selon les besoins de l’unité
+  et protégée contre les doubles confirmations ;
+- exports PDF, archives de listes de courses filtrées par période et envoi
+  d’e-mails ;
 - anonymisation et délais de conservation des données.
 
 ## Architecture technique

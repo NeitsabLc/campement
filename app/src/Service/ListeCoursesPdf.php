@@ -84,9 +84,15 @@ final class ListeCoursesPdf
         $unites = [];
         foreach ($menus as $source) {
             foreach ($source->getDenrees() as $ligne) {
-                $cle = (string) $ligne->getDenree()->getId();
+                $regime = $ligne->getRegime();
+                if (!$groupe->aBesoinDuRegime($regime)) {
+                    continue;
+                }
+                $cle = (string) $ligne->getDenree()->getId().'|'.(null === $regime ? 'STANDARD' : $regime->value);
                 $cumuls[$cle] ??= [
-                    'nom' => $ligne->getDenree()->getNom(),
+                    'nom' => $ligne->getDenree()->getNom().(null === $regime
+                        ? ''
+                        : sprintf(' — %s (%d pers.)', $regime->libelle(), $groupe->nombrePourRegime($regime))),
                     'individuelle' => 0.0,
                     'unite' => strtoupper($ligne->getConditionnement()->getSymbole()),
                 ];
