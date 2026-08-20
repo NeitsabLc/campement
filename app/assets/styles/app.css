@@ -1103,6 +1103,27 @@ select {
     transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 .login-field input:focus { border-color: var(--sgdf-mint); box-shadow: 0 0 0 3px rgb(101 188 153 / 18%); }
+.login-password { position: relative; }
+.login-password input { padding-right: 3.25rem; }
+.login-password__toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.65rem;
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0.4rem;
+    color: var(--sgdf-blue);
+    background: transparent;
+    cursor: pointer;
+    transform: translateY(-50%);
+    place-items: center;
+}
+.login-password__toggle:hover { background: #eef5f7; }
+.login-password__toggle:focus-visible { outline: 3px solid var(--sgdf-mint); outline-offset: 1px; }
+.login-password__toggle svg[hidden] { display: none; }
 
 .login-submit {
     display: inline-flex;
