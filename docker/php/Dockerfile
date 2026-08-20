@@ -6,6 +6,7 @@ ARG NGINX_IMAGE_DIGEST=sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e591939
 FROM php:${PHP_VERSION}-fpm@${PHP_IMAGE_DIGEST} AS php-base
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         libfreetype6-dev \
         libicu-dev \
