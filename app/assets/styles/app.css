@@ -1657,6 +1657,10 @@ select {
     display: none !important;
 }
 
+.foods-sort-link { display:inline-flex;align-items:center;gap:.35rem;color:inherit;text-decoration:none; }
+.foods-sort-link:hover,.foods-sort-link:focus-visible { color:var(--sgdf-blue);text-decoration:underline; }
+.foods-sort-indicator { min-width:1em;color:var(--sgdf-blue-light);font-size:1rem;line-height:1;text-align:center; }
+
 .foods-swipe-row { position:relative; }
 .foods-swipe-action { display:none; }
 

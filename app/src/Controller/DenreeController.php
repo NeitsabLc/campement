@@ -31,6 +31,10 @@ final class DenreeController extends AbstractController
     {
         $sejour = $sejours->actif();
         $actives = !$request->query->getBoolean('desactivees');
+        $tri = in_array($request->query->getString('tri'), ['nom', 'stock'], true)
+            ? $request->query->getString('tri')
+            : 'nom';
+        $ordre = 'desc' === mb_strtolower($request->query->getString('ordre')) ? 'desc' : 'asc';
 
         $lignes = null === $sejour ? [] : $denrees->findPourGestion($sejour, $actives);
         foreach ($lignes as &$ligne) {
@@ -40,10 +44,23 @@ final class DenreeController extends AbstractController
             );
         }
         unset($ligne);
+        usort($lignes, static function (array $a, array $b) use ($tri, $ordre): int {
+            $comparaison = 'stock' === $tri
+                ? $a['stockInventaire'] <=> $b['stockInventaire']
+                : strnatcasecmp($a['denree']->getNom(), $b['denree']->getNom());
+
+            if (0 === $comparaison && 'stock' === $tri) {
+                $comparaison = strnatcasecmp($a['denree']->getNom(), $b['denree']->getNom());
+            }
+
+            return 'desc' === $ordre ? -$comparaison : $comparaison;
+        });
 
         return $this->render('denree/index.html.twig', [
             'sejour' => $sejour,
             'actives' => $actives,
+            'tri' => $tri,
+            'ordre' => $ordre,
             'denrees' => $lignes,
         ]);
     }
