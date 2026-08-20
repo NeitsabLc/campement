@@ -32,7 +32,7 @@ use Symfony\Component\Uid\Uuid;
 #[IsGranted(new Expression("is_granted('ROLE_GESTIONNAIRE') or is_granted('ROLE_GROUPE')"))]
 final class MenuController extends AbstractController
 {
-    private const CATEGORIES = Recette::CATEGORIES;
+    private const CATEGORIES = Recette::CATEGORIES_MENU;
     private const SPECIAUX = [
         'EXPLO' => 'Explo',
         'PIQUE_NIQUE_1' => 'Pique-nique 1',
@@ -176,6 +176,9 @@ final class MenuController extends AbstractController
 
         $recettesActives = $recettes->findActivesPourSejour($sejour);
         $recettesJson = $presentation->recettesJson($recettesActives);
+        $categorieRecettes = null === $special
+            ? $presentation->categorieRecettesPourRepas($repasSelectionne->getTypeRepas()->getCode())
+            : null;
         $menusExistants = $presentation->menusExistants($menus->findStatutsPourSejour($sejour));
         $jours = $presentation->jours($sejour);
         $compositionMenu = $presentation->composition($menu, $avecCategories);
@@ -194,6 +197,7 @@ final class MenuController extends AbstractController
             'catalogue' => $catalogue,
             'recettes' => $recettesActives,
             'recettes_json' => $recettesJson,
+            'categorie_recettes' => $categorieRecettes,
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
             'lecture_seule' => $lectureSeule,

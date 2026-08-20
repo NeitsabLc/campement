@@ -52,7 +52,7 @@
                     {% endfor %}</div>
                 {% else %}
                     <section class="menu-simple-list" data-menu-block data-category="">
-                        {{ _self.adders(recettes, catalogue, null) }}
+                        {{ _self.adders(recettes, catalogue, categorie_recettes) }}
                         {{ _self.composition(composition_menu['']|default({}), publicsCibles, '') }}
                     </section>
                 {% endif %}
