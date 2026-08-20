@@ -10,6 +10,8 @@ use App\Entity\ReferenceFournisseurConditionnement;
 use App\Entity\Utilisateur;
 use App\Repository\DenreeRepository;
 use App\Repository\FournisseurRepository;
+use App\Repository\MouvementStockLigneConditionnementRepository;
+use App\Repository\MouvementStockLigneRepository;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
 use App\Repository\UniteRepository;
@@ -57,6 +59,52 @@ final class DenreeController extends AbstractController
         }
 
         return $this->formulaire($request, new Denree($sejour), true, $denrees, $fournisseurs, $unites, $references, $conditionnements, $em);
+    }
+
+    #[Route('/denrees/{id}/mouvements', name: 'app_denree_mouvements', methods: ['GET'])]
+    public function mouvements(
+        string $id,
+        ContexteSejour $sejours,
+        DenreeRepository $denrees,
+        MouvementStockLigneRepository $lignes,
+        MouvementStockLigneConditionnementRepository $details,
+        ConversionConditionnement $conversion,
+    ): Response {
+        $sejour = $sejours->actif();
+        $denree = Uuid::isValid($id) ? $denrees->find($id) : null;
+        if (null === $sejour || null === $denree || $denree->getSejour() !== $sejour) {
+            throw $this->createNotFoundException('Denrée introuvable pour le séjour actif.');
+        }
+
+        $lignesMouvements = $lignes->findPourDenree($denree);
+        $detailsParLigne = [];
+        foreach ($details->findPourLignes($lignesMouvements) as $detail) {
+            $detailsParLigne[(string) $detail->getMouvementStockLigne()->getId()][] = [
+                'quantite' => $detail->getQuantite(),
+                'conditionnement' => $detail->getConditionnement()->getLibelle(),
+            ];
+        }
+
+        $mouvements = [];
+        foreach ($lignesMouvements as $ligne) {
+            $conditionnementsSaisis = $detailsParLigne[(string) $ligne->getId()] ?? [];
+            if ([] === $conditionnementsSaisis) {
+                $conditionnement = $ligne->getConditionnementSortie() ?? $denree->getUniteReference();
+                $conditionnementsSaisis[] = [
+                    'quantite' => $conversion->depuisUniteReference($denree, $conditionnement, (float) $ligne->getQuantiteUniteReference()),
+                    'conditionnement' => $conditionnement->getNom(),
+                ];
+            }
+            $mouvements[] = [
+                'mouvement' => $ligne->getMouvementStock(),
+                'conditionnements' => $conditionnementsSaisis,
+            ];
+        }
+
+        return $this->render('denree/mouvements.html.twig', [
+            'denree' => $denree,
+            'mouvements' => $mouvements,
+        ]);
     }
 
     #[Route('/denrees/{id}/modifier', name: 'app_denree_modifier', methods: ['GET', 'POST'])]

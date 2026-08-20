@@ -1658,7 +1658,7 @@ select {
 }
 
 .foods-swipe-row { position:relative; }
-.foods-swipe-action { display:none; }
+.foods-swipe-action,.foods-swipe-history { display:none; }
 
 @media(max-width:48rem){
     .foods-page{width:100vw;max-width:100vw;margin-left:calc(clamp(1.25rem,4vw,3.5rem)*-1);margin-right:0}
@@ -1678,11 +1678,29 @@ select {
     .foods-swipe-row:has(.foods-swipe-action--reactivate){background:#187249}
     .foods-swipe-action{position:absolute;z-index:0;inset:0 0 0 auto;display:block;width:6.75rem;margin:0}
     .foods-swipe-action button{width:100%;height:100%;padding:.5rem;border:0;color:white;background:transparent;font:inherit;font-weight:800;cursor:pointer}
+    .foods-swipe-history{position:absolute;z-index:0;inset:0 auto 0 0;display:grid;width:7.5rem;place-items:center;color:white;background:var(--sgdf-blue);font-weight:800;text-decoration:none}
     .foods-swipe-row .foods-row{position:relative;z-index:1;background:white;touch-action:pan-y;transition:transform 180ms ease-out;user-select:none}
     .foods-swipe-row .foods-row--dragging{transition:none}
     .foods-swipe-row .stock-cell{justify-items:end;text-align:right}
     .foods-swipe-row .stock-alert{max-width:10rem;white-space:normal;text-align:right}
     .foods-note{padding-inline:clamp(1.25rem,4vw,3.5rem)}
+}
+
+.food-movements-table{width:100%;overflow-x:auto;border-top:.35rem solid var(--sgdf-mint)}
+.food-movements-row{display:grid;grid-template-columns:minmax(9rem,.8fr) minmax(8rem,.65fr) minmax(10rem,1fr) minmax(16rem,1.5fr);align-items:center;gap:1rem;min-width:48rem;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+.food-movements-row--head{color:var(--text-muted);font-size:.8rem;font-weight:700}
+.food-movements-row--cancelled>time,.food-movements-row--cancelled>[data-label]{opacity:.62}
+.food-movements-row time{font-size:.9rem}
+@media(max-width:48rem){
+    .food-movements-page{width:100vw;max-width:100vw;margin-left:calc(clamp(1.25rem,4vw,3.5rem)*-1);margin-right:0}
+    .food-movements-page>.food-breadcrumb,.food-movements-page>.stock-list-heading{padding-inline:clamp(1.25rem,4vw,3.5rem)}
+    .food-movements-table{overflow:visible}
+    .food-movements-row--head{display:none}
+    .food-movements-row:not(.food-movements-row--head){grid-template-columns:minmax(0,1fr) auto;gap:.55rem 1rem;min-width:0;padding:1rem clamp(1.25rem,4vw,3.5rem)}
+    .food-movements-row>time{align-self:center}
+    .food-movements-row>[role="cell"]:nth-child(2){justify-self:end}
+    .food-movements-row>[data-label]{grid-column:1 / -1}
+    .food-movements-row>[data-label]::before{display:block;margin-bottom:.15rem;color:var(--text-muted);font-size:.72rem;font-weight:700;content:attr(data-label)}
 }
 
 .clickable-row {
