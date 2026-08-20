@@ -16,6 +16,12 @@ final class AffichageQuantiteTest extends TestCase
         self::assertSame($attendu, (new AffichageQuantite())->parPersonne($quantite));
     }
 
+    public function testAffichageNombreConserveUneQuantiteDecimale(): void
+    {
+        self::assertSame('0,5', (new AffichageQuantite())->nombre('0.500'));
+        self::assertSame('3', (new AffichageQuantite())->nombre('3.000'));
+    }
+
     public static function quantites(): iterable
     {
         yield 'un demi' => [0.5, '1/2'];

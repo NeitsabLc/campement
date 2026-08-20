@@ -4,16 +4,16 @@ const MOBILE_QUERY = '(max-width: 48rem)';
 const OPEN_RATIO = 0.4;
 
 export default class extends Controller {
-    static targets = ['surface', 'action'];
+    static targets = ['surface', 'action', 'startAction'];
     static values = { url: String };
 
     connect() {
-        this.open = false;
+        this.openDirection = null;
         this.dragging = false;
         this.ignoreClick = false;
         this.mediaQuery = window.matchMedia(MOBILE_QUERY);
         this.closeOtherRow = (event) => {
-            if (event.detail !== this.element) this.setOpen(false);
+            if (event.detail !== this.element) this.setOpen(null);
         };
         document.addEventListener('swipe-actions:open', this.closeOtherRow);
     }
@@ -26,7 +26,9 @@ export default class extends Controller {
         if (!this.mediaQuery.matches || event.button !== 0) return;
         this.startX = event.clientX;
         this.startY = event.clientY;
-        this.startOffset = this.open ? -this.actionWidth : 0;
+        this.startOffset = this.openDirection === 'end'
+            ? -this.actionWidth
+            : (this.openDirection === 'start' ? this.startActionWidth : 0);
         this.dragging = false;
     }
 
@@ -45,7 +47,7 @@ export default class extends Controller {
         }
 
         event.preventDefault();
-        const offset = Math.max(-this.actionWidth, Math.min(0, this.startOffset + deltaX));
+        const offset = Math.max(-this.actionWidth, Math.min(this.startActionWidth, this.startOffset + deltaX));
         this.translate(offset, false);
     }
 
@@ -53,8 +55,14 @@ export default class extends Controller {
         if (this.startX === undefined) return;
         if (this.dragging) {
             const deltaX = event.clientX - this.startX;
-            const offset = Math.max(-this.actionWidth, Math.min(0, this.startOffset + deltaX));
-            this.setOpen(Math.abs(offset) >= this.actionWidth * OPEN_RATIO);
+            const offset = Math.max(-this.actionWidth, Math.min(this.startActionWidth, this.startOffset + deltaX));
+            if (offset > 0 && this.startActionWidth > 0 && offset >= this.startActionWidth * OPEN_RATIO) {
+                this.setOpen('start');
+            } else if (offset < 0 && this.actionWidth > 0 && Math.abs(offset) >= this.actionWidth * OPEN_RATIO) {
+                this.setOpen('end');
+            } else {
+                this.setOpen(null);
+            }
             this.ignoreClick = true;
             window.setTimeout(() => { this.ignoreClick = false; }, 0);
         }
@@ -62,7 +70,7 @@ export default class extends Controller {
     }
 
     cancel() {
-        if (this.dragging) this.setOpen(this.open);
+        if (this.dragging) this.setOpen(this.openDirection);
         this.resetPointer();
     }
 
@@ -74,9 +82,9 @@ export default class extends Controller {
             event.stopImmediatePropagation();
             return;
         }
-        if (this.mediaQuery.matches && this.open) {
+        if (this.mediaQuery.matches && this.openDirection) {
             event.preventDefault();
-            this.setOpen(false);
+            this.setOpen(null);
             return;
         }
         event.preventDefault();
@@ -84,14 +92,21 @@ export default class extends Controller {
     }
 
     get actionWidth() {
-        return this.actionTarget.getBoundingClientRect().width || 104;
+        return this.hasActionTarget ? (this.actionTarget.getBoundingClientRect().width || 104) : 0;
     }
 
-    setOpen(open) {
-        this.open = open && this.mediaQuery.matches;
-        this.translate(this.open ? -this.actionWidth : 0, true);
-        this.element.classList.toggle('foods-swipe-row--open', this.open);
-        if (this.open) {
+    get startActionWidth() {
+        return this.hasStartActionTarget ? (this.startActionTarget.getBoundingClientRect().width || 112) : 0;
+    }
+
+    setOpen(direction) {
+        this.openDirection = this.mediaQuery.matches ? direction : null;
+        const offset = this.openDirection === 'end'
+            ? -this.actionWidth
+            : (this.openDirection === 'start' ? this.startActionWidth : 0);
+        this.translate(offset, true);
+        this.element.classList.toggle('foods-swipe-row--open', Boolean(this.openDirection));
+        if (this.openDirection) {
             document.dispatchEvent(new CustomEvent('swipe-actions:open', { detail: this.element }));
         }
     }
