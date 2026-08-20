@@ -39,6 +39,10 @@ final class MenuTest extends WebTestCase
         self::assertSelectorExists('button.save-next-meal-button[name="action"][value="suivant"]');
         self::assertSelectorTextContains('.save-next-meal-button', 'Enregistrer et passer au repas suivant');
         self::assertSelectorExists('template select[data-field="regime"] option[value="VEGETARIEN"]');
+        self::assertSelectorExists('select[data-field="conditionnement"][aria-label]');
+        self::assertSelectorExists('input[data-public][data-public-label][aria-label]');
+        self::assertSelectorExists('template select[data-field="conditionnement"][aria-label]');
+        self::assertSelectorExists('template input[data-public][data-public-label][aria-label]');
     }
 
     public function testUnUtilisateurGroupeConsulteLesMenusEnLectureSeule(): void
