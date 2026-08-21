@@ -4,7 +4,7 @@ Ce fichier suit les évolutions fonctionnelles, techniques et de sécurité du
 projet. Le format s’inspire de *Keep a Changelog* et les versions publiées
 suivent le versionnement sémantique.
 
-## [Non publié]
+## [1.4.0] - 2026-08-21
 
 ### Ajouté
 
