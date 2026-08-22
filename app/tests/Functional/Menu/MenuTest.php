@@ -82,10 +82,12 @@ final class MenuTest extends WebTestCase
         $suffixe = bin2hex(random_bytes(4));
         $petitDejeuner = (new Recette($sejour))->setNom('Petit-déjeuner '.$suffixe)->setCategorie('PETIT_DEJEUNER');
         $gouter = (new Recette($sejour))->setNom('Goûter '.$suffixe)->setCategorie('GOUTER');
+        $dessert = (new Recette($sejour))->setNom('Dessert '.$suffixe)->setCategorie('DESSERT');
         $plat = (new Recette($sejour))->setNom('Plat '.$suffixe)->setCategorie('PLAT');
         $entityManager = $container->get(EntityManagerInterface::class);
         $entityManager->persist($petitDejeuner);
         $entityManager->persist($gouter);
+        $entityManager->persist($dessert);
         $entityManager->persist($plat);
         $entityManager->flush();
 
@@ -100,11 +102,13 @@ final class MenuTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-recipe-picker]', $petitDejeuner->getNom());
         self::assertSelectorTextNotContains('[data-recipe-picker]', $gouter->getNom());
+        self::assertSelectorTextNotContains('[data-recipe-picker]', $dessert->getNom());
         self::assertSelectorTextNotContains('[data-recipe-picker]', $plat->getNom());
 
         $client->request('GET', '/menus?repas='.$repas['GOUTER']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-recipe-picker]', $gouter->getNom());
+        self::assertSelectorTextContains('[data-recipe-picker]', $dessert->getNom());
         self::assertSelectorTextNotContains('[data-recipe-picker]', $petitDejeuner->getNom());
         self::assertSelectorTextNotContains('[data-recipe-picker]', $plat->getNom());
     }

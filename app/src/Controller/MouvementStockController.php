@@ -259,15 +259,15 @@ final class MouvementStockController extends AbstractController
             $lignesValeurs = $request->request->all('lignes');
         } elseif (null !== $mouvementExistant) {
             foreach ($lignesMouvement as $ligneMouvement) {
-                $conditionnementLigne = $ligneMouvement->getConditionnementSortie() ?? $ligneMouvement->getDenree()->getUniteReference();
+                $conditionnementLigne = $ligneMouvement->getConditionnementSaisie() ?? $ligneMouvement->getDenree()->getUniteReference();
                 $lignesValeurs[] = [
                     'denree' => (string) $ligneMouvement->getDenree()->getId(),
                     'reference' => (string) ($ligneMouvement->getReferenceFournisseur()?->getId() ?? ''),
                     'conditionnement_sortie' => (string) $conditionnementLigne->getId(),
                     'numero_lot' => $ligneMouvement->getNumeroLot() ?? '',
                     'quantite' => null !== $ligneMouvement->getReferenceFournisseur()
-                        ? $ligneMouvement->getQuantiteUniteReference()
-                        : number_format($conversion->depuisUniteReferenceAvecNiveaux($ligneMouvement->getDenree(), $conditionnementLigne, (float) $ligneMouvement->getQuantiteUniteReference(), $niveauxActifs), 3, '.', ''),
+                        ? ''
+                        : ($ligneMouvement->getQuantiteSaisie() ?? ''),
                     'conditionnements' => array_reduce($detailsParLigne[(string) $ligneMouvement->getId()] ?? [], static function (array $resultat, MouvementStockLigneConditionnement $detail): array {
                         $resultat[(string) $detail->getConditionnement()->getId()] = $detail->getQuantite();
 

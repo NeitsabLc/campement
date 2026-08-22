@@ -26,7 +26,6 @@ final class EnregistrementMouvementStockMultiple
 
     public function __construct(
         private readonly TypeMouvementRepository $types,
-        private readonly ConversionConditionnement $conversion,
         private readonly EntityManagerInterface $entityManager,
         private readonly MouvementStockLigneRepository $lignes,
         private readonly MouvementStockLigneConditionnementRepository $details,
@@ -118,20 +117,17 @@ final class EnregistrementMouvementStockMultiple
             $reference = null;
             $conditionnementSortie = null;
             $quantitesConditionnements = [];
-            $quantiteReference = null;
+            $quantiteSaisie = null;
             $numeroLot = $entreeFournisseur ? $this->normaliserNumeroLot((string) ($saisie['numero_lot'] ?? '')) : null;
 
             if (in_array($typeCode, ['ENTREE', 'SORTIE'], true) && !$mouvementConditionne) {
                 $conditionnementSortie = $this->selectionner((string) ($saisie['conditionnement_sortie'] ?? ''), $conditionnementsSortieParDenree[$denreeId] ?? []);
-                $quantite = $this->normaliserQuantite((string) ($saisie['quantite'] ?? ''));
+                $quantiteSaisie = $this->normaliserQuantite((string) ($saisie['quantite'] ?? ''));
                 if (null === $conditionnementSortie) {
                     $erreurs[] = sprintf('Ligne %d : sélectionnez un conditionnement valide.', $numero);
                 }
-                if (null === $quantite) {
+                if (null === $quantiteSaisie) {
                     $erreurs[] = sprintf('Ligne %d : saisissez une quantité strictement positive.', $numero);
-                }
-                if (null !== $conditionnementSortie && null !== $quantite) {
-                    $quantiteReference = number_format($this->conversion->versUniteReference($denree, $conditionnementSortie, (float) $quantite), 3, '.', '');
                 }
             } elseif ($mouvementConditionne) {
                 if ($mouvementInventaire) {
@@ -150,13 +146,6 @@ final class EnregistrementMouvementStockMultiple
                         : sprintf('Ligne %d : « %s » n’est pas proposée par le fournisseur sélectionné.', $numero, $denree->getNom());
                 } else {
                     $conditionnementsReference = $conditionnementsParReference[(string) $reference->getId()] ?? [];
-                    $facteur = 1.0;
-                    $facteurs = [];
-                    for ($i = count($conditionnementsReference) - 1; $i >= 0; --$i) {
-                        $facteur *= (float) $conditionnementsReference[$i]->getQuantiteContenu();
-                        $facteurs[(string) $conditionnementsReference[$i]->getId()] = $facteur;
-                    }
-                    $total = 0.0;
                     foreach ($conditionnementsReference as $conditionnement) {
                         $id = (string) $conditionnement->getId();
                         $brut = trim((string) ($saisie['conditionnements'][$id] ?? ''));
@@ -168,18 +157,16 @@ final class EnregistrementMouvementStockMultiple
                             $erreurs[] = sprintf('Ligne %d : la quantité de « %s » doit être positive ou nulle.', $numero, $conditionnement->getLibelle());
                         } elseif ((float) $quantite > 0) {
                             $quantitesConditionnements[$id] = $quantite;
-                            $total += (float) $quantite * $facteurs[$id];
                         }
                     }
                     if ([] === $quantitesConditionnements) {
                         $erreurs[] = sprintf('Ligne %d : saisissez au moins une quantité de conditionnement.', $numero);
-                    } else {
-                        $quantiteReference = number_format($total, 3, '.', '');
                     }
                 }
             }
-            if (null !== $quantiteReference) {
-                $lignesValides[] = compact('denree', 'reference', 'conditionnementSortie', 'quantitesConditionnements', 'quantiteReference', 'numeroLot');
+            if ((null !== $reference && [] !== $quantitesConditionnements)
+                || (null === $reference && null !== $conditionnementSortie && null !== $quantiteSaisie)) {
+                $lignesValides[] = compact('denree', 'reference', 'conditionnementSortie', 'quantitesConditionnements', 'quantiteSaisie', 'numeroLot');
             }
         }
         if ([] !== $erreurs || null === $type || null === $origine) {
@@ -203,13 +190,9 @@ final class EnregistrementMouvementStockMultiple
             }
             $this->entityManager->persist($mouvement);
             foreach ($lignesValides as $donnees) {
-                $ligne = new MouvementStockLigne($mouvement, $donnees['denree'], $donnees['quantiteReference']);
-                $quantiteInventaire = null !== $donnees['reference']
-                    ? $this->conversion->quantiteEntreeInventaire($donnees['denree'], (float) $donnees['quantiteReference'], $conditionnementsParReference[(string) $donnees['reference']->getId()] ?? [], $donnees['quantitesConditionnements'])
-                    : $this->conversion->quantiteInventaireExacte($donnees['denree'], (float) $donnees['quantiteReference']);
-                $ligne->setQuantiteUniteInventaire($this->conversion->formaterQuantiteInventaire($quantiteInventaire));
+                $ligne = new MouvementStockLigne($mouvement, $donnees['denree'], $donnees['quantiteSaisie']);
                 $ligne->setReferenceFournisseur($donnees['reference']);
-                $ligne->setConditionnementSortie(null === $donnees['reference'] ? $donnees['conditionnementSortie'] : null);
+                $ligne->setConditionnementSaisie(null === $donnees['reference'] ? $donnees['conditionnementSortie'] : null);
                 $ligne->setNumeroLot($donnees['numeroLot']);
                 $this->entityManager->persist($ligne);
                 if (null !== $donnees['reference']) {
@@ -281,7 +264,7 @@ final class EnregistrementMouvementStockMultiple
         $groupe = null;
         $reference = null;
         $conditionnementSortie = null;
-        $quantiteReference = null;
+        $quantiteSaisie = null;
         $quantitesConditionnements = [];
         $entreeFournisseur = 'ENTREE' === $typeCode && null !== $origine && 'FOURNISSEUR' === $origine->getCode();
 
@@ -293,8 +276,6 @@ final class EnregistrementMouvementStockMultiple
             $quantiteSaisie = $this->normaliserQuantite((string) $valeurs['quantite']);
             if (null === $quantiteSaisie) {
                 $erreurs[] = 'Saisissez une quantité strictement positive.';
-            } elseif ($denree instanceof Denree && null !== $conditionnementSortie) {
-                $quantiteReference = number_format($this->conversion->versUniteReference($denree, $conditionnementSortie, (float) $quantiteSaisie), 3, '.', '');
             }
             if (null !== $origine && 'DISTRIBUTION' === $origine->getCode()) {
                 $groupe = $this->selectionner((string) $valeurs['groupe'], $groupes);
@@ -308,13 +289,6 @@ final class EnregistrementMouvementStockMultiple
                 $erreurs[] = 'Sélectionnez un fournisseur associé à cette denrée.';
             } else {
                 $conditionnementsReference = $conditionnementsParReference[(string) $reference->getId()] ?? [];
-                $facteur = 1.0;
-                $facteurs = [];
-                for ($i = count($conditionnementsReference) - 1; $i >= 0; --$i) {
-                    $facteur *= (float) $conditionnementsReference[$i]->getQuantiteContenu();
-                    $facteurs[(string) $conditionnementsReference[$i]->getId()] = $facteur;
-                }
-                $total = 0.0;
                 foreach ($conditionnementsReference as $conditionnement) {
                     $id = (string) $conditionnement->getId();
                     $brut = trim((string) ($valeurs['conditionnements'][$id] ?? ''));
@@ -326,23 +300,22 @@ final class EnregistrementMouvementStockMultiple
                         $erreurs[] = sprintf('La quantité de « %s » doit être positive ou nulle.', $conditionnement->getLibelle());
                     } elseif ((float) $quantite > 0) {
                         $quantitesConditionnements[$id] = $quantite;
-                        $total += (float) $quantite * $facteurs[$id];
                     }
                 }
                 if ([] === $quantitesConditionnements) {
                     $erreurs[] = 'Saisissez au moins une quantité de conditionnement.';
-                } else {
-                    $quantiteReference = number_format($total, 3, '.', '');
                 }
             }
         }
 
-        if ([] !== $erreurs || null === $type || !$denree instanceof Denree || null === $origine || null === $quantiteReference) {
+        $ligneNativeValide = null === $reference && null !== $conditionnementSortie && null !== $quantiteSaisie;
+        $ligneConditionneeValide = null !== $reference && [] !== $quantitesConditionnements;
+        if ([] !== $erreurs || null === $type || !$denree instanceof Denree || null === $origine || (!$ligneNativeValide && !$ligneConditionneeValide)) {
             return ['erreurs' => $erreurs, 'denree' => $denree instanceof Denree ? $denree : null];
         }
 
         $avant = null === $mouvementExistant ? null : $this->audit->instantane($mouvementExistant);
-        $this->entityManager->wrapInTransaction(function () use ($sejour, $utilisateur, $type, $origine, $groupe, $request, $ligneExistante, $denree, $quantiteReference, $reference, $entreeFournisseur, $conditionnementSortie, $conditionnementsParReference, $quantitesConditionnements, $valeurs, $mouvementExistant, $avant, $motifAudit): void {
+        $this->entityManager->wrapInTransaction(function () use ($sejour, $utilisateur, $type, $origine, $groupe, $request, $ligneExistante, $denree, $quantiteSaisie, $reference, $entreeFournisseur, $conditionnementSortie, $conditionnementsParReference, $quantitesConditionnements, $valeurs, $mouvementExistant, $avant, $motifAudit): void {
             $mouvement = $mouvementExistant ?? new MouvementStock($sejour, $utilisateur, $type, $origine);
             $mouvement->setTypeMouvement($type)->setOrigineMouvement($origine)->setGroupe($groupe);
             if (null === $mouvementExistant) {
@@ -356,13 +329,9 @@ final class EnregistrementMouvementStockMultiple
                 $this->entityManager->flush();
             }
 
-            $ligne = new MouvementStockLigne($mouvement, $denree, $quantiteReference);
-            $quantiteInventaire = null !== $reference
-                ? $this->conversion->quantiteEntreeInventaire($denree, (float) $quantiteReference, $conditionnementsParReference[(string) $reference->getId()] ?? [], $quantitesConditionnements)
-                : $this->conversion->quantiteInventaireExacte($denree, (float) $quantiteReference);
-            $ligne->setQuantiteUniteInventaire($this->conversion->formaterQuantiteInventaire($quantiteInventaire));
+            $ligne = new MouvementStockLigne($mouvement, $denree, $quantiteSaisie);
             $ligne->setReferenceFournisseur($reference);
-            $ligne->setConditionnementSortie(null === $reference ? $conditionnementSortie : null);
+            $ligne->setConditionnementSaisie(null === $reference ? $conditionnementSortie : null);
             $ligne->setNumeroLot($entreeFournisseur ? $this->normaliserNumeroLot((string) $valeurs['numero_lot']) : null);
             $this->entityManager->persist($mouvement);
             $this->entityManager->persist($ligne);

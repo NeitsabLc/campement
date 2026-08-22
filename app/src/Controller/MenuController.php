@@ -192,8 +192,8 @@ final class MenuController extends AbstractController
 
         $recettesActives = $recettes->findActivesPourSejour($sejour);
         $recettesJson = $presentation->recettesJson($recettesActives);
-        $categorieRecettes = null === $special
-            ? $presentation->categorieRecettesPourRepas($repasSelectionne->getTypeRepas()->getCode())
+        $categoriesRecettes = null === $special
+            ? $presentation->categoriesRecettesPourRepas($repasSelectionne->getTypeRepas()->getCode())
             : null;
         $menusExistants = $presentation->menusExistants($menus->findStatutsPourSejour($sejour));
         $jours = $presentation->jours($sejour);
@@ -215,7 +215,7 @@ final class MenuController extends AbstractController
             'regimes' => RegimeAlimentaire::choix(),
             'recettes' => $recettesActives,
             'recettes_json' => $recettesJson,
-            'categorie_recettes' => $categorieRecettes,
+            'categories_recettes' => $categoriesRecettes,
             'avec_categories' => $avecCategories,
             'composition_menu' => $compositionMenu,
             'lecture_seule' => $lectureSeule,

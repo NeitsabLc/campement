@@ -50,4 +50,32 @@ final class ReferenceFournisseurConditionnementRepository extends ServiceEntityR
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Charge les conditionnements actifs et archivés nécessaires au recalcul
+     * des mouvements historiques.
+     *
+     * @param list<Denree> $denrees
+     *
+     * @return list<ReferenceFournisseurConditionnement>
+     */
+    public function findPourDenrees(array $denrees): array
+    {
+        if ([] === $denrees) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('niveau')
+            ->addSelect('reference', 'denree', 'conditionnement', 'uniteContenu')
+            ->join('niveau.referenceFournisseur', 'reference')
+            ->join('reference.denree', 'denree')
+            ->join('niveau.conditionnement', 'conditionnement')
+            ->leftJoin('niveau.uniteContenu', 'uniteContenu')
+            ->andWhere('denree IN (:denrees)')
+            ->setParameter('denrees', $denrees)
+            ->orderBy('reference.id', 'ASC')
+            ->addOrderBy('niveau.ordre', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

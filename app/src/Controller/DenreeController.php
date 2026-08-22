@@ -15,6 +15,7 @@ use App\Repository\MouvementStockLigneRepository;
 use App\Repository\ReferenceFournisseurConditionnementRepository;
 use App\Repository\ReferenceFournisseurRepository;
 use App\Repository\UniteRepository;
+use App\Service\CalculStockDynamique;
 use App\Service\ContexteSejour;
 use App\Service\ConversionConditionnement;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,7 +30,7 @@ use Symfony\Component\Uid\Uuid;
 final class DenreeController extends AbstractController
 {
     #[Route('/denrees', name: 'app_denrees', methods: ['GET'])]
-    public function index(Request $request, ContexteSejour $sejours, DenreeRepository $denrees, ConversionConditionnement $conversion): Response
+    public function index(Request $request, ContexteSejour $sejours, DenreeRepository $denrees, ConversionConditionnement $conversion, CalculStockDynamique $calculStock): Response
     {
         $sejour = $sejours->actif();
         $actives = !$request->query->getBoolean('desactivees');
@@ -38,14 +39,19 @@ final class DenreeController extends AbstractController
             : 'nom';
         $ordre = 'desc' === mb_strtolower($request->query->getString('ordre')) ? 'desc' : 'asc';
 
-        $lignes = null === $sejour ? [] : $denrees->findPourGestion($sejour, $actives);
-        foreach ($lignes as &$ligne) {
-            $ligne['stockInventaire'] = $conversion->stockDepuisQuantitesInventaire(
-                (float) $ligne['stockEntree'],
-                (float) $ligne['stockSortie'],
-            );
-        }
-        unset($ligne);
+        $denreesGestion = null === $sejour ? [] : $denrees->findPourGestion($sejour, $actives);
+        $stocks = null === $sejour ? [] : $calculStock->pourDenrees($sejour, $denreesGestion);
+        $lignes = array_map(static function (Denree $denree) use ($stocks, $conversion): array {
+            $stock = $stocks[(string) $denree->getId()] ?? ['entrees' => 0.0, 'sorties' => 0.0];
+
+            return [
+                'denree' => $denree,
+                'stockInventaire' => $conversion->stockDepuisQuantitesInventaire(
+                    $stock['entrees'],
+                    $stock['sorties'],
+                ),
+            ];
+        }, $denreesGestion);
         usort($lignes, static function (array $a, array $b) use ($tri, $ordre): int {
             $comparaison = 'stock' === $tri
                 ? $a['stockInventaire'] <=> $b['stockInventaire']
@@ -85,7 +91,6 @@ final class DenreeController extends AbstractController
         DenreeRepository $denrees,
         MouvementStockLigneRepository $lignes,
         MouvementStockLigneConditionnementRepository $details,
-        ConversionConditionnement $conversion,
     ): Response {
         $sejour = $sejours->actif();
         $denree = Uuid::isValid($id) ? $denrees->find($id) : null;
@@ -106,9 +111,13 @@ final class DenreeController extends AbstractController
         foreach ($lignesMouvements as $ligne) {
             $conditionnementsSaisis = $detailsParLigne[(string) $ligne->getId()] ?? [];
             if ([] === $conditionnementsSaisis) {
-                $conditionnement = $ligne->getConditionnementSortie() ?? $denree->getUniteReference();
+                $conditionnement = $ligne->getConditionnementSaisie();
+                $quantite = $ligne->getQuantiteSaisie();
+                if (null === $conditionnement || null === $quantite) {
+                    throw new \LogicException(sprintf('Le mouvement de « %s » ne contient aucune quantité native.', $denree->getNom()));
+                }
                 $conditionnementsSaisis[] = [
-                    'quantite' => $conversion->depuisUniteReference($denree, $conditionnement, (float) $ligne->getQuantiteUniteReference()),
+                    'quantite' => $quantite,
                     'conditionnement' => $conditionnement->getNom(),
                 ];
             }
