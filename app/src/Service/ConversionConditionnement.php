@@ -71,35 +71,50 @@ final class ConversionConditionnement
     /** Plus petit contenu connu, exprimé dans l'unité physique terminale de la denrée. */
     public function facteurMinimal(Denree $denree, Unite $conditionnement): ?float
     {
-        if ($conditionnement === $denree->getUniteReference()) {
-            return 1.0;
-        }
-        $facteurs = [];
+        // Une unité peut aussi être un niveau intermédiaire de la chaîne : la
+        // configuration explicite doit alors primer sur l'identité d'unité.
+        $facteursActifs = [];
+        $facteursArchives = [];
         foreach ($this->references->findPourDenree($denree) as $reference) {
-            if (!$reference->isActif()) {
-                continue;
-            }
             $liste = $this->niveaux->findPourReference($reference);
             $facteur = 1.0;
             for ($i = count($liste) - 1; $i >= 0; --$i) {
                 $facteur *= (float) $liste[$i]->getQuantiteContenu();
                 if ($liste[$i]->getConditionnement() === $conditionnement) {
-                    $facteurs[] = $facteur;
+                    if ($reference->isActif()) {
+                        $facteursActifs[] = $facteur;
+                    } else {
+                        $facteursArchives[] = $facteur;
+                    }
                 }
             }
         }
 
-        return [] === $facteurs ? null : min($facteurs);
+        if ([] !== $facteursActifs) {
+            return min($facteursActifs);
+        }
+
+        if ([] !== $facteursArchives) {
+            return min($facteursArchives);
+        }
+
+        return $conditionnement === $denree->getUniteReference() ? 1.0 : null;
     }
 
     public function versUniteReference(Denree $denree, Unite $conditionnement, float $quantite): float
     {
-        return $quantite * ($this->facteurMinimal($denree, $conditionnement) ?? 1.0);
+        return $quantite * $this->facteurRequis($denree, $conditionnement);
     }
 
-    public function depuisUniteReference(Denree $denree, Unite $conditionnement, float $quantite): float
+    public function convertir(Denree $denree, Unite $source, Unite $cible, float $quantite): float
     {
-        return $quantite / ($this->facteurMinimal($denree, $conditionnement) ?? 1.0);
+        if ($source === $cible) {
+            return $quantite;
+        }
+
+        return $quantite
+            * $this->facteurRequis($denree, $source)
+            / $this->facteurRequis($denree, $cible);
     }
 
     /**
@@ -110,10 +125,28 @@ final class ConversionConditionnement
      */
     public function depuisUniteReferenceAvecNiveaux(Denree $denree, Unite $conditionnement, float $quantite, array $niveaux): float
     {
-        if ($conditionnement === $denree->getUniteReference()) {
+        return $quantite / $this->facteurAvecNiveaux($denree, $conditionnement, $niveaux);
+    }
+
+    /**
+     * @param list<ReferenceFournisseurConditionnement> $niveaux
+     */
+    public function convertirAvecNiveaux(Denree $denree, Unite $source, Unite $cible, float $quantite, array $niveaux): float
+    {
+        if ($source === $cible) {
             return $quantite;
         }
 
+        return $quantite
+            * $this->facteurAvecNiveaux($denree, $source, $niveaux)
+            / $this->facteurAvecNiveaux($denree, $cible, $niveaux);
+    }
+
+    /**
+     * @param list<ReferenceFournisseurConditionnement> $niveaux
+     */
+    private function facteurAvecNiveaux(Denree $denree, Unite $conditionnement, array $niveaux): float
+    {
         $parReference = [];
         foreach ($niveaux as $niveau) {
             if ($niveau->getReferenceFournisseur()->getDenree() === $denree) {
@@ -121,95 +154,85 @@ final class ConversionConditionnement
             }
         }
 
-        $facteurs = [];
+        $facteursActifs = [];
+        $facteursArchives = [];
         foreach ($parReference as $niveauxReference) {
             $facteur = 1.0;
             for ($i = count($niveauxReference) - 1; $i >= 0; --$i) {
                 $facteur *= (float) $niveauxReference[$i]->getQuantiteContenu();
                 if ($niveauxReference[$i]->getConditionnement() === $conditionnement) {
-                    $facteurs[] = $facteur;
+                    if ($niveauxReference[$i]->getReferenceFournisseur()->isActif()) {
+                        $facteursActifs[] = $facteur;
+                    } else {
+                        $facteursArchives[] = $facteur;
+                    }
                 }
             }
         }
 
-        return $quantite / ([] === $facteurs ? 1.0 : min($facteurs));
-    }
+        $facteurs = [] !== $facteursActifs ? $facteursActifs : $facteursArchives;
+        if ([] === $facteurs) {
+            if ($conditionnement === $denree->getUniteReference()) {
+                return 1.0;
+            }
 
-    public function stockInventaire(Denree $denree, float $entreesReference, float $sortiesReference): int
-    {
-        $entrees = $this->quantiteInventaire($denree, $entreesReference);
-        $sorties = $this->quantiteInventaire($denree, $sortiesReference);
+            throw new \LogicException(sprintf('Aucune conversion de « %s » vers l’unité de référence de « %s ».', $conditionnement->getNom(), $denree->getNom()));
+        }
 
-        return $this->stockDepuisQuantitesInventaire($entrees, $sorties);
+        return min($facteurs);
     }
 
     public function stockDepuisQuantitesInventaire(float $entreesInventaire, float $sortiesInventaire): int
     {
-        return (int) ceil($entreesInventaire) - (int) ceil($sortiesInventaire);
+        return (int) floor($entreesInventaire - $sortiesInventaire);
     }
 
-    public function quantiteInventaire(Denree $denree, float $quantiteReference): int
+    private function facteurRequis(Denree $denree, Unite $conditionnement): float
     {
-        return (int) ceil($this->quantiteInventaireExacte($denree, $quantiteReference));
-    }
-
-    public function quantiteInventaireExacte(Denree $denree, float $quantiteReference): float
-    {
-        $facteur = $this->facteurMinimal($denree, $denree->getUniteInventaire()) ?? 1.0;
-
-        return $quantiteReference / $facteur;
-    }
-
-    /**
-     * Formate une quantité positive selon la précision stockée en base.
-     * Une quantité réelle inférieure à 0,001 reste ainsi représentée par la
-     * plus petite valeur positive disponible, au lieu d'être arrondie à zéro.
-     */
-    public function formaterQuantiteInventaire(float $quantite): string
-    {
-        if (!is_finite($quantite) || $quantite <= 0) {
-            throw new \InvalidArgumentException("Quantité d'inventaire invalide.");
+        $facteur = $this->facteurMinimal($denree, $conditionnement);
+        if (null === $facteur) {
+            throw new \LogicException(sprintf('Aucune conversion de « %s » vers l’unité de référence de « %s ».', $conditionnement->getNom(), $denree->getNom()));
         }
 
-        return number_format(max(0.001, $quantite), 3, '.', '');
+        return $facteur;
     }
 
     /**
-     * Affiche une entrée dans l'unité réellement saisie lorsque toutes ses lignes
-     * utilisent l'unité d'inventaire. Cette quantité historique ne doit pas être
-     * recalculée avec un conditionnement qui a pu être modifié depuis.
+     * Convertit les quantités natives d'une entrée conditionnée vers l'unité
+     * d'inventaire actuelle de la denrée.
      *
      * @param list<ReferenceFournisseurConditionnement> $conditionnements
      * @param array<string, string>                     $quantitesSaisies
+     * @param list<ReferenceFournisseurConditionnement> $tousLesNiveaux
      */
-    public function quantiteEntreeInventaire(Denree $denree, float $quantiteReference, array $conditionnements, array $quantitesSaisies): float
+    public function quantiteEntreeInventaire(Denree $denree, array $conditionnements, array $quantitesSaisies, array $tousLesNiveaux): float
     {
         $facteurs = [];
         $facteur = 1.0;
-        $facteurInventaire = null;
         for ($i = count($conditionnements) - 1; $i >= 0; --$i) {
             $conditionnement = $conditionnements[$i];
             $facteur *= (float) $conditionnement->getQuantiteContenu();
             $facteurs[(string) $conditionnement->getId()] = $facteur;
-            if ($conditionnement->getConditionnement() === $denree->getUniteInventaire()) {
-                $facteurInventaire = $facteur;
-            }
-        }
-        if (null === $facteurInventaire) {
-            return $this->quantiteInventaireExacte($denree, $quantiteReference);
         }
 
-        $totalSaisi = 0.0;
-        $nombreSaisi = 0;
+        $quantiteTerminale = 0.0;
         foreach ($conditionnements as $conditionnement) {
             $id = (string) $conditionnement->getId();
             if (!isset($quantitesSaisies[$id])) {
                 continue;
             }
-            ++$nombreSaisi;
-            $totalSaisi += (float) $quantitesSaisies[$id] * $facteurs[$id] / $facteurInventaire;
+            $quantiteTerminale += (float) $quantitesSaisies[$id] * $facteurs[$id];
         }
 
-        return $nombreSaisi > 0 ? $totalSaisi : $this->quantiteInventaireExacte($denree, $quantiteReference);
+        if ($quantiteTerminale <= 0) {
+            throw new \LogicException(sprintf('Aucune quantité conditionnée enregistrée pour « %s ».', $denree->getNom()));
+        }
+
+        return $this->depuisUniteReferenceAvecNiveaux(
+            $denree,
+            $denree->getUniteInventaire(),
+            $quantiteTerminale,
+            $tousLesNiveaux,
+        );
     }
 }

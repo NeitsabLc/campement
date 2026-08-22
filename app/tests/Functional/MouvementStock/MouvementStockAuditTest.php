@@ -12,11 +12,11 @@ use App\Entity\Sejour;
 use App\Entity\TypeMouvement;
 use App\Entity\Unite;
 use App\Entity\Utilisateur;
-use App\Repository\DenreeRepository;
 use App\Repository\OrigineMouvementRepository;
 use App\Repository\TypeMouvementRepository;
 use App\Repository\UniteRepository;
 use App\Repository\UtilisateurRepository;
+use App\Service\CalculStockDynamique;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -50,8 +50,8 @@ final class MouvementStockAuditTest extends WebTestCase
             self::assertIsArray($audit);
             self::assertSame('MODIFICATION', $audit['action']);
             self::assertSame('Correction de la quantité saisie.', $audit['motif']);
-            self::assertSame('1.000', json_decode((string) $audit['etat_avant'], true, flags: JSON_THROW_ON_ERROR)['lignes'][0]['quantite_unite_reference']);
-            self::assertSame('2.000', json_decode((string) $audit['etat_apres'], true, flags: JSON_THROW_ON_ERROR)['lignes'][0]['quantite_unite_reference']);
+            self::assertSame('1.000', json_decode((string) $audit['etat_avant'], true, flags: JSON_THROW_ON_ERROR)['lignes'][0]['quantite_saisie']);
+            self::assertSame('2.000', json_decode((string) $audit['etat_apres'], true, flags: JSON_THROW_ON_ERROR)['lignes'][0]['quantite_saisie']);
         } finally {
             $this->supprimerFixture($fixture);
         }
@@ -81,10 +81,10 @@ final class MouvementStockAuditTest extends WebTestCase
                 ['id' => $fixture['mouvement']],
             ));
 
-            $stocks = static::getContainer()->get(DenreeRepository::class)->findPourGestion($fixture['sejour'], true);
-            $stock = array_values(array_filter($stocks, fn (array $ligne): bool => (string) $ligne['denree']->getId() === $fixture['denree']))[0] ?? null;
-            self::assertIsArray($stock);
-            self::assertSame(0.0, (float) $stock['stockEntree']);
+            $denree = static::getContainer()->get(EntityManagerInterface::class)->find(Denree::class, $fixture['denree']);
+            self::assertInstanceOf(Denree::class, $denree);
+            $stock = static::getContainer()->get(CalculStockDynamique::class)->pourDenrees($fixture['sejour'], [$denree]);
+            self::assertSame(0.0, $stock[$fixture['denree']]['entrees']);
         } finally {
             $this->supprimerFixture($fixture);
         }
@@ -137,8 +137,7 @@ final class MouvementStockAuditTest extends WebTestCase
             ->setUniteInventaire($unite);
         $mouvement = new MouvementStock($sejour, $utilisateur, $type, $origine);
         $ligne = (new MouvementStockLigne($mouvement, $denree, '1.000'))
-            ->setQuantiteUniteInventaire('1.000')
-            ->setConditionnementSortie($unite);
+            ->setConditionnementSaisie($unite);
         foreach ([$denree, $mouvement, $ligne] as $entite) {
             $em->persist($entite);
         }

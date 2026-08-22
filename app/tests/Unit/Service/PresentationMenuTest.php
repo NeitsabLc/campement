@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service;
 
 use App\Entity\Denree;
+use App\Entity\Menu;
+use App\Entity\MenuDenree;
 use App\Entity\Recette;
 use App\Entity\RecetteDenree;
 use App\Entity\Sejour;
@@ -21,10 +23,10 @@ final class PresentationMenuTest extends TestCase
     {
         $presentation = new PresentationMenu();
 
-        self::assertSame('PETIT_DEJEUNER', $presentation->categorieRecettesPourRepas('PETIT_DEJEUNER'));
-        self::assertSame('GOUTER', $presentation->categorieRecettesPourRepas('GOUTER'));
-        self::assertNull($presentation->categorieRecettesPourRepas('DEJEUNER'));
-        self::assertNull($presentation->categorieRecettesPourRepas('DINER'));
+        self::assertSame(['PETIT_DEJEUNER'], $presentation->categoriesRecettesPourRepas('PETIT_DEJEUNER'));
+        self::assertSame(['GOUTER', 'DESSERT'], $presentation->categoriesRecettesPourRepas('GOUTER'));
+        self::assertNull($presentation->categoriesRecettesPourRepas('DEJEUNER'));
+        self::assertNull($presentation->categoriesRecettesPourRepas('DINER'));
     }
 
     public function testLeRepasSuivantRespecteLOrdreDesRepasPuisChangeDeJour(): void
@@ -65,5 +67,27 @@ final class PresentationMenuTest extends TestCase
             RegimeAlimentaire::VEGETARIEN->value,
             $donnees[(string) $recette->getId()]['lignes'][0]['regime'],
         );
+    }
+
+    public function testLeResumeDesMenusRegroupeLesRecettesEtSepareLesDenreesSupplementaires(): void
+    {
+        $sejour = new Sejour('Test', new \DateTimeImmutable('2026-07-10'), new \DateTimeImmutable('2026-07-11'));
+        $unite = new Unite('Gramme', 'g');
+        $repas = new SejourTypeRepas($sejour, new TypeRepas('DEJEUNER', 'Déjeuner', 1), 1);
+        $recette = (new Recette($sejour))->setNom('Salade composée');
+        $tomate = (new Denree($sejour))->setNom('Tomates')->setUniteReference($unite);
+        $concombre = (new Denree($sejour))->setNom('Concombres')->setUniteReference($unite);
+        $pain = (new Denree($sejour))->setNom('Pain')->setUniteReference($unite);
+        $menu = (new Menu())->setSejour($sejour)->setSejourTypeRepas($repas)->setNom('Déjeuner frais');
+        $menu->addDenree((new MenuDenree())->setDenree($tomate)->setRecette($recette));
+        $menu->addDenree((new MenuDenree())->setDenree($concombre)->setRecette($recette));
+        $menu->addDenree((new MenuDenree())->setDenree($pain));
+
+        self::assertSame([[
+            'libelle' => 'Déjeuner',
+            'nom' => 'Déjeuner frais',
+            'recettes' => ['Salade composée'],
+            'supplementaires' => ['Pain'],
+        ]], (new PresentationMenu())->resumesMenus([$menu]));
     }
 }

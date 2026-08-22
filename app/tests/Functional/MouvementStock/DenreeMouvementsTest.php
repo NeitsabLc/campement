@@ -89,8 +89,7 @@ final class DenreeMouvementsTest extends WebTestCase
         $niveauCarton = new ReferenceFournisseurConditionnement($reference, 1, 'carton', '12.000', null, 'conserve', $carton);
         $niveauConserve = new ReferenceFournisseurConditionnement($reference, 2, 'conserve', '1.000', $conserve, null, $conserve);
         $mouvement = new MouvementStock($sejour, $utilisateur, $type, $origine);
-        $ligne = (new MouvementStockLigne($mouvement, $denree, '40.000'))
-            ->setQuantiteUniteInventaire('3.333')
+        $ligne = (new MouvementStockLigne($mouvement, $denree, null))
             ->setReferenceFournisseur($reference);
         $detailCarton = new MouvementStockLigneConditionnement($ligne, $niveauCarton, '3.000');
         $detailConserve = new MouvementStockLigneConditionnement($ligne, $niveauConserve, '4.000');

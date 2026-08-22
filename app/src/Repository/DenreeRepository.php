@@ -7,7 +7,6 @@ namespace App\Repository;
 use App\Entity\Denree;
 use App\Entity\Sejour;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\Persistence\ManagerRegistry;
 
 /** @extends ServiceEntityRepository<Denree> */
@@ -32,31 +31,20 @@ final class DenreeRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    /** @return list<array{denree: Denree, stockEntree: string, stockSortie: string}> */
+    /** @return list<Denree> */
     public function findPourGestion(Sejour $sejour, bool $actif): array
     {
-        $lignes = $this->createQueryBuilder('d')
+        return $this->createQueryBuilder('d')
             ->addSelect('u', 'ui')
-            ->addSelect("COALESCE(SUM(CASE WHEN m.annuleAt IS NULL AND tm.code = 'ENTREE' THEN l.quantiteUniteInventaire ELSE 0 END), 0) AS stockEntree")
-            ->addSelect("COALESCE(SUM(CASE WHEN m.annuleAt IS NULL AND tm.code = 'SORTIE' THEN l.quantiteUniteInventaire ELSE 0 END), 0) AS stockSortie")
             ->join('d.uniteReference', 'u')
             ->join('d.uniteInventaire', 'ui')
-            ->leftJoin(\App\Entity\MouvementStockLigne::class, 'l', Join::ON, 'l.denree = d')
-            ->leftJoin('l.mouvementStock', 'm')
-            ->leftJoin('m.typeMouvement', 'tm')
             ->andWhere('d.sejour = :sejour')
             ->andWhere('d.actif = :actif')
             ->setParameter('sejour', $sejour)
             ->setParameter('actif', $actif)
-            ->groupBy('d.id, u.id, ui.id')
             ->orderBy('d.nom', 'ASC')
-            ->getQuery()->getResult();
-
-        return array_map(static fn (array $ligne): array => [
-            'denree' => $ligne[0],
-            'stockEntree' => (string) $ligne['stockEntree'],
-            'stockSortie' => (string) $ligne['stockSortie'],
-        ], $lignes);
+            ->getQuery()
+            ->getResult();
     }
 
     public function existeAvecNomPourSejour(Sejour $sejour, string $nom, ?Denree $exclue = null): bool

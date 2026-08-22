@@ -6,14 +6,18 @@ namespace App\Service;
 
 use App\Entity\Sejour;
 use App\Entity\Utilisateur;
+use App\Repository\DenreeRepository;
 use Doctrine\DBAL\Connection;
 
 final class DuplicationSejour
 {
     public const CHOIX = ['fournisseurs', 'denrees', 'recettes', 'menus', 'inventaire'];
 
-    public function __construct(private readonly Connection $connexion)
-    {
+    public function __construct(
+        private readonly Connection $connexion,
+        private readonly DenreeRepository $denrees,
+        private readonly CalculStockDynamique $calculStock,
+    ) {
     }
 
     /** @param list<string> $choix */
@@ -24,7 +28,19 @@ final class DuplicationSejour
         $besoinFournisseurs = in_array('fournisseurs', $choix, true);
         $s = (string) $source->getId();
         $c = (string) $cible->getId();
-        $this->connexion->transactional(function (Connection $db) use ($s, $c, $choix, $besoinDenrees, $besoinFournisseurs, $auteur): void {
+        $inventaire = [];
+        if (in_array('inventaire', $choix, true)) {
+            $denreesSource = $this->denrees->findBy(['sejour' => $source]);
+            $stocks = $this->calculStock->pourDenrees($source, $denreesSource);
+            foreach ($denreesSource as $denree) {
+                $stock = $stocks[(string) $denree->getId()] ?? ['entrees' => 0.0, 'sorties' => 0.0];
+                $quantite = $stock['entrees'] - $stock['sorties'];
+                if ($quantite > 0) {
+                    $inventaire[$denree->getNom()] = number_format(max(0.001, $quantite), 3, '.', '');
+                }
+            }
+        }
+        $this->connexion->transactional(function (Connection $db) use ($s, $c, $choix, $besoinDenrees, $besoinFournisseurs, $auteur, $inventaire): void {
             if ($besoinFournisseurs) {
                 $db->executeStatement('INSERT INTO campement.fournisseur (id,sejour_id,nom,telephone,email,adresse,actif) SELECT uuidv7(),:c,nom,telephone,email,adresse,actif FROM campement.fournisseur WHERE sejour_id=:s', compact('s', 'c'));
             }
@@ -51,7 +67,12 @@ final class DuplicationSejour
                 if (1 !== $cree) {
                     throw new \RuntimeException('Le type ou l’origine du mouvement d’inventaire est introuvable.');
                 }
-                $db->executeStatement("INSERT INTO campement.mouvement_stock_ligne (id,mouvement_stock_id,denree_id,conditionnement_sortie_id,quantite_unite_reference,quantite_unite_inventaire) SELECT uuidv7(),:m,dc.id,dc.unite_inventaire_id,SUM(CASE WHEN t.code='ENTREE' THEN l.quantite_unite_inventaire ELSE -l.quantite_unite_inventaire END),SUM(CASE WHEN t.code='ENTREE' THEN l.quantite_unite_inventaire ELSE -l.quantite_unite_inventaire END) FROM campement.mouvement_stock_ligne l JOIN campement.mouvement_stock mv ON mv.id=l.mouvement_stock_id JOIN campement.type_mouvement t ON t.id=mv.type_mouvement_id JOIN campement.denree ds ON ds.id=l.denree_id JOIN campement.denree dc ON dc.sejour_id=:c AND dc.nom=ds.nom WHERE mv.sejour_id=:s AND mv.annule_at IS NULL GROUP BY dc.id,dc.unite_inventaire_id HAVING SUM(CASE WHEN t.code='ENTREE' THEN l.quantite_unite_inventaire ELSE -l.quantite_unite_inventaire END)>0", ['m' => $mouvement, 's' => $s, 'c' => $c]);
+                foreach ($inventaire as $nomDenree => $quantite) {
+                    $db->executeStatement(
+                        'INSERT INTO campement.mouvement_stock_ligne (id,mouvement_stock_id,denree_id,conditionnement_saisie_id,quantite_saisie) SELECT uuidv7(),:m,denree.id,denree.unite_inventaire_id,:quantite FROM campement.denree denree WHERE denree.sejour_id=:c AND denree.nom=:nom',
+                        ['m' => $mouvement, 'c' => $c, 'nom' => $nomDenree, 'quantite' => $quantite],
+                    );
+                }
             }
         });
     }

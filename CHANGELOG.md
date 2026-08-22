@@ -4,6 +4,28 @@ Ce fichier suit les évolutions fonctionnelles, techniques et de sécurité du
 projet. Le format s’inspire de *Keep a Changelog* et les versions publiées
 suivent le versionnement sémantique.
 
+## [1.4.1] - 2026-08-22
+
+### Modifié
+
+- présélection de la date du jour comme début de période pour les listes de
+  courses ;
+- ajout des recettes de type dessert dans la sélection proposée pour le goûter ;
+- champs de quantité laissés vides lors de l’ajout d’une denrée supplémentaire
+  à un menu ;
+- défilement automatique du calendrier des menus pour placer le jour actif en
+  haut, notamment après l’enregistrement et le passage au repas suivant ;
+- résumé des menus du tableau de bord limité aux libellés de recette, avec les
+  denrées hors recette regroupées sous la mention « En supplément ».
+
+### Corrigé
+
+- calcul dynamique du stock depuis les quantités et conditionnements saisis,
+  y compris lorsque la référence fournisseur est archivée, et arrondi du solde
+  final à l’entier inférieur après soustraction des entrées et des sorties ;
+- conservation des mouvements dans leur conditionnement saisi, conversion des
+  données historiques et suppression des quantités converties figées.
+
 ## [1.4.0] - 2026-08-21
 
 ### Ajouté

@@ -12,6 +12,7 @@ use App\Repository\GroupeRepository;
 use App\Repository\MenuRepository;
 use App\Repository\ParticipantRepository;
 use App\Service\ContexteSejour;
+use App\Service\PresentationMenu;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +26,7 @@ final class TableauDeBordController extends AbstractController
         GroupeRepository $groupes,
         ParticipantRepository $participants,
         MenuRepository $menus,
+        PresentationMenu $presentationMenu,
         EntityManagerInterface $entityManager,
     ): Response {
         $sejour = $contexte->actif();
@@ -120,7 +122,7 @@ final class TableauDeBordController extends AbstractController
             }
 
             if ($sejourEnCours && $sejour->isModuleIntendanceActif()) {
-                $menusDuJour = $menus->findPourDate($sejour, $aujourdhui);
+                $menusDuJour = $presentationMenu->resumesMenus($menus->findPourDate($sejour, $aujourdhui));
             }
 
             if ($sejour->isModuleAdministratifActif()) {

@@ -85,7 +85,7 @@
                             <header class="home-panel__header"><div><span class="home-panel__icon">♨</span><div><h2 id="menus-title">Au menu aujourd’hui</h2><p>{{ aujourdhui|date('d/m/Y') }}</p></div></div><a href="{{ path('app_menus') }}">Voir les menus</a></header>
                             <div class="home-meals">
                                 {% for menu in menus_du_jour %}
-                                    <article><h3>{{ menu.libelle }}</h3>{% if menu.nom %}<strong>{{ menu.nom }}</strong>{% endif %}<p>{% for ligne in menu.denrees %}{{ ligne.recette ? ligne.recette.nom : ligne.denree.nom }}{{ not loop.last ? ' · ' : '' }}{% else %}Menu non renseigné{% endfor %}</p></article>
+                                    <article><h3>{{ menu.libelle }}</h3>{% if menu.nom %}<strong>{{ menu.nom }}</strong>{% endif %}<p>{% if menu.recettes is empty and menu.supplementaires is empty %}Menu non renseigné{% else %}{{ menu.recettes|join(' · ') }}{% if menu.supplementaires is not empty %}{{ menu.recettes is not empty ? ' · ' : '' }}<b>En supplément</b> · {{ menu.supplementaires|join(' · ') }}{% endif %}{% endif %}</p></article>
                                 {% else %}<p class="home-empty-copy">Aucun menu n’est encore renseigné pour aujourd’hui.</p>{% endfor %}
                             </div>
                         </section>

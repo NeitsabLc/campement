@@ -66,9 +66,14 @@ final class PresentationMenu
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
     }
 
-    public function categorieRecettesPourRepas(string $code): ?string
+    /** @return list<string>|null */
+    public function categoriesRecettesPourRepas(string $code): ?array
     {
-        return in_array($code, ['PETIT_DEJEUNER', 'GOUTER'], true) ? $code : null;
+        return match ($code) {
+            'PETIT_DEJEUNER' => ['PETIT_DEJEUNER'],
+            'GOUTER' => ['GOUTER', 'DESSERT'],
+            default => null,
+        };
     }
 
     public function libelleDate(\DateTimeImmutable $date): string
@@ -130,6 +135,36 @@ final class PresentationMenu
                 'nom' => $recette->getNom(),
                 'categorie' => $recette->getCategorie(),
                 'lignes' => $lignes,
+            ];
+        }
+
+        return $resultat;
+    }
+
+    /**
+     * @param list<Menu> $menus
+     *
+     * @return list<array{libelle: string, nom: ?string, recettes: list<string>, supplementaires: list<string>}>
+     */
+    public function resumesMenus(array $menus): array
+    {
+        $resultat = [];
+        foreach ($menus as $menu) {
+            $recettes = [];
+            $supplementaires = [];
+            foreach ($menu->getDenrees() as $ligne) {
+                if (null !== ($recette = $ligne->getRecette())) {
+                    $instance = (string) ($ligne->getRecetteInstanceId() ?? $recette->getId());
+                    $recettes[$instance] = $recette->getNom();
+                } else {
+                    $supplementaires[] = $ligne->getDenree()->getNom();
+                }
+            }
+            $resultat[] = [
+                'libelle' => $menu->getLibelle(),
+                'nom' => $menu->getNom(),
+                'recettes' => array_values($recettes),
+                'supplementaires' => $supplementaires,
             ];
         }
 
