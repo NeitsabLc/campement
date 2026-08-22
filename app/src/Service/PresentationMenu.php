@@ -141,6 +141,36 @@ final class PresentationMenu
         return $resultat;
     }
 
+    /**
+     * @param list<Menu> $menus
+     *
+     * @return list<array{libelle: string, nom: ?string, recettes: list<string>, supplementaires: list<string>}>
+     */
+    public function resumesMenus(array $menus): array
+    {
+        $resultat = [];
+        foreach ($menus as $menu) {
+            $recettes = [];
+            $supplementaires = [];
+            foreach ($menu->getDenrees() as $ligne) {
+                if (null !== ($recette = $ligne->getRecette())) {
+                    $instance = (string) ($ligne->getRecetteInstanceId() ?? $recette->getId());
+                    $recettes[$instance] = $recette->getNom();
+                } else {
+                    $supplementaires[] = $ligne->getDenree()->getNom();
+                }
+            }
+            $resultat[] = [
+                'libelle' => $menu->getLibelle(),
+                'nom' => $menu->getNom(),
+                'recettes' => array_values($recettes),
+                'supplementaires' => $supplementaires,
+            ];
+        }
+
+        return $resultat;
+    }
+
     /** @return list<\DateTimeImmutable> */
     public function jours(Sejour $sejour): array
     {
