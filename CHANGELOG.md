@@ -51,6 +51,11 @@ suivent le versionnement sémantique.
 
 ### Corrigé
 
+- calcul dynamique du stock depuis les quantités et conditionnements saisis,
+  y compris lorsque la référence fournisseur est archivée, et arrondi du solde
+  final à l’entier inférieur après soustraction des entrées et des sorties ;
+- conservation des mouvements dans leur conditionnement saisi, conversion des
+  données historiques et suppression des quantités converties figées ;
 - restauration du fonctionnement des sous-menus après un retour avec la
   navigation du navigateur ;
 - rendu des lignes et affichage des commandes de tri sur la page des denrées ;

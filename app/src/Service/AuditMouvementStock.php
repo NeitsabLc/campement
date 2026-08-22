@@ -46,8 +46,8 @@ final class AuditMouvementStock
         $lignes = $this->connexion->fetchAllAssociative(
             <<<'SQL'
                 SELECT l.id, l.denree_id, d.nom AS denree,
-                       l.reference_fournisseur_id, l.conditionnement_sortie_id,
-                       l.quantite_unite_reference, l.quantite_unite_inventaire,
+                       l.reference_fournisseur_id, l.conditionnement_saisie_id,
+                       l.quantite_saisie,
                        l.numero_lot
                 FROM campement.mouvement_stock_ligne l
                 JOIN campement.denree d ON d.id = l.denree_id

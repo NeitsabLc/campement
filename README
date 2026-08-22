@@ -12,8 +12,8 @@ dossiers administratifs et le suivi du séjour.
 - dernier tag stable publié : `v1.3.1` ;
 - branche stable et livrable : `main` ;
 - branche de développement : `dev` ;
-- schéma Liquibase de la branche courante : `V034` ;
-- suite automatisée : 127 tests PHPUnit et 883 assertions, complétée par 4 scénarios
+- schéma Liquibase de la branche courante : `V035` ;
+- suite automatisée : 127 tests PHPUnit et 896 assertions, complétée par 4 scénarios
   d’accessibilité et 26 scénarios E2E dans le navigateur ;
 - application fonctionnelle en environnement Docker local ;
 - production hébergée sur l’hôte applicatif dédié derrière un reverse proxy

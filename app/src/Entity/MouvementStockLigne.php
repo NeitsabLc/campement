@@ -15,6 +15,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Index(name: 'idx_mouvement_stock_ligne_mouvement', columns: ['mouvement_stock_id'], ),]
 #[ORM\Index(name: 'idx_mouvement_stock_ligne_denree', columns: ['denree_id'])]
 #[ORM\Index(name: 'idx_mouvement_stock_ligne_reference_fournisseur', columns: ['reference_fournisseur_id'], ),]
+#[ORM\Index(name: 'idx_mouvement_stock_ligne_conditionnement_saisie', columns: ['conditionnement_saisie_id'])]
 class MouvementStockLigne
 {
     use EntityIdTrait;
@@ -33,21 +34,18 @@ class MouvementStockLigne
     private ?ReferenceFournisseur $referenceFournisseur = null;
 
     #[ORM\ManyToOne(targetEntity: Unite::class)]
-    #[ORM\JoinColumn(name: 'conditionnement_sortie_id', nullable: true, onDelete: 'RESTRICT')]
-    private ?Unite $conditionnementSortie = null;
+    #[ORM\JoinColumn(name: 'conditionnement_saisie_id', nullable: true, onDelete: 'RESTRICT')]
+    private ?Unite $conditionnementSaisie = null;
 
-    #[ORM\Column(name: 'quantite_unite_reference', type: 'decimal', precision: 12, scale: 3, ),]
-    private string $quantiteUniteReference;
-
-    #[ORM\Column(name: 'quantite_unite_inventaire', type: 'decimal', precision: 12, scale: 3)]
-    private string $quantiteUniteInventaire;
+    #[ORM\Column(name: 'quantite_saisie', type: 'decimal', precision: 12, scale: 3, nullable: true, options: ['comment' => 'Quantité brute saisie par l’utilisateur dans conditionnement_saisie_id ; NULL pour une ligne détaillée par niveaux fournisseur.'])]
+    private ?string $quantiteSaisie;
 
     #[ORM\Column(name: 'numero_lot', type: 'string', length: 100, nullable: true, options: ['comment' => 'Numéro de lot relevé sur la denrée lors de son entrée en stock.'])]
     private ?string $numeroLot = null;
 
-    public function __construct(MouvementStock $mouvementStock, Denree $denree, string $quantite)
+    public function __construct(MouvementStock $mouvementStock, Denree $denree, ?string $quantiteSaisie)
     {
-        if ((float) $quantite <= 0) {
+        if (null !== $quantiteSaisie && (float) $quantiteSaisie <= 0) {
             throw new \InvalidArgumentException('Quantité invalide.');
         }
         if ($denree->getSejour() !== $mouvementStock->getSejour()) {
@@ -58,8 +56,7 @@ class MouvementStockLigne
         $this->initializeTimestamps();
         $this->mouvementStock = $mouvementStock;
         $this->denree = $denree;
-        $this->quantiteUniteReference = $quantite;
-        $this->quantiteUniteInventaire = $quantite;
+        $this->quantiteSaisie = $quantiteSaisie;
     }
 
     public function getMouvementStock(): MouvementStock
@@ -88,46 +85,30 @@ class MouvementStockLigne
         return $this;
     }
 
-    public function getConditionnementSortie(): ?Unite
+    public function getConditionnementSaisie(): ?Unite
     {
-        return $this->conditionnementSortie;
+        return $this->conditionnementSaisie;
     }
 
-    public function setConditionnementSortie(?Unite $conditionnementSortie): self
+    public function setConditionnementSaisie(?Unite $conditionnementSaisie): self
     {
-        $this->conditionnementSortie = $conditionnementSortie;
+        $this->conditionnementSaisie = $conditionnementSaisie;
         $this->touch();
 
         return $this;
     }
 
-    public function getQuantiteUniteReference(): string
+    public function getQuantiteSaisie(): ?string
     {
-        return $this->quantiteUniteReference;
+        return $this->quantiteSaisie;
     }
 
-    public function setQuantiteUniteReference(string $quantite): self
+    public function setQuantiteSaisie(?string $quantite): self
     {
-        if ((float) $quantite <= 0) {
+        if (null !== $quantite && (float) $quantite <= 0) {
             throw new \InvalidArgumentException('Quantité invalide.');
         }
-        $this->quantiteUniteReference = $quantite;
-        $this->touch();
-
-        return $this;
-    }
-
-    public function getQuantiteUniteInventaire(): string
-    {
-        return $this->quantiteUniteInventaire;
-    }
-
-    public function setQuantiteUniteInventaire(string $quantite): self
-    {
-        if ((float) $quantite <= 0) {
-            throw new \InvalidArgumentException("Quantité d'inventaire invalide.");
-        }
-        $this->quantiteUniteInventaire = $quantite;
+        $this->quantiteSaisie = $quantite;
         $this->touch();
 
         return $this;

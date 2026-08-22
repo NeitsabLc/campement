@@ -150,26 +150,33 @@ final class SortieConsommationController extends AbstractController
                             'denree' => $ligne['denree'],
                             'conditionnement' => $ligne['unite'],
                             'quantite' => 0.0,
+                            'quantiteInventaire' => 0.0,
+                            'conditionnementUnique' => true,
                         ];
                         if ($sorties[$denreeId]['conditionnement'] !== $ligne['unite']) {
-                            $sorties[$denreeId]['conditionnement'] = $ligne['denree']->getUniteReference();
+                            $sorties[$denreeId]['conditionnementUnique'] = false;
                         }
-                        $sorties[$denreeId]['quantite'] += $conversion->versUniteReference(
+                        $sorties[$denreeId]['quantite'] += $quantite;
+                        $sorties[$denreeId]['quantiteInventaire'] += $conversion->convertir(
                             $ligne['denree'],
                             $ligne['unite'],
+                            $ligne['denree']->getUniteInventaire(),
                             $quantite,
                         );
                     }
                     foreach ($sorties as $sortie) {
+                        $conditionnement = $sortie['conditionnementUnique']
+                            ? $sortie['conditionnement']
+                            : $sortie['denree']->getUniteInventaire();
+                        $quantite = $sortie['conditionnementUnique']
+                            ? $sortie['quantite']
+                            : $sortie['quantiteInventaire'];
                         $mouvementLigne = new MouvementStockLigne(
                             $mouvement,
                             $sortie['denree'],
-                            number_format($sortie['quantite'], 3, '.', ''),
+                            number_format($quantite, 3, '.', ''),
                         );
-                        $mouvementLigne->setQuantiteUniteInventaire($conversion->formaterQuantiteInventaire(
-                            $conversion->quantiteInventaireExacte($sortie['denree'], (float) $mouvementLigne->getQuantiteUniteReference()),
-                        ));
-                        $mouvementLigne->setConditionnementSortie($sortie['conditionnement']);
+                        $mouvementLigne->setConditionnementSaisie($conditionnement);
                         $entityManager->persist($mouvementLigne);
                     }
                     try {
@@ -251,10 +258,10 @@ final class SortieConsommationController extends AbstractController
                 }
             }
             $unite = $memeUnite ? $premiereUnite : $groupe['denree']->getUniteReference();
-            $facteurSortie = $conversion->facteurMinimal($groupe['denree'], $unite) ?? 1;
+            $facteurSortie = $conversion->versUniteReference($groupe['denree'], $unite, 1);
             $quantites = [];
             foreach ($groupe['sources'] as $ligne) {
-                $facteur = $conversion->facteurMinimal($groupe['denree'], $ligne->getConditionnement()) ?? 1;
+                $facteur = $conversion->versUniteReference($groupe['denree'], $ligne->getConditionnement(), 1);
                 foreach ($ligne->getQuantites() as $quantite) {
                     $publicId = (string) $quantite->getSejourPublicCible()->getId();
                     $quantites[$publicId] ??= [

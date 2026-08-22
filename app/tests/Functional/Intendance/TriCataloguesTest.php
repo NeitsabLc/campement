@@ -96,9 +96,9 @@ final class TriCataloguesTest extends WebTestCase
             $em->persist($denree);
         }
         // Les unités diffèrent volontairement : seul le nombre affiché pilote le tri.
-        $em->persist((new MouvementStockLigne($entree, $denrees[0], '1'))->setConditionnementSortie($uniteGramme));
-        $em->persist((new MouvementStockLigne($sortie, $denrees[1], '2'))->setConditionnementSortie($uniteCarton));
-        $em->persist((new MouvementStockLigne($entree, $denrees[2], '20'))->setConditionnementSortie($uniteGramme));
+        $em->persist((new MouvementStockLigne($entree, $denrees[0], '1'))->setConditionnementSaisie($uniteGramme));
+        $em->persist((new MouvementStockLigne($sortie, $denrees[1], '2'))->setConditionnementSaisie($uniteCarton));
+        $em->persist((new MouvementStockLigne($entree, $denrees[2], '20'))->setConditionnementSaisie($uniteGramme));
         $em->persist($entree);
         $em->persist($sortie);
         $em->flush();

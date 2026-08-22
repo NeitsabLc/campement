@@ -18,6 +18,7 @@ use App\Repository\TypeRepasRepository;
 use App\Repository\UniteRepository;
 use App\Repository\UtilisateurRepository;
 use App\Service\ArchiveListesCourses;
+use App\Service\CalculStockDynamique;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -225,6 +226,96 @@ final class DistributionTest extends WebTestCase
         }
     }
 
+    public function testLeStockEstRecalculeDepuisLesSaisiesAvecUneReferenceArchivee(): void
+    {
+        $client = static::createClient();
+        $fixture = $this->creerFixtureDistribution('DEJEUNER', false);
+
+        try {
+            $connexion = static::getContainer()->get(Connection::class);
+            $gramme = (string) $connexion->fetchOne("SELECT id FROM campement.unite WHERE nom = 'gramme'");
+            $kilogramme = (string) $connexion->fetchOne("SELECT id FROM campement.unite WHERE nom = 'kilogramme'");
+            $carton = (string) $connexion->fetchOne("SELECT id FROM campement.unite WHERE nom = 'carton'");
+            $fournisseur = (string) $connexion->fetchOne(
+                "INSERT INTO campement.fournisseur (sejour_id, nom) VALUES (:sejour, 'Fournisseur archivé') RETURNING id",
+                ['sejour' => $fixture['sejour']],
+            );
+            $reference = (string) $connexion->fetchOne(
+                "INSERT INTO campement.denree_fournisseur (fournisseur_id, denree_id, reference, actif) VALUES (:fournisseur, :denree, 'ARCHIVEE', FALSE) RETURNING id",
+                ['fournisseur' => $fournisseur, 'denree' => $fixture['denree']],
+            );
+            $niveaux = [];
+            foreach ([
+                [1, $carton, '6.000', 'kilogramme'],
+                [2, $kilogramme, '1000.000', 'gramme'],
+                [3, $gramme, '1.000', null],
+            ] as [$ordre, $conditionnement, $quantite, $libelleContenu]) {
+                $niveaux[$ordre] = (string) $connexion->fetchOne(
+                    'INSERT INTO campement.denree_fournisseur_conditionnement (reference_fournisseur_id, ordre, libelle, conditionnement_id, quantite_contenu, libelle_contenu, unite_contenu_id) VALUES (:reference, :ordre, :libelle, :conditionnement, :quantite, :libelle_contenu, :unite_contenu) RETURNING id',
+                    [
+                        'reference' => $reference,
+                        'ordre' => $ordre,
+                        'libelle' => 1 === $ordre ? 'carton' : (2 === $ordre ? 'kilogramme' : 'gramme'),
+                        'conditionnement' => $conditionnement,
+                        'quantite' => $quantite,
+                        'libelle_contenu' => $libelleContenu,
+                        'unite_contenu' => 3 === $ordre ? $gramme : null,
+                    ],
+                );
+            }
+            $connexion->executeStatement(
+                'UPDATE campement.denree SET unite_reference_id = :gramme, unite_inventaire_id = :kilogramme WHERE id = :denree',
+                ['gramme' => $gramme, 'kilogramme' => $kilogramme, 'denree' => $fixture['denree']],
+            );
+            $connexion->executeStatement(
+                'UPDATE campement.menu_denree SET conditionnement_id = :gramme WHERE menu_id = :menu AND denree_id = :denree',
+                ['gramme' => $gramme, 'menu' => $fixture['menu'], 'denree' => $fixture['denree']],
+            );
+            $mouvementEntree = (string) $connexion->fetchOne(
+                "INSERT INTO campement.mouvement_stock (sejour_id, utilisateur_id, type_mouvement_id, origine_mouvement_id, date_mouvement) SELECT :sejour, utilisateur.id, type.id, origine.id, NOW() FROM campement.utilisateur utilisateur CROSS JOIN campement.type_mouvement type CROSS JOIN campement.origine_mouvement origine WHERE utilisateur.email = 'saisie-consommation@campement.local' AND type.code = 'ENTREE' AND origine.code = 'FOURNISSEUR' RETURNING id",
+                ['sejour' => $fixture['sejour']],
+            );
+            $ligneEntree = (string) $connexion->fetchOne(
+                'INSERT INTO campement.mouvement_stock_ligne (mouvement_stock_id, denree_id, reference_fournisseur_id) VALUES (:mouvement, :denree, :reference) RETURNING id',
+                ['mouvement' => $mouvementEntree, 'denree' => $fixture['denree'], 'reference' => $reference],
+            );
+            $connexion->executeStatement(
+                'INSERT INTO campement.mouvement_stock_ligne_conditionnement (mouvement_stock_ligne_id, conditionnement_id, quantite) VALUES (:ligne, :conditionnement, 1)',
+                ['ligne' => $ligneEntree, 'conditionnement' => $niveaux[1]],
+            );
+            static::getContainer()->get(EntityManagerInterface::class)->clear();
+
+            $crawler = $client->request('GET', '/distribution/'.$fixture['jeton']);
+            self::assertResponseIsSuccessful();
+            $client->submit($crawler->selectButton('Vérifier la distribution')->form([
+                'groupe' => $fixture['groupe'],
+                'menu' => $fixture['menu'],
+                'quantites['.$fixture['denree'].'|STANDARD]' => '1060',
+            ]));
+            self::assertResponseIsSuccessful();
+            $client->submit($client->getCrawler()->selectButton('Confirmer la distribution')->form());
+            self::assertResponseIsSuccessful();
+
+            $sortie = $connexion->fetchAssociative(
+                'SELECT ligne.quantite_saisie, unite.nom AS conditionnement FROM campement.mouvement_stock_ligne ligne JOIN campement.mouvement_stock mouvement ON mouvement.id = ligne.mouvement_stock_id JOIN campement.unite unite ON unite.id = ligne.conditionnement_saisie_id WHERE mouvement.menu_id = :menu AND ligne.denree_id = :denree',
+                ['menu' => $fixture['menu'], 'denree' => $fixture['denree']],
+            );
+            self::assertIsArray($sortie);
+            self::assertSame(1060.0, (float) $sortie['quantite_saisie']);
+            self::assertSame('gramme', $sortie['conditionnement']);
+            static::getContainer()->get(EntityManagerInterface::class)->clear();
+            $sejour = static::getContainer()->get(EntityManagerInterface::class)->find(Sejour::class, $fixture['sejour']);
+            $denree = static::getContainer()->get(EntityManagerInterface::class)->find(Denree::class, $fixture['denree']);
+            self::assertInstanceOf(Sejour::class, $sejour);
+            self::assertInstanceOf(Denree::class, $denree);
+            $stock = static::getContainer()->get(CalculStockDynamique::class)->pourDenrees($sejour, [$denree])[$fixture['denree']];
+            self::assertSame(6.0, $stock['entrees']);
+            self::assertSame(1.06, $stock['sorties']);
+        } finally {
+            $this->supprimerFixtureDistribution($fixture['sejour']);
+        }
+    }
+
     public function testLaPageExpliqueQuandAucunMenuNEstConfigure(): void
     {
         $client = static::createClient();
@@ -284,7 +375,7 @@ final class DistributionTest extends WebTestCase
             $client->submit($client->getCrawler()->selectButton('Confirmer la distribution')->form());
             self::assertResponseIsSuccessful();
             $sortie = static::getContainer()->get(Connection::class)->fetchAssociative(
-                'SELECT COUNT(*) AS nombre, MAX(quantite_unite_reference) AS quantite FROM campement.mouvement_stock_ligne ligne JOIN campement.mouvement_stock mouvement ON mouvement.id = ligne.mouvement_stock_id WHERE mouvement.menu_id = :menu AND ligne.denree_id = :denree',
+                'SELECT COUNT(*) AS nombre, MAX(quantite_saisie) AS quantite FROM campement.mouvement_stock_ligne ligne JOIN campement.mouvement_stock mouvement ON mouvement.id = ligne.mouvement_stock_id WHERE mouvement.menu_id = :menu AND ligne.denree_id = :denree',
                 ['menu' => $fixture['menu'], 'denree' => $fixture['denree']],
             );
             self::assertIsArray($sortie);
@@ -415,6 +506,15 @@ final class DistributionTest extends WebTestCase
             $parametres,
         );
         $connexion->executeStatement('DELETE FROM campement.menu WHERE sejour_id = :sejour', $parametres);
+        $connexion->executeStatement(
+            'DELETE FROM campement.denree_fournisseur_conditionnement WHERE reference_fournisseur_id IN (SELECT reference.id FROM campement.denree_fournisseur reference JOIN campement.fournisseur fournisseur ON fournisseur.id = reference.fournisseur_id WHERE fournisseur.sejour_id = :sejour)',
+            $parametres,
+        );
+        $connexion->executeStatement(
+            'DELETE FROM campement.denree_fournisseur WHERE fournisseur_id IN (SELECT id FROM campement.fournisseur WHERE sejour_id = :sejour)',
+            $parametres,
+        );
+        $connexion->executeStatement('DELETE FROM campement.fournisseur WHERE sejour_id = :sejour', $parametres);
         $connexion->executeStatement('DELETE FROM campement.denree WHERE sejour_id = :sejour', $parametres);
         $connexion->executeStatement('DELETE FROM campement.sejour WHERE id = :sejour', $parametres);
     }
