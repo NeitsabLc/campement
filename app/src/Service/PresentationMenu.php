@@ -66,9 +66,14 @@ final class PresentationMenu
         return in_array($code, self::REPAS_AVEC_CATEGORIES, true);
     }
 
-    public function categorieRecettesPourRepas(string $code): ?string
+    /** @return list<string>|null */
+    public function categoriesRecettesPourRepas(string $code): ?array
     {
-        return in_array($code, ['PETIT_DEJEUNER', 'GOUTER'], true) ? $code : null;
+        return match ($code) {
+            'PETIT_DEJEUNER' => ['PETIT_DEJEUNER'],
+            'GOUTER' => ['GOUTER', 'DESSERT'],
+            default => null,
+        };
     }
 
     public function libelleDate(\DateTimeImmutable $date): string

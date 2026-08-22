@@ -21,10 +21,10 @@ final class PresentationMenuTest extends TestCase
     {
         $presentation = new PresentationMenu();
 
-        self::assertSame('PETIT_DEJEUNER', $presentation->categorieRecettesPourRepas('PETIT_DEJEUNER'));
-        self::assertSame('GOUTER', $presentation->categorieRecettesPourRepas('GOUTER'));
-        self::assertNull($presentation->categorieRecettesPourRepas('DEJEUNER'));
-        self::assertNull($presentation->categorieRecettesPourRepas('DINER'));
+        self::assertSame(['PETIT_DEJEUNER'], $presentation->categoriesRecettesPourRepas('PETIT_DEJEUNER'));
+        self::assertSame(['GOUTER', 'DESSERT'], $presentation->categoriesRecettesPourRepas('GOUTER'));
+        self::assertNull($presentation->categoriesRecettesPourRepas('DEJEUNER'));
+        self::assertNull($presentation->categoriesRecettesPourRepas('DINER'));
     }
 
     public function testLeRepasSuivantRespecteLOrdreDesRepasPuisChangeDeJour(): void
