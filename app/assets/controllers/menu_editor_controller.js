@@ -1,7 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
- static targets=['template','recipeTemplate','catalog','recipes'];
- connect(){this.element.style.setProperty('--public-count',this.element.dataset.publicCount);this.foods=JSON.parse(this.catalogTarget.textContent);this.recipeData=JSON.parse(this.recipesTarget.textContent);this.refresh();}
+ static targets=['template','recipeTemplate','catalog','recipes','calendar','calendarSpacer'];
+ connect(){this.element.style.setProperty('--public-count',this.element.dataset.publicCount);this.foods=JSON.parse(this.catalogTarget.textContent);this.recipeData=JSON.parse(this.recipesTarget.textContent);this.refresh();this.scrollFrame=requestAnimationFrame(()=>this.scrollToActiveDay());}
+ disconnect(){cancelAnimationFrame(this.scrollFrame);}
+ scrollToActiveDay(){if(!this.hasCalendarTarget||!this.hasCalendarSpacerTarget)return;const activeDay=this.calendarTarget.querySelector('.meal-slot--active')?.closest('.meal-day');if(!activeDay)return;this.calendarSpacerTarget.style.height=`${Math.max(0,this.calendarTarget.clientHeight-activeDay.offsetHeight)}px`;this.calendarTarget.scrollTop+=activeDay.getBoundingClientRect().top-this.calendarTarget.getBoundingClientRect().top;}
  addFood(event){const block=event.currentTarget.closest('[data-menu-block]');const select=block.querySelector('[data-food-picker]');if(select.value)this.addLine({denree:select.value,quantites:{}},block.querySelector('[data-extra-rows]'),block.dataset.category||'');select.value='';select.dispatchEvent(new Event('change',{bubbles:true}));}
  addRecipe(event){const block=event.currentTarget.closest('[data-menu-block]');const select=block.querySelector('[data-recipe-picker]');const id=select.value;const r=this.recipeData[id];if(r){const group=this.makeRecipeGroup(id,r.nom);r.lignes.forEach(l=>this.addLine({...l,recette:id,recette_instance:group.dataset.recipeInstance},group.querySelector('[data-recipe-rows]'),block.dataset.category||''));block.querySelector('[data-recipe-groups]').append(group);this.refresh();}select.value='';}
  makeRecipeGroup(id,name){const group=this.recipeTemplateTarget.content.firstElementChild.cloneNode(true);group.dataset.recipe=id;group.dataset.recipeInstance=crypto.randomUUID();group.querySelector('[data-recipe-name]').textContent=name;return group;}

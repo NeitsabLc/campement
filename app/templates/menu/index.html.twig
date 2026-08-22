@@ -24,7 +24,7 @@
         {{ include('menu/_consultation.html.twig') }}
     </section>
     <div class="menus-layout">
-        <aside class="meal-calendar" data-turbo-prefetch="false">
+        <aside class="meal-calendar" data-turbo-prefetch="false" data-menu-editor-target="calendar">
             <section class="meal-day"><h2>Repas généraux</h2><div class="meal-day__items">
                 {% for code, libelle in specials %}{% set renseigne = menus_existants['special|' ~ code]|default(false) %}
                     <a class="meal-slot{{ special == code ? ' meal-slot--active' : '' }}{{ renseigne ? ' meal-slot--complete' : '' }}" href="{{ path('app_menus', {special: code}) }}">
@@ -39,6 +39,7 @@
                     </a>
                 {% endfor %}
             </div></section>{% endfor %}
+            <div aria-hidden="true" data-menu-editor-target="calendarSpacer"></div>
         </aside>
         <section class="meal-editor">
             <h2>{{ special ? specials[special] : repas_selectionne.typeRepas.libelle ~ ' · ' ~ date_selectionnee|date('d/m/Y') }}</h2>

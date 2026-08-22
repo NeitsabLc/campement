@@ -161,3 +161,19 @@ test('un menu peut être créé, consulté, modifié puis vidé', async ({ page 
   await enregistrerRepasSpecial(page);
   await expect(page.locator('[data-line]').filter({ hasText: denree })).toHaveCount(0);
 });
+
+test('le calendrier des menus place le jour actif en haut', async ({ page }) => {
+  await page.goto('/menus');
+  const jourCible = page.locator('.meal-day:has(.meal-slot[href*="date="])').last();
+  await jourCible.locator('.meal-slot').first().click();
+
+  const calendrier = page.locator('.meal-calendar');
+  await expect.poll(() => calendrier.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect.poll(() => calendrier.evaluate((element) => {
+    const jourActif = element.querySelector('.meal-slot--active')?.closest('.meal-day');
+
+    return jourActif
+      ? Math.abs(jourActif.getBoundingClientRect().top - element.getBoundingClientRect().top)
+      : Number.POSITIVE_INFINITY;
+  })).toBeLessThan(3);
+});
