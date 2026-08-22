@@ -143,6 +143,9 @@ test('un menu peut être créé, consulté, modifié puis vidé', async ({ page 
   await ajoutDenree.getByRole('button', { name: 'Ajouter' }).click();
   const ligne = bloc.locator('[data-line]').filter({ hasText: denree });
   await expect(ligne).toBeVisible();
+  for (const quantite of await ligne.locator('input[data-public]').all()) {
+    await expect(quantite).toHaveValue('');
+  }
   await ligne.locator('input[data-public]').first().fill('2');
   await enregistrerRepasSpecial(page);
   await expect(page).toHaveURL(/\/menus\?special=EXPLO$/);
