@@ -22,9 +22,9 @@ L’application couvre actuellement :
 * l’envoi d’e-mails de création de compte et de réinitialisation de mot de passe ;
 * les exports PDF et les règles automatiques de conservation des données.
 
-État vérifié le 21 août 2026 : version applicative `v1.4.0` préparée, dernier
-tag stable `v1.3.1`, branche stable `main`, branche de développement `dev`,
-schéma Liquibase courant `V034`. La production est hébergée sur un hôte
+État vérifié le 22 août 2026 : version applicative `v1.4.1` préparée, dernier
+tag stable `v1.4.0`, branche stable `main`, branche de développement `dev`,
+schéma Liquibase courant `V035`. La production est hébergée sur un hôte
 applicatif dédié derrière un reverse proxy Traefik séparé ; l’ancienne
 installation est arrêtée et conservée pour le retour arrière. Le projet est
 fonctionnel. Toute évolution doit
@@ -447,6 +447,13 @@ les lignes du menu. Leur modification reste locale au menu. L’action de
 resynchronisation remplace ces valeurs par celles de la recette, sans modifier
 la recette source. Les denrées ajoutées hors recette peuvent également recevoir
 un régime.
+
+Pour le goûter, le sélecteur de recettes propose les catégories `GOUTER` et
+`DESSERT`. Les quantités d’une denrée ajoutée hors recette sont initialement
+vides. À chaque changement de repas, le calendrier place le jour actif en haut
+de sa zone de défilement. Sur le tableau de bord, le résumé affiche une fois
+chaque instance de recette et regroupe les denrées hors recette sous la mention
+« En supplément ».
 
 ### Denrées et fournisseurs
 
