@@ -45,7 +45,7 @@ final class DuplicationSejour
                 $db->executeStatement('INSERT INTO campement.fournisseur (id,sejour_id,nom,telephone,email,adresse,actif) SELECT uuidv7(),:c,nom,telephone,email,adresse,actif FROM campement.fournisseur WHERE sejour_id=:s', compact('s', 'c'));
             }
             if ($besoinDenrees) {
-                $db->executeStatement('INSERT INTO campement.denree (id,sejour_id,nom,unite_reference_id,unite_inventaire_id,stock_min,actif) SELECT uuidv7(),:c,nom,unite_reference_id,unite_inventaire_id,stock_min,actif FROM campement.denree WHERE sejour_id=:s', compact('s', 'c'));
+                $db->executeStatement('INSERT INTO campement.denree (id,sejour_id,nom,unite_reference_id,unite_inventaire_id,actif) SELECT uuidv7(),:c,nom,unite_reference_id,unite_inventaire_id,actif FROM campement.denree WHERE sejour_id=:s', compact('s', 'c'));
             }
             if ($besoinFournisseurs && $besoinDenrees) {
                 $db->executeStatement('INSERT INTO campement.denree_fournisseur (id,fournisseur_id,denree_id,reference,actif) SELECT uuidv7(),fc.id,dc.id,r.reference,r.actif FROM campement.denree_fournisseur r JOIN campement.fournisseur fs ON fs.id=r.fournisseur_id JOIN campement.fournisseur fc ON fc.sejour_id=:c AND fc.nom=fs.nom JOIN campement.denree ds ON ds.id=r.denree_id JOIN campement.denree dc ON dc.sejour_id=:c AND dc.nom=ds.nom WHERE fs.sejour_id=:s', compact('s', 'c'));

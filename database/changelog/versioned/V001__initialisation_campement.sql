@@ -119,12 +119,10 @@ CREATE TABLE campement.denree (
     sejour_id uuid NOT NULL,
     nom character varying(150) NOT NULL,
     unite_reference_id uuid NOT NULL,
-    stock_min numeric(12,3),
     actif boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    unite_inventaire_id uuid NOT NULL,
-    CONSTRAINT chk_denree_stock_min CHECK (((stock_min IS NULL) OR (stock_min >= (0)::numeric)))
+    unite_inventaire_id uuid NOT NULL
 );
 
 

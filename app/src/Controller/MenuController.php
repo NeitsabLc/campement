@@ -66,15 +66,11 @@ final class MenuController extends AbstractController
             return $this->render('menu/index.html.twig', ['sejour' => $sejour, 'repas' => []]);
         }
 
-        $specialDemande = $request->query->getString('special');
-        $special = array_key_exists($specialDemande, self::SPECIAUX) ? $specialDemande : null;
         $date = $presentation->date($request, $sejour->getDateDebut(), $sejour->getDateFin());
         $repasSelectionne = $presentation->repas($request->query->getString('repas'), $repas);
-
         if ($lectureSeule && $request->isMethod('POST')) {
             throw $this->createAccessDeniedException('Les menus sont accessibles en lecture seule.');
         }
-
         if ($lectureSeule) {
             return $this->render('menu/groupe.html.twig', [
                 'sejour' => $sejour,
@@ -86,150 +82,194 @@ final class MenuController extends AbstractController
             ]);
         }
 
-        $menu = null !== $special
-            ? $menus->findSpecial($sejour, $special)
-            : $menus->findPourRepas($sejour, $date, $repasSelectionne);
+        $pageSpeciaux = $request->query->getBoolean('speciaux');
+        $specialDemande = $request->query->getString('special');
+        $special = $pageSpeciaux && array_key_exists($specialDemande, self::SPECIAUX) ? $specialDemande : null;
         $publicsActifs = $publics->findActifsPourSejour($sejour);
-        $avecCategories = null === $special && $presentation->avecCategories($repasSelectionne->getTypeRepas()->getCode());
-        $repasSuivant = null === $special
-            ? $presentation->repasSuivant($date, $repasSelectionne, $repas, $sejour->getDateFin())
-            : null;
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('enregistrer_menu', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException();
             }
 
-            $composition = [];
-            foreach ($request->request->all('lignes') as $donnees) {
-                if (!is_array($donnees)) {
-                    continue;
-                }
+            $soumissions = [];
+            if ($pageSpeciaux) {
+                if (null === $special) {
+                    $this->addFlash('error', 'Sélectionnez un repas spécial valide.');
 
-                $denreeId = (string) ($donnees['denree'] ?? '');
-                $uniteId = (string) ($donnees['conditionnement'] ?? '');
-                $denree = Uuid::isValid($denreeId) ? $denrees->find($denreeId) : null;
-                $unite = Uuid::isValid($uniteId) ? $unites->find($uniteId) : null;
-                if (null === $denree
-                    || $denree->getSejour() !== $sejour
-                    || null === $unite
-                    || !in_array($unite, $conversion->conditionnementsPour($denree), true)) {
-                    continue;
+                    return $this->redirectToRoute('app_menus', ['speciaux' => 1]);
                 }
-
-                $quantites = [];
-                foreach ($publicsActifs as $public) {
-                    $valeur = str_replace(',', '.', trim((string) ($donnees['quantites'][(string) $public->getId()] ?? '')));
-                    if (!is_numeric($valeur) || (float) $valeur < 0) {
-                        $this->addFlash('error', sprintf('Quantité invalide pour %s.', $denree->getNom()));
-
-                        return $this->redirectMenu($date, $repasSelectionne, $special);
-                    }
-                    $quantites[(string) $public->getId()] = number_format((float) $valeur, 3, '.', '');
-                }
-                $categorie = $avecCategories && in_array($donnees['categorie'] ?? null, self::CATEGORIES, true)
-                    ? $donnees['categorie']
-                    : null;
-                $regimeBrut = (string) ($donnees['regime'] ?? '');
-                $regime = '' === $regimeBrut ? null : RegimeAlimentaire::tryFrom($regimeBrut);
-                if ('' !== $regimeBrut && null === $regime) {
-                    $this->addFlash('error', sprintf('Régime alimentaire invalide pour %s.', $denree->getNom()));
-
-                    return $this->redirectMenu($date, $repasSelectionne, $special);
-                }
-                $recetteId = (string) ($donnees['recette'] ?? '');
-                $instanceId = (string) ($donnees['recette_instance'] ?? '');
-                $recette = Uuid::isValid($recetteId) ? $recettes->find($recetteId) : null;
-                $instance = Uuid::isValid($instanceId) ? Uuid::fromString($instanceId) : null;
-                if (null === $recette || $recette->getSejour() !== $sejour || !$recette->isActif()) {
-                    $recette = null;
-                    $instance = null;
-                }
-                $composition[] = [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance];
-            }
-
-            $menu ??= (new Menu())->setSejour($sejour);
-            if (null !== $special) {
-                $menu->setSpecialCode($special);
+                $soumissions[] = [
+                    'repas' => $repasSelectionne,
+                    'special' => $special,
+                    'menu' => $menus->findSpecial($sejour, $special),
+                    'avec_categories' => false,
+                    'lignes' => $request->request->all('lignes'),
+                ];
             } else {
-                $menu->setDateMenu($date)->setSejourTypeRepas($repasSelectionne);
-            }
-            foreach ($menu->getDenrees()->toArray() as $ancienne) {
-                $menu->removeDenree($ancienne);
-            }
-            foreach ($composition as $ordre => [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance]) {
-                $ligne = (new MenuDenree())
-                    ->setDenree($denree)
-                    ->setConditionnement($unite)
-                    ->setCategorie($categorie)
-                    ->setRegime($regime)
-                    ->setRecette($recette)
-                    ->setRecetteInstanceId($instance)
-                    ->setOrdre($ordre);
-                foreach ($publicsActifs as $public) {
-                    $ligne->addQuantite((new MenuDenreeQuantite())
-                        ->setSejourPublicCible($public)
-                        ->setQuantiteIndividuelle($quantites[(string) $public->getId()]));
+                $repasSoumis = $request->request->all('repas');
+                foreach ($repas as $configuration) {
+                    $donneesRepas = $repasSoumis[(string) $configuration->getId()] ?? [];
+                    $soumissions[] = [
+                        'repas' => $configuration,
+                        'special' => null,
+                        'menu' => $menus->findPourRepas($sejour, $date, $configuration),
+                        'avec_categories' => $presentation->avecCategories($configuration->getTypeRepas()->getCode()),
+                        'lignes' => is_array($donneesRepas) && is_array($donneesRepas['lignes'] ?? null) ? $donneesRepas['lignes'] : [],
+                    ];
                 }
-                $menu->addDenree($ligne);
             }
 
-            $entityManager->persist($menu);
-            $preparationDistribution->completerDejeuners($sejour, $menu);
+            foreach ($soumissions as $soumission) {
+                $composition = [];
+                foreach ($soumission['lignes'] as $donnees) {
+                    if (!is_array($donnees)) {
+                        continue;
+                    }
+                    $denreeId = (string) ($donnees['denree'] ?? '');
+                    $uniteId = (string) ($donnees['conditionnement'] ?? '');
+                    $denree = Uuid::isValid($denreeId) ? $denrees->find($denreeId) : null;
+                    $unite = Uuid::isValid($uniteId) ? $unites->find($uniteId) : null;
+                    if (null === $denree
+                        || $denree->getSejour() !== $sejour
+                        || null === $unite
+                        || !in_array($unite, $conversion->conditionnementsPour($denree), true)) {
+                        continue;
+                    }
+
+                    $quantites = [];
+                    foreach ($publicsActifs as $public) {
+                        $valeur = str_replace(',', '.', trim((string) ($donnees['quantites'][(string) $public->getId()] ?? '')));
+                        if (!is_numeric($valeur) || (float) $valeur < 0) {
+                            $this->addFlash('error', sprintf('Quantité invalide pour %s.', $denree->getNom()));
+
+                            return $this->redirectMenu($date, $repasSelectionne, $special, $pageSpeciaux);
+                        }
+                        $quantites[(string) $public->getId()] = number_format((float) $valeur, 3, '.', '');
+                    }
+                    $categorie = $soumission['avec_categories'] && in_array($donnees['categorie'] ?? null, self::CATEGORIES, true)
+                        ? $donnees['categorie']
+                        : null;
+                    $regimeBrut = (string) ($donnees['regime'] ?? '');
+                    $regime = '' === $regimeBrut ? null : RegimeAlimentaire::tryFrom($regimeBrut);
+                    if ('' !== $regimeBrut && null === $regime) {
+                        $this->addFlash('error', sprintf('Régime alimentaire invalide pour %s.', $denree->getNom()));
+
+                        return $this->redirectMenu($date, $repasSelectionne, $special, $pageSpeciaux);
+                    }
+                    $recetteId = (string) ($donnees['recette'] ?? '');
+                    $instanceId = (string) ($donnees['recette_instance'] ?? '');
+                    $recette = Uuid::isValid($recetteId) ? $recettes->find($recetteId) : null;
+                    $instance = Uuid::isValid($instanceId) ? Uuid::fromString($instanceId) : null;
+                    if (null === $recette || $recette->getSejour() !== $sejour || !$recette->isActif()) {
+                        $recette = null;
+                        $instance = null;
+                    }
+                    $composition[] = [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance];
+                }
+
+                $menu = $soumission['menu'] ?? (new Menu())->setSejour($sejour);
+                if (null !== $soumission['special']) {
+                    $menu->setSpecialCode($soumission['special']);
+                } else {
+                    $menu->setDateMenu($date)->setSejourTypeRepas($soumission['repas']);
+                }
+                foreach ($menu->getDenrees()->toArray() as $ancienne) {
+                    $menu->removeDenree($ancienne);
+                }
+                foreach ($composition as $ordre => [$denree, $unite, $categorie, $regime, $quantites, $recette, $instance]) {
+                    $ligne = (new MenuDenree())
+                        ->setDenree($denree)
+                        ->setConditionnement($unite)
+                        ->setCategorie($categorie)
+                        ->setRegime($regime)
+                        ->setRecette($recette)
+                        ->setRecetteInstanceId($instance)
+                        ->setOrdre($ordre);
+                    foreach ($publicsActifs as $public) {
+                        $ligne->addQuantite((new MenuDenreeQuantite())
+                            ->setSejourPublicCible($public)
+                            ->setQuantiteIndividuelle($quantites[(string) $public->getId()]));
+                    }
+                    $menu->addDenree($ligne);
+                }
+                $entityManager->persist($menu);
+            }
+
             $entityManager->flush();
-            $this->addFlash('success', 'Le repas a bien été enregistré.');
+            $preparationDistribution->completerDejeuners($sejour);
+            $entityManager->flush();
+            $this->addFlash('success', $pageSpeciaux ? 'Le repas spécial a bien été enregistré.' : 'Les menus de la journée ont bien été enregistrés.');
 
-            if ('suivant' === $request->request->getString('action') && null !== $repasSuivant) {
-                return $this->redirectMenu($repasSuivant['date'], $repasSuivant['repas'], null);
-            }
-
-            return $this->redirectMenu($date, $repasSelectionne, $special);
+            return $this->redirectMenu($date, $repasSelectionne, $special, $pageSpeciaux);
         }
 
         $denreesActives = $denrees->findActifsPourSejour($sejour);
-        $conditionnements = $conversion->conditionnementsPourDenrees($denreesActives);
-        $catalogue = $presentation->catalogue($denreesActives, $conditionnements);
-
+        $catalogue = $presentation->catalogue($denreesActives, $conversion->conditionnementsPourDenrees($denreesActives));
         $recettesActives = $recettes->findActivesPourSejour($sejour);
-        $recettesJson = $presentation->recettesJson($recettesActives);
-        $categoriesRecettes = null === $special
-            ? $presentation->categoriesRecettesPourRepas($repasSelectionne->getTypeRepas()->getCode())
-            : null;
-        $menusExistants = $presentation->menusExistants($menus->findStatutsPourSejour($sejour));
-        $jours = $presentation->jours($sejour);
-        $compositionMenu = $presentation->composition($menu, $avecCategories);
+        $menusDate = $menus->findPourDate($sejour, $date);
+        $menusDateParRepas = [];
+        foreach ($menusDate as $menuDate) {
+            if (null !== ($configuration = $menuDate->getSejourTypeRepas())) {
+                $menusDateParRepas[(string) $configuration->getId()] = $menuDate;
+            }
+        }
+
+        $editeursMenus = [];
+        foreach ($repas as $configuration) {
+            $code = $configuration->getTypeRepas()->getCode();
+            $menuDate = $menusDateParRepas[(string) $configuration->getId()] ?? null;
+            $avecCategories = $presentation->avecCategories($code);
+            $editeursMenus[] = [
+                'id' => (string) $configuration->getId(),
+                'code' => $code,
+                'libelle' => $configuration->getTypeRepas()->getLibelle(),
+                'renseigne' => null !== $menuDate && !$menuDate->getDenrees()->isEmpty(),
+                'avec_categories' => $avecCategories,
+                'categories_recettes' => $presentation->categoriesRecettesPourRepas($code),
+                'composition' => $presentation->composition($menuDate, $avecCategories),
+            ];
+        }
+        $editeursSpeciaux = [];
+        foreach (self::SPECIAUX as $code => $libelle) {
+            $menuSpecial = $menus->findSpecial($sejour, $code);
+            $editeursSpeciaux[] = [
+                'code' => $code,
+                'libelle' => $libelle,
+                'renseigne' => null !== $menuSpecial && !$menuSpecial->getDenrees()->isEmpty(),
+                'avec_categories' => false,
+                'categories_recettes' => null,
+                'composition' => $presentation->composition($menuSpecial, false),
+            ];
+        }
 
         return $this->render('menu/index.html.twig', [
             'sejour' => $sejour,
+            'page_speciaux' => $pageSpeciaux,
             'repas' => $repas,
             'repas_selectionne' => $repasSelectionne,
-            'repas_suivant' => $repasSuivant,
             'date_selectionnee' => $date,
-            'menu' => $menu,
-            'jours' => $jours,
-            'special' => $special,
-            'specials' => self::SPECIAUX,
-            'menus_existants' => $menusExistants,
             'publicsCibles' => $publicsActifs,
             'catalogue' => $catalogue,
             'regimes' => RegimeAlimentaire::choix(),
             'recettes' => $recettesActives,
-            'recettes_json' => $recettesJson,
-            'categories_recettes' => $categoriesRecettes,
-            'avec_categories' => $avecCategories,
-            'composition_menu' => $compositionMenu,
-            'lecture_seule' => $lectureSeule,
+            'recettes_json' => $presentation->recettesJson($recettesActives),
+            'editeurs_menus' => $editeursMenus,
+            'editeurs_speciaux' => $editeursSpeciaux,
             'date_libelle' => $presentation->libelleDate($date),
             'jour_precedent' => $date > $sejour->getDateDebut() ? $date->modify('-1 day') : null,
             'jour_suivant' => $date < $sejour->getDateFin() ? $date->modify('+1 day') : null,
-            'menus_jour' => $presentation->menusDuJour($menus->findPourDate($sejour, $date), $repas),
         ]);
     }
 
-    private function redirectMenu(\DateTimeImmutable $date, SejourTypeRepas $repas, ?string $special): Response
-    {
-        return $this->redirectToRoute('app_menus', null !== $special
-            ? ['special' => $special]
+    private function redirectMenu(
+        \DateTimeImmutable $date,
+        SejourTypeRepas $repas,
+        ?string $special,
+        bool $pageSpeciaux,
+    ): Response {
+        return $this->redirectToRoute('app_menus', $pageSpeciaux
+            ? ['speciaux' => 1, 'special' => $special]
             : ['date' => $date->format('Y-m-d'), 'repas' => (string) $repas->getId()]);
     }
 }

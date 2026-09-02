@@ -31,7 +31,6 @@ async function creerDenree(page, suffixe) {
   const blocFournisseur = page.locator('.supplier-card').first();
   await blocFournisseur.locator('select[data-field="fournisseur"]').selectOption({ label: fournisseur });
   await blocFournisseur.locator('select[data-level-field="conditionnement"]').selectOption({ label: 'kilogramme' });
-  await page.locator('input[name="stock_min"]').fill('5');
   await page.getByRole('button', { name: 'Enregistrer la denrée' }).click();
   await expect(page).toHaveURL(/\/denrees$/);
   await expect(page.getByRole('status')).toContainText(`La denrée « ${nom} » a bien été créée.`);
@@ -45,12 +44,13 @@ async function enregistrerRepasSpecial(page) {
 
     return 'GET' === reponse.request().method()
       && '/menus' === url.pathname
+      && '1' === url.searchParams.get('speciaux')
       && 'EXPLO' === url.searchParams.get('special')
       && 200 === reponse.status();
   });
-  await page.getByRole('button', { name: 'Enregistrer ce repas' }).click();
+  await page.getByRole('button', { name: 'Enregistrer Explo' }).click();
   await rechargement;
-  await expect(page.getByRole('status')).toContainText('Le repas a bien été enregistré.');
+  await expect(page.getByRole('status')).toContainText('Le repas spécial a bien été enregistré.');
 }
 
 test('un fournisseur peut être créé, consulté, modifié, désactivé puis réactivé', async ({ page }) => {
@@ -83,7 +83,6 @@ test('une denrée peut être créée, consultée, modifiée, désactivée puis r
 
   await page.locator(`a.action-icon-button[aria-label="Modifier ${nom}"]`).click();
   await page.locator('input[name="nom"]').fill(nomModifie);
-  await page.locator('input[name="stock_min"]').fill('8');
   await page.getByRole('button', { name: 'Enregistrer la denrée' }).click();
   await expect(page.getByRole('status')).toContainText(`La denrée « ${nomModifie} » a bien été modifiée.`);
 
@@ -136,8 +135,8 @@ test('un menu peut être créé, consulté, modifié puis vidé', async ({ page 
   const suffixe = suffixeUnique();
   const { nom: denree } = await creerDenree(page, suffixe);
 
-  await page.goto('/menus?special=EXPLO');
-  const bloc = page.locator('[data-menu-block]').first();
+  await page.goto('/menus?speciaux=1');
+  const bloc = page.locator('#menu-explo [data-menu-block]');
   const ajoutDenree = bloc.locator('.menu-adder').filter({ hasText: 'Ajouter une denrée' });
   await ajoutDenree.locator('select[data-food-picker]').selectOption({ label: denree });
   await ajoutDenree.getByRole('button', { name: 'Ajouter' }).click();
@@ -149,32 +148,23 @@ test('un menu peut être créé, consulté, modifié puis vidé', async ({ page 
     await quantite.fill('2');
   }
   await enregistrerRepasSpecial(page);
-  await expect(page).toHaveURL(/\/menus\?special=EXPLO$/);
-  await expect(page.locator('[data-line]').filter({ hasText: denree })).toBeVisible();
+  await expect(page).toHaveURL(/\/menus\?speciaux=1&special=EXPLO$/);
+  await expect(page.locator('#menu-explo [data-line]').filter({ hasText: denree })).toBeVisible();
 
-  const ligneModifiee = page.locator('[data-line]').filter({ hasText: denree });
+  const ligneModifiee = page.locator('#menu-explo [data-line]').filter({ hasText: denree });
   await ligneModifiee.locator('input[data-public]').first().fill('3');
   await enregistrerRepasSpecial(page);
-  await expect(page.locator('[data-line]').filter({ hasText: denree }).locator('input[data-public]').first()).toHaveValue(/3/);
+  await expect(page.locator('#menu-explo [data-line]').filter({ hasText: denree }).locator('input[data-public]').first()).toHaveValue(/3/);
 
   await page.getByRole('button', { name: `Supprimer ${denree}` }).click();
-  await expect(page.locator('[data-line]').filter({ hasText: denree })).toHaveCount(0);
+  await expect(page.locator('#menu-explo [data-line]').filter({ hasText: denree })).toHaveCount(0);
   await enregistrerRepasSpecial(page);
-  await expect(page.locator('[data-line]').filter({ hasText: denree })).toHaveCount(0);
+  await expect(page.locator('#menu-explo [data-line]').filter({ hasText: denree })).toHaveCount(0);
 });
 
-test('le calendrier des menus place le jour actif en haut', async ({ page }) => {
+test('la navigation des menus permet de passer au jour suivant', async ({ page }) => {
   await page.goto('/menus');
-  const jourCible = page.locator('.meal-day:has(.meal-slot[href*="date="])').last();
-  await jourCible.locator('.meal-slot').first().click();
-
-  const calendrier = page.locator('.meal-calendar');
-  await expect.poll(() => calendrier.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-  await expect.poll(() => calendrier.evaluate((element) => {
-    const jourActif = element.querySelector('.meal-slot--active')?.closest('.meal-day');
-
-    return jourActif
-      ? Math.abs(jourActif.getBoundingClientRect().top - element.getBoundingClientRect().top)
-      : Number.POSITIVE_INFINITY;
-  })).toBeLessThan(3);
+  const dateInitiale = await page.locator('.menu-date-picker__input').inputValue();
+  await page.getByRole('link', { name: 'Jour suivant' }).click();
+  await expect(page.locator('.menu-date-picker__input')).not.toHaveValue(dateInitiale);
 });

@@ -173,16 +173,12 @@ final class DenreeController extends AbstractController
             if (!$this->isCsrfTokenValid('enregistrer_denree', $request->request->getString('_token'))) {
                 throw $this->createAccessDeniedException('Jeton CSRF invalide.');
             }
-            $donnees = ['nom' => trim($request->request->getString('nom')), 'unite_inventaire' => $request->request->getString('unite_inventaire'), 'stock_min' => trim($request->request->getString('stock_min')), 'fournisseurs' => $request->request->all('fournisseurs')];
+            $donnees = ['nom' => trim($request->request->getString('nom')), 'unite_inventaire' => $request->request->getString('unite_inventaire'), 'fournisseurs' => $request->request->all('fournisseurs')];
             $uniteInventaire = Uuid::isValid($donnees['unite_inventaire']) ? $unites->find($donnees['unite_inventaire']) : null;
-            $stockMinNormalise = str_replace([' ', ','], ['', '.'], $donnees['stock_min']);
             if ('' === $donnees['nom'] || mb_strlen($donnees['nom']) > 150) {
                 $erreurs[] = 'Le nom de la denrée est obligatoire et limité à 150 caractères.';
             } elseif ($denrees->existeAvecNomPourSejour($denree->getSejour(), $donnees['nom'], $creation ? null : $denree)) {
                 $erreurs[] = 'Une denrée portant ce nom existe déjà.';
-            }
-            if ('' !== $stockMinNormalise && (!is_numeric($stockMinNormalise) || (float) $stockMinNormalise < 0 || (float) $stockMinNormalise >= 1000000000)) {
-                $erreurs[] = 'Le seuil minimum doit être un nombre positif ou nul inférieur à un milliard.';
             }
             $fournisseursValides = [];
             $fournisseursSelectionnes = [];
@@ -252,7 +248,7 @@ final class DenreeController extends AbstractController
             }
 
             if ([] === $erreurs && null !== $uniteTerminale && null !== $uniteInventaire) {
-                $denree->setNom($donnees['nom'])->setUniteReference($uniteTerminale)->setUniteInventaire($uniteInventaire)->setStockMin('' === $stockMinNormalise ? null : number_format((float) $stockMinNormalise, 3, '.', ''));
+                $denree->setNom($donnees['nom'])->setUniteReference($uniteTerminale)->setUniteInventaire($uniteInventaire);
                 if ($creation) {
                     $em->persist($denree);
                 }
@@ -319,12 +315,11 @@ final class DenreeController extends AbstractController
     /** @return array<string, mixed> */
     private function donneesInitiales(Denree $denree, ReferenceFournisseurRepository $references, ReferenceFournisseurConditionnementRepository $conditionnements): array
     {
-        $resultat = ['nom' => '', 'unite' => null, 'unite_inventaire' => null, 'stock_min' => '', 'fournisseurs' => []];
+        $resultat = ['nom' => '', 'unite' => null, 'unite_inventaire' => null, 'fournisseurs' => []];
         try {
             $resultat['nom'] = $denree->getNom();
             $resultat['unite'] = (string) $denree->getUniteReference()->getId();
             $resultat['unite_inventaire'] = (string) $denree->getUniteInventaire()->getId();
-            $resultat['stock_min'] = $denree->getStockMin() ?? '';
         } catch (\Error) {
         }
         if ('' === $resultat['nom']) {

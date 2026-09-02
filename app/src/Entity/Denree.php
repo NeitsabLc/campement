@@ -38,9 +38,6 @@ class Denree
     #[ORM\JoinColumn(name: 'unite_inventaire_id', referencedColumnName: 'id', nullable: false, onDelete: 'RESTRICT')]
     private Unite $uniteInventaire;
 
-    #[ORM\Column(name: 'stock_min', type: Types::DECIMAL, precision: 12, scale: 3, nullable: true)]
-    private ?string $stockMin = null;
-
     #[ORM\Column(options: ['default' => true])]
     private bool $actif = true;
 
@@ -109,18 +106,6 @@ class Denree
     public function setUniteInventaire(Unite $uniteInventaire): self
     {
         $this->uniteInventaire = $uniteInventaire;
-
-        return $this;
-    }
-
-    public function getStockMin(): ?string
-    {
-        return $this->stockMin;
-    }
-
-    public function setStockMin(?string $stockMin): self
-    {
-        $this->stockMin = $stockMin;
 
         return $this;
     }

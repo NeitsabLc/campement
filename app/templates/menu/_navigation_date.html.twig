@@ -1,0 +1,12 @@
+<nav class="group-menu-date-nav manager-menu-date-nav" aria-label="Navigation entre les jours">
+    {% if jour_precedent %}<a class="group-menu-date-arrow" href="{{ path('app_menus', {date: jour_precedent|date('Y-m-d')}) }}" aria-label="Jour précédent">‹</a>{% else %}<span class="group-menu-date-arrow group-menu-date-arrow--disabled" aria-hidden="true">‹</span>{% endif %}
+    <form class="menu-date-picker" method="get" action="{{ path('app_menus') }}" data-controller="menu-date">
+        <button class="menu-date-picker__button" type="button" aria-label="Choisir une autre date" data-action="menu-date#open">
+            <strong>{{ date_libelle }}</strong><small>{{ date_selectionnee|date('Y') }}</small>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3v3M17 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/></svg>
+        </button>
+        <input class="menu-date-picker__input" type="date" name="date" value="{{ date_selectionnee|date('Y-m-d') }}" min="{{ sejour.dateDebut|date('Y-m-d') }}" max="{{ sejour.dateFin|date('Y-m-d') }}" aria-label="Date du menu" tabindex="-1" data-menu-date-target="input" data-action="change->menu-date#navigate">
+        <button class="visually-hidden" type="submit">Aller à cette date</button>
+    </form>
+    {% if jour_suivant %}<a class="group-menu-date-arrow" href="{{ path('app_menus', {date: jour_suivant|date('Y-m-d')}) }}" aria-label="Jour suivant">›</a>{% else %}<span class="group-menu-date-arrow group-menu-date-arrow--disabled" aria-hidden="true">›</span>{% endif %}
+</nav>

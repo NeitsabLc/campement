@@ -11,60 +11,52 @@
     {% endfor %}</div>
     <section class="menu-extras"><h4>Denrées supplémentaires</h4><div class="food-table">{{ _self.table_header(publicsCibles) }}<div data-extra-rows>{% for ligne in composition.supplementaires|default([]) %}{{ _self.food_line(ligne, publicsCibles, categorie, '', '', regimes) }}{% endfor %}</div></div></section>
 {% endmacro %}
-{% block title %}Menus | Campement{% endblock %}
+{% macro meal_icon(code) %}<span class="group-menu-meal__icon" aria-hidden="true">{% if code == 'PETIT_DEJEUNER' %}<svg viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5H9a4 4 0 0 1-4-4V9Zm11 2h1.5a2.5 2.5 0 0 1 0 5H16M8 5c0 1 1 1 1 2m3-2c0 1 1 1 1 2"/></svg>{% elseif code == 'DEJEUNER' %}<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>{% elseif code == 'GOUTER' %}<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-8-8 3 3 0 0 0 4 4 3 3 0 0 0 4 4Z"/><circle cx="8.5" cy="13.5" r=".7"/><circle cx="11" cy="17" r=".7"/><circle cx="7.5" cy="9" r=".7"/></svg>{% elseif code == 'DINER' %}<svg viewBox="0 0 24 24"><path d="M20 15.5A8 8 0 0 1 8.5 4 8 8 0 1 0 20 15.5Z"/></svg>{% else %}<svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg>{% endif %}</span>{% endmacro %}
+{% macro inline_editor(editeur, action, token, recettes, catalogue, publicsCibles, regimes, special) %}
+    <section class="manager-inline-meal" id="{{ special ? 'menu-' ~ editeur.code|lower : 'repas-' ~ editeur.id }}" data-menu-editor-section{% if not special %} data-field-prefix="repas[{{ editeur.id }}][lignes]"{% endif %}>
+        <header class="manager-inline-meal__heading">{{ _self.meal_icon(editeur.code) }}<div><h2>{{ editeur.libelle }}</h2><small>{{ editeur.renseigne ? 'Menu renseigné' : 'À compléter' }}</small></div></header>
+        {% if special %}<form method="post" action="{{ action }}"><input type="hidden" name="_token" value="{{ token }}">{% endif %}<fieldset class="menu-readonly-scope">
+            {% if editeur.avec_categories %}
+                <div class="menu-categories">{% for code, libelle in {'ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert'} %}
+                    <section class="menu-category" data-menu-block data-category="{{ code }}">
+                        <h3>{{ libelle }}</h3>{{ _self.adders(recettes, catalogue, [code]) }}
+                        {{ _self.composition(editeur.composition[code]|default({}), publicsCibles, code, regimes) }}
+                    </section>
+                {% endfor %}</div>
+            {% else %}
+                <section class="menu-simple-list" data-menu-block data-category="">
+                    {{ _self.adders(recettes, catalogue, editeur.categories_recettes) }}
+                    {{ _self.composition(editeur.composition['']|default({}), publicsCibles, '', regimes) }}
+                </section>
+            {% endif %}
+            {% if special %}<div class="meal-editor__actions"><button class="save-meal-button">Enregistrer {{ editeur.libelle }}</button></div>{% endif %}
+        </fieldset>{% if special %}</form>{% endif %}
+    </section>
+{% endmacro %}
+{% block title %}{{ page_speciaux|default(false) ? 'Repas spéciaux' : 'Menus' }} | Campement{% endblock %}
 {% block body %}
-<main class="menus-page{{ avec_categories|default(false) ? ' menus-page--categorized' : '' }}" data-controller="menu-editor" data-public-count="{{ publicsCibles|default([])|length }}">
-    <header class="menus-heading"><h1>Menus</h1>{% if lecture_seule|default(false) %}<span class="stay-badge"><strong>Lecture seule</strong></span>{% endif %}</header>
+<main class="menus-page" data-controller="menu-editor" data-public-count="{{ publicsCibles|default([])|length }}">
+    {% if not sejour %}<section class="empty-state"><h1>Menus</h1><p>Aucun séjour actif.</p></section>
+    {% else %}
+    <nav class="food-breadcrumb"><span>Intendance</span><span>/</span><span>Menus</span></nav>
+    <header class="menus-heading"><div><h1>{{ page_speciaux|default(false) ? 'Repas spéciaux' : 'Menus' }}</h1><p>{{ sejour.nom }} · {{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }} · {{ page_speciaux|default(false) ? 'Explo et pique-niques' : 'Grille unique du séjour' }}</p></div><a class="food-primary menus-heading__action" href="{{ path('app_menus', page_speciaux|default(false) ? {date: date_selectionnee|date('Y-m-d')} : {speciaux: 1}) }}">{{ page_speciaux|default(false) ? 'Repas standards' : 'Repas spéciaux' }}</a></header>
     {% for m in app.flashes('success') %}<div class="flash flash--success" role="status">{{ m }}</div>{% endfor %}
     {% for m in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ m }}</div>{% endfor %}
-    {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2></section>
-    {% elseif repas is empty %}<section class="empty-state"><h2>Aucun repas disponible</h2></section>
+    {% if repas is empty %}<section class="empty-state"><h2>Aucun repas disponible</h2></section>
     {% else %}
-    <section class="manager-menu-mobile" aria-label="Menus en lecture seule">
-        {{ include('menu/_consultation.html.twig') }}
+    <section class="manager-menu-block">
+        {% if not page_speciaux|default(false) %}
+        {{ include('menu/_navigation_date.html.twig') }}
+        <form class="manager-day-form" method="post" action="{{ path('app_menus', {date: date_selectionnee|date('Y-m-d')}) }}"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}"><input type="hidden" name="journee" value="1"><div class="manager-inline-meals">{% for editeur in editeurs_menus %}{{ _self.inline_editor(editeur, '', '', recettes, catalogue, publicsCibles, regimes, false) }}{% endfor %}</div><div class="manager-day-form__actions"><button class="save-meal-button" type="submit">Enregistrer la journée</button></div></form>
+        {% else %}
+        <header class="manager-special-heading"><h2>Menus dédiés aux unités</h2><p>Ces menus remplacent le repas standard pour les unités en Explo ou en pique-nique.</p></header>
+        <div class="manager-inline-meals">{% for editeur in editeurs_speciaux %}{{ _self.inline_editor(editeur, path('app_menus', {speciaux: 1, special: editeur.code}), csrf_token('enregistrer_menu'), recettes, catalogue, publicsCibles, regimes, true) }}{% endfor %}</div>
+        {% endif %}
     </section>
-    <div class="menus-layout">
-        <aside class="meal-calendar" data-turbo-prefetch="false" data-menu-editor-target="calendar">
-            <section class="meal-day"><h2>Repas généraux</h2><div class="meal-day__items">
-                {% for code, libelle in specials %}{% set renseigne = menus_existants['special|' ~ code]|default(false) %}
-                    <a class="meal-slot{{ special == code ? ' meal-slot--active' : '' }}{{ renseigne ? ' meal-slot--complete' : '' }}" href="{{ path('app_menus', {special: code}) }}">
-                        <span class="meal-slot__status" aria-hidden="true">{{ renseigne ? '✓' : '' }}</span><strong>{{ libelle }}</strong><span class="meal-slot__arrow" aria-hidden="true">›</span>
-                    </a>
-                {% endfor %}
-            </div></section>
-            {% for jour in jours %}<section class="meal-day"><h2>{{ jour|date('d/m/Y') }}</h2><div class="meal-day__items">
-                {% for r in repas %}{% set renseigne = menus_existants[jour|date('Y-m-d') ~ '|' ~ r.id]|default(false) %}
-                    <a class="meal-slot{{ not special and jour == date_selectionnee and r == repas_selectionne ? ' meal-slot--active' : '' }}{{ renseigne ? ' meal-slot--complete' : '' }}" href="{{ path('app_menus', {date: jour|date('Y-m-d'), repas: r.id}) }}">
-                        <span class="meal-slot__status" aria-hidden="true">{{ renseigne ? '✓' : '' }}</span><strong>{{ r.typeRepas.libelle }}</strong><span class="meal-slot__arrow" aria-hidden="true">›</span>
-                    </a>
-                {% endfor %}
-            </div></section>{% endfor %}
-            <div aria-hidden="true" data-menu-editor-target="calendarSpacer"></div>
-        </aside>
-        <section class="meal-editor">
-            <h2>{{ special ? specials[special] : repas_selectionne.typeRepas.libelle ~ ' · ' ~ date_selectionnee|date('d/m/Y') }}</h2>
-            <form method="post"><input type="hidden" name="_token" value="{{ csrf_token('enregistrer_menu') }}"><fieldset class="menu-readonly-scope"{{ lecture_seule|default(false) ? ' disabled' : '' }}>
-                {% if avec_categories %}
-                    <div class="menu-categories">{% for code, libelle in {'ENTREE':'Entrée','PLAT':'Plat','FROMAGE':'Fromage','DESSERT':'Dessert'} %}
-                        <section class="menu-category" data-menu-block data-category="{{ code }}">
-                            <h3>{{ libelle }}</h3>{{ _self.adders(recettes, catalogue, [code]) }}
-                            {{ _self.composition(composition_menu[code]|default({}), publicsCibles, code, regimes) }}
-                        </section>
-                    {% endfor %}</div>
-                {% else %}
-                    <section class="menu-simple-list" data-menu-block data-category="">
-                        {{ _self.adders(recettes, catalogue, categories_recettes) }}
-                        {{ _self.composition(composition_menu['']|default({}), publicsCibles, '', regimes) }}
-                    </section>
-                {% endif %}
-                {% if not lecture_seule|default(false) %}<div class="meal-editor__actions"><button class="save-meal-button">Enregistrer ce repas</button>{% if repas_suivant %}<button class="save-next-meal-button" name="action" value="suivant">Enregistrer et passer au repas suivant</button>{% endif %}</div>{% endif %}
-                </fieldset>
-            </form>
-        </section>
-    </div>
     <template data-menu-editor-target="recipeTemplate"><section class="menu-recipe" data-recipe-group><header><h4 data-recipe-name></h4><div><button type="button" class="action-icon-button" data-action="menu-editor#resetRecipe" title="Rafraîchir la recette" aria-label="Rafraîchir la recette"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="action-icon-button action-icon-button--danger" data-action="menu-editor#removeRecipe" title="Supprimer la recette" aria-label="Supprimer la recette"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></header><div class="food-table">{{ _self.table_header(publicsCibles) }}<div data-recipe-rows></div></div></section></template>
     <template data-menu-editor-target="template"><div class="food-row" data-line><strong data-name></strong><input type="hidden" data-field="denree"><input type="hidden" data-field="categorie"><input type="hidden" data-field="recette"><input type="hidden" data-field="recette_instance"><select data-field="conditionnement" aria-label="Conditionnement de la denrée"></select><select data-field="regime" aria-label="Régime alimentaire"><option value="">Standard</option>{% for code, libelle in regimes %}<option value="{{ code }}">{{ libelle }}</option>{% endfor %}</select>{% for p in publicsCibles %}<input data-public="{{ p.id }}" data-public-label="{{ p.publicCible.libelle }}" aria-label="Quantité {{ p.publicCible.libelle }} pour la denrée" required>{% endfor %}<button type="button" class="delete-food" data-action="menu-editor#remove" aria-label="Supprimer la denrée" title="Supprimer"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></template>
     <script nonce="{{ app.request.attributes.get('csp_nonce') }}" type="application/json" data-menu-editor-target="catalog">{{ catalogue|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script><script nonce="{{ app.request.attributes.get('csp_nonce') }}" type="application/json" data-menu-editor-target="recipes">{{ recettes_json|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+    {% endif %}
     {% endif %}
 </main>
 {% endblock %}

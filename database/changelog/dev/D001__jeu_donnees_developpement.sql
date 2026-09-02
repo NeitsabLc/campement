@@ -237,7 +237,6 @@ CREATE TEMP TABLE jeu_denrees_dev (
     nom VARCHAR(150) PRIMARY KEY,
     symbole_reference VARCHAR(10) NOT NULL,
     symbole_inventaire VARCHAR(10) NOT NULL,
-    stock_min NUMERIC(12,3) NOT NULL,
     fournisseur VARCHAR(150) NOT NULL,
     reference VARCHAR(100) NOT NULL,
     conditionnement_exterieur VARCHAR(50) NOT NULL,
@@ -247,38 +246,38 @@ CREATE TEMP TABLE jeu_denrees_dev (
 ) ON COMMIT DROP;
 
 INSERT INTO jeu_denrees_dev VALUES
-    ('Tomates',             'g',  'barquette',  4, 'Primeur des Vallées', 'PRI-TOM-01', 'carton',  6, 'barquette', 1000),
-    ('Pâtes',               'g',  'paquet',     8, 'Métro Alpes',         'MET-PAT-01', 'carton',  8, 'paquet',    1000),
-    ('Pain complet',        'pc', 'paquet',     8, 'BioCoop du Camp',     'BIO-PAI-01', 'carton',  8, 'paquet',       1),
-    ('Beurre',              'g',  'barquette',  8, 'Métro Alpes',         'MET-BEU-01', 'carton', 20, 'barquette',  250),
-    ('Lait demi-écrémé',    'mL', 'brique',    12, 'Métro Alpes',         'MET-LAI-01', 'carton',  6, 'brique',     1000),
-    ('Cacao en poudre',     'g',  'boîte',      2, 'BioCoop du Camp',     'BIO-CAC-01', 'carton',  6, 'boîte',       800),
-    ('Confiture de fraises','g',  'pot',        4, 'BioCoop du Camp',     'BIO-CON-01', 'carton',  6, 'pot',         750),
-    ('Céréales',            'g',  'paquet',     4, 'Métro Alpes',         'MET-CER-01', 'carton', 10, 'paquet',      500),
-    ('Pommes',              'g',  'cagette',    5, 'Primeur des Vallées', 'PRI-POM-01', 'palette', 8, 'cagette',    5000),
-    ('Carottes',            'g',  'sachet',     5, 'Primeur des Vallées', 'PRI-CAR-01', 'carton', 10, 'sachet',     1000),
-    ('Pois chiches',        'g',  'conserve',   6, 'Métro Alpes',         'MET-POI-01', 'carton', 12, 'conserve',    530),
-    ('Œufs',                'pc', 'boîte',      6, 'Primeur des Vallées', 'PRI-OEU-01', 'carton', 12, 'boîte',        12),
-    ('Farine',              'g',  'paquet',     6, 'BioCoop du Camp',     'BIO-FAR-01', 'carton', 10, 'paquet',     1000),
-    ('Salade verte',        'pc', 'cagette',    4, 'Primeur des Vallées', 'PRI-SAL-01', 'palette', 6, 'cagette',      12),
-    ('Concombres',          'pc', 'cagette',   10, 'Primeur des Vallées', 'PRI-COC-01', 'palette', 8, 'cagette',      12),
-    ('Riz',                 'g',  'sac',        6, 'Métro Alpes',         'MET-RIZ-01', 'palette',10, 'sac',        5000),
-    ('Poulet',              'g',  'barquette',  8, 'Métro Alpes',         'MET-POU-01', 'carton',  6, 'barquette', 2000),
-    ('Lait de coco',        'mL', 'conserve',   6, 'BioCoop du Camp',     'BIO-LCO-01', 'carton', 12, 'conserve',    400),
-    ('Coulis de tomate',    'mL', 'brique',     6, 'Métro Alpes',         'MET-CTO-01', 'carton', 12, 'brique',      500),
-    ('Emmental',            'g',  'sachet',     4, 'Métro Alpes',         'MET-EMM-01', 'carton', 10, 'sachet',      500),
-    ('Camembert',           'pc', 'boîte',      6, 'BioCoop du Camp',     'BIO-CAM-01', 'carton', 12, 'boîte',         1),
-    ('Yaourt nature',       'pc', 'barquette', 12, 'BioCoop du Camp',     'BIO-YAO-01', 'carton',  8, 'barquette',   12),
-    ('Chocolat noir',       'g',  'paquet',     3, 'BioCoop du Camp',     'BIO-CHO-01', 'carton', 12, 'paquet',      200),
-    ('Bananes',             'g',  'cagette',    5, 'Primeur des Vallées', 'PRI-BAN-01', 'palette', 8, 'cagette',    5000),
-    ('Sucre',               'g',  'paquet',     5, 'Métro Alpes',         'MET-SUC-01', 'carton', 10, 'paquet',     1000),
-    ('Pommes de terre',     'g',  'sac',        6, 'Primeur des Vallées', 'PRI-PDT-01', 'palette',10, 'sac',       10000),
-    ('Thon',                'g',  'conserve',   6, 'Métro Alpes',         'MET-THO-01', 'carton', 12, 'conserve',    800),
-    ('Maïs',                'g',  'conserve',   6, 'Métro Alpes',         'MET-MAI-01', 'carton', 12, 'conserve',    570),
-    ('Tortillas',           'pc', 'paquet',     5, 'Métro Alpes',         'MET-TOR-01', 'carton',  8, 'paquet',       12),
-    ('Compote de pommes',   'pc', 'barquette', 12, 'BioCoop du Camp',     'BIO-COM-01', 'carton',  8, 'barquette',   12),
-    ('Brioche',             'pc', 'paquet',     6, 'Métro Alpes',         'MET-BRI-01', 'carton',  8, 'paquet',        1),
-    ('Jus de pomme',        'mL', 'brique',    12, 'BioCoop du Camp',     'BIO-JUS-01', 'carton',  6, 'brique',     1000);
+    ('Tomates',             'g',  'barquette', 'Primeur des Vallées', 'PRI-TOM-01', 'carton',  6, 'barquette', 1000),
+    ('Pâtes',               'g',  'paquet', 'Métro Alpes',         'MET-PAT-01', 'carton',  8, 'paquet',    1000),
+    ('Pain complet',        'pc', 'paquet', 'BioCoop du Camp',     'BIO-PAI-01', 'carton',  8, 'paquet',       1),
+    ('Beurre',              'g',  'barquette', 'Métro Alpes',         'MET-BEU-01', 'carton', 20, 'barquette',  250),
+    ('Lait demi-écrémé',    'mL', 'brique', 'Métro Alpes',         'MET-LAI-01', 'carton',  6, 'brique',     1000),
+    ('Cacao en poudre',     'g',  'boîte', 'BioCoop du Camp',     'BIO-CAC-01', 'carton',  6, 'boîte',       800),
+    ('Confiture de fraises','g',  'pot', 'BioCoop du Camp',     'BIO-CON-01', 'carton',  6, 'pot',         750),
+    ('Céréales',            'g',  'paquet', 'Métro Alpes',         'MET-CER-01', 'carton', 10, 'paquet',      500),
+    ('Pommes',              'g',  'cagette', 'Primeur des Vallées', 'PRI-POM-01', 'palette', 8, 'cagette',    5000),
+    ('Carottes',            'g',  'sachet', 'Primeur des Vallées', 'PRI-CAR-01', 'carton', 10, 'sachet',     1000),
+    ('Pois chiches',        'g',  'conserve', 'Métro Alpes',         'MET-POI-01', 'carton', 12, 'conserve',    530),
+    ('Œufs',                'pc', 'boîte', 'Primeur des Vallées', 'PRI-OEU-01', 'carton', 12, 'boîte',        12),
+    ('Farine',              'g',  'paquet', 'BioCoop du Camp',     'BIO-FAR-01', 'carton', 10, 'paquet',     1000),
+    ('Salade verte',        'pc', 'cagette', 'Primeur des Vallées', 'PRI-SAL-01', 'palette', 6, 'cagette',      12),
+    ('Concombres',          'pc', 'cagette', 'Primeur des Vallées', 'PRI-COC-01', 'palette', 8, 'cagette',      12),
+    ('Riz',                 'g',  'sac', 'Métro Alpes',         'MET-RIZ-01', 'palette',10, 'sac',        5000),
+    ('Poulet',              'g',  'barquette', 'Métro Alpes',         'MET-POU-01', 'carton',  6, 'barquette', 2000),
+    ('Lait de coco',        'mL', 'conserve', 'BioCoop du Camp',     'BIO-LCO-01', 'carton', 12, 'conserve',    400),
+    ('Coulis de tomate',    'mL', 'brique', 'Métro Alpes',         'MET-CTO-01', 'carton', 12, 'brique',      500),
+    ('Emmental',            'g',  'sachet', 'Métro Alpes',         'MET-EMM-01', 'carton', 10, 'sachet',      500),
+    ('Camembert',           'pc', 'boîte', 'BioCoop du Camp',     'BIO-CAM-01', 'carton', 12, 'boîte',         1),
+    ('Yaourt nature',       'pc', 'barquette', 'BioCoop du Camp',     'BIO-YAO-01', 'carton',  8, 'barquette',   12),
+    ('Chocolat noir',       'g',  'paquet', 'BioCoop du Camp',     'BIO-CHO-01', 'carton', 12, 'paquet',      200),
+    ('Bananes',             'g',  'cagette', 'Primeur des Vallées', 'PRI-BAN-01', 'palette', 8, 'cagette',    5000),
+    ('Sucre',               'g',  'paquet', 'Métro Alpes',         'MET-SUC-01', 'carton', 10, 'paquet',     1000),
+    ('Pommes de terre',     'g',  'sac', 'Primeur des Vallées', 'PRI-PDT-01', 'palette',10, 'sac',       10000),
+    ('Thon',                'g',  'conserve', 'Métro Alpes',         'MET-THO-01', 'carton', 12, 'conserve',    800),
+    ('Maïs',                'g',  'conserve', 'Métro Alpes',         'MET-MAI-01', 'carton', 12, 'conserve',    570),
+    ('Tortillas',           'pc', 'paquet', 'Métro Alpes',         'MET-TOR-01', 'carton',  8, 'paquet',       12),
+    ('Compote de pommes',   'pc', 'barquette', 'BioCoop du Camp',     'BIO-COM-01', 'carton',  8, 'barquette',   12),
+    ('Brioche',             'pc', 'paquet', 'Métro Alpes',         'MET-BRI-01', 'carton',  8, 'paquet',        1),
+    ('Jus de pomme',        'mL', 'brique', 'BioCoop du Camp',     'BIO-JUS-01', 'carton',  6, 'brique',     1000);
 
 -- Quelques conditionnements usuels manquaient au référentiel initial.
 INSERT INTO campement.unite (nom, symbole, utilisable_conditionnement)
@@ -288,13 +287,12 @@ VALUES
 ON CONFLICT (nom) DO UPDATE SET utilisable_conditionnement = TRUE;
 
 INSERT INTO campement.denree (
-    sejour_id, nom, unite_reference_id, unite_inventaire_id, stock_min
+    sejour_id, nom, unite_reference_id, unite_inventaire_id
 )
 SELECT sejour.id,
        donnees.nom,
        unite_reference.id,
-       unite_inventaire.id,
-       donnees.stock_min
+       unite_inventaire.id
 FROM jeu_denrees_dev AS donnees
 JOIN campement.unite AS unite_reference
   ON unite_reference.symbole = donnees.symbole_reference
@@ -306,7 +304,6 @@ WHERE sejour.nom = 'Séjour de développement'
 ON CONFLICT (sejour_id, nom) DO UPDATE
 SET unite_reference_id = EXCLUDED.unite_reference_id,
     unite_inventaire_id = EXCLUDED.unite_inventaire_id,
-    stock_min = EXCLUDED.stock_min,
     actif = TRUE;
 
 INSERT INTO campement.denree_fournisseur (fournisseur_id, denree_id, reference)
@@ -557,7 +554,6 @@ JOIN campement.public_cible AS public
   ON public.id = configuration.public_cible_id
 ON CONFLICT (recette_denree_id, sejour_public_cible_id) DO UPDATE
 SET quantite_individuelle = EXCLUDED.quantite_individuelle;
-
 -- Les vingt créneaux datés : quatre repas par jour pendant cinq jours.
 INSERT INTO campement.menu (sejour_id, sejour_type_repas_id, date_menu, nom)
 SELECT sejour.id,

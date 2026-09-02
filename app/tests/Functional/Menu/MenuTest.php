@@ -35,9 +35,11 @@ final class MenuTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Menus');
-        self::assertSelectorExists('.meal-calendar[data-turbo-prefetch="false"]');
-        self::assertSelectorExists('button.save-next-meal-button[name="action"][value="suivant"]');
-        self::assertSelectorTextContains('.save-next-meal-button', 'Enregistrer et passer au repas suivant');
+        self::assertSelectorExists('.manager-menu-block');
+        self::assertSelectorExists('.manager-menu-date-nav .menu-date-picker');
+        self::assertSelectorCount(4, '.manager-inline-meal');
+        self::assertSelectorTextContains('.manager-day-form__actions .save-meal-button', 'Enregistrer la journée');
+        self::assertSelectorExists('.menus-heading__action[href*="speciaux=1"]');
         self::assertSelectorExists('template select[data-field="regime"] option[value="VEGETARIEN"]');
         self::assertSelectorExists('select[data-field="conditionnement"][aria-label]');
         self::assertSelectorExists('input[data-public][data-public-label][aria-label]');
@@ -98,18 +100,33 @@ final class MenuTest extends WebTestCase
         self::assertArrayHasKey('PETIT_DEJEUNER', $repas);
         self::assertArrayHasKey('GOUTER', $repas);
 
-        $client->request('GET', '/menus?repas='.$repas['PETIT_DEJEUNER']);
+        $client->request('GET', '/menus');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-recipe-picker]', $petitDejeuner->getNom());
-        self::assertSelectorTextNotContains('[data-recipe-picker]', $gouter->getNom());
-        self::assertSelectorTextNotContains('[data-recipe-picker]', $dessert->getNom());
-        self::assertSelectorTextNotContains('[data-recipe-picker]', $plat->getNom());
+        self::assertSelectorTextContains('#repas-'.$repas['PETIT_DEJEUNER'].' [data-recipe-picker]', $petitDejeuner->getNom());
+        self::assertSelectorTextNotContains('#repas-'.$repas['PETIT_DEJEUNER'].' [data-recipe-picker]', $gouter->getNom());
+        self::assertSelectorTextNotContains('#repas-'.$repas['PETIT_DEJEUNER'].' [data-recipe-picker]', $dessert->getNom());
+        self::assertSelectorTextNotContains('#repas-'.$repas['PETIT_DEJEUNER'].' [data-recipe-picker]', $plat->getNom());
+        self::assertSelectorTextContains('#repas-'.$repas['GOUTER'].' [data-recipe-picker]', $gouter->getNom());
+        self::assertSelectorTextContains('#repas-'.$repas['GOUTER'].' [data-recipe-picker]', $dessert->getNom());
+        self::assertSelectorTextNotContains('#repas-'.$repas['GOUTER'].' [data-recipe-picker]', $petitDejeuner->getNom());
+        self::assertSelectorTextNotContains('#repas-'.$repas['GOUTER'].' [data-recipe-picker]', $plat->getNom());
+    }
 
-        $client->request('GET', '/menus?repas='.$repas['GOUTER']);
+    public function testLesTroisRepasSpeciauxSontRassemblesDansLaVueDediee(): void
+    {
+        $client = static::createClient();
+        $utilisateur = static::getContainer()->get(UtilisateurRepository::class)->findOneBy(['email' => 'gestionnaire@campement.local']);
+        self::assertNotNull($utilisateur);
+        $client->loginUser($utilisateur);
+
+        $client->request('GET', '/menus?speciaux=1');
+
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-recipe-picker]', $gouter->getNom());
-        self::assertSelectorTextContains('[data-recipe-picker]', $dessert->getNom());
-        self::assertSelectorTextNotContains('[data-recipe-picker]', $petitDejeuner->getNom());
-        self::assertSelectorTextNotContains('[data-recipe-picker]', $plat->getNom());
+        self::assertSelectorTextContains('h1', 'Repas spéciaux');
+        self::assertSelectorCount(3, '.manager-inline-meal');
+        self::assertSelectorExists('#menu-explo');
+        self::assertSelectorExists('#menu-pique_nique_1');
+        self::assertSelectorExists('#menu-pique_nique_2');
+        self::assertSelectorTextContains('.menus-heading__action', 'Repas standards');
     }
 }
