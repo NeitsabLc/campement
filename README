@@ -4,19 +4,15 @@ Campement est une application web de gestion des camps accompagnés. Elle aide
 les équipes pilotes et les unités participantes à gérer l’intendance, les
 dossiers administratifs et le suivi du séjour.
 
-## État du projet
+## Présentation
 
-État vérifié le 2 septembre 2026 :
+Campement couvre l’ensemble du cycle d’un séjour : préparation administrative,
+gestion de l’intendance, composition des menus, distribution des denrées et
+calcul des commandes.
 
-- nouvelle base applicative `v1.0.0`, issue du périmètre stable de Campement
-  `v1.4.1` ;
-- historique Git et historique Liquibase réinitialisés pour la séparation avec
-  Scout Market ;
-- schéma initial autonome dans un unique changeset `V001` ;
-- production existante volontairement inchangée : cette base neuve n’est pas
-  une migration de la base historique ;
-- Doctrine valide les mappings, mais Liquibase reste l’unique source de vérité
-  du schéma.
+Le schéma initial de la base de données est décrit par le changeset Liquibase
+`V001`. Doctrine assure le mapping objet-relationnel et Liquibase reste
+l’unique source de vérité pour la création et l’évolution du schéma.
 
 Les changements en cours sont détaillés dans [CHANGELOG.md](CHANGELOG.md). Le
 contexte fonctionnel et les conventions de développement sont décrits dans
@@ -24,9 +20,9 @@ contexte fonctionnel et les conventions de développement sont décrits dans
 
 ## Cycle des branches
 
-La nouvelle histoire commence sur `main` avec une base stable et autonome. Les
-versions publiées seront ensuite identifiées par des tags `vX.Y.Z` après
-validation de la CI.
+La branche `main` contient la version stable de l’application. Les évolutions
+sont validées par l’intégration continue avant leur intégration. Les versions
+publiées sont identifiées par des tags `vX.Y.Z`.
 
 Les procédures et paramètres propres à la production restent hors des fichiers
 suivis. Ils sont maintenus localement dans `.local/PRODUCTION_RUNBOOK.md` et
@@ -42,8 +38,8 @@ suivis. Ils sont maintenus localement dans `.local/PRODUCTION_RUNBOOK.md` et
 - une grille de menus par séjour, recettes et variantes végétariennes, sans
   lactose ou sans gluten, fournisseurs, denrées et conditionnements ;
 - journal et mouvements de stock ;
-- distribution Scout Market classique, tenant compte des allergies et régimes,
-  des repas Explo, des deux pique-niques et des repas non pris ;
+- préparation des distributions de denrées en tenant compte des allergies et
+  régimes, des repas Explo, des deux pique-niques et des repas non pris ;
 - calcul simple des commandes à partir du premier repas à déduire du stock, du
   premier repas commandé et du dernier repas commandé ;
 - exports PDF, archives de listes de courses filtrées par période et envoi
@@ -143,9 +139,10 @@ Les migrations communes sont placées dans `database/changelog/versioned/`. Les
 données réservées au développement et aux tests sont dans
 `database/changelog/dev/`.
 
-Le `V001` décrit une installation neuve. Il ne doit pas être appliqué à une base
-Campement antérieure à la séparation ; celle-ci doit rester inchangée tant
-qu’une reprise de données dédiée n’a pas été préparée et validée.
+Le `V001` décrit le schéma complet nécessaire à une première installation. Les
+évolutions ultérieures du schéma doivent être ajoutées dans de nouveaux
+changesets versionnés, sans modifier un changeset déjà appliqué sur un
+environnement partagé.
 
 `make reset` supprime les conteneurs et volumes locaux. Cette commande détruit
 la base locale et ne doit être utilisée que lorsqu’elle peut être recréée.
