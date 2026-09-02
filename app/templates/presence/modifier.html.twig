@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ participant.prenom }} {{ participant.nom }} | Présence | Campement{% endblock %}
+{% block body %}
+<main class="food-form-page">
+    <nav class="food-breadcrumb"><a href="{{ path('app_presence',{date:date|date('Y-m-d')}) }}">Registre de présence</a><span>/</span><span>{{ participant.prenom }} {{ participant.nom }}</span></nav>
+    <header class="food-form-heading"><div><h1>{{ participant.prenom }} {{ participant.nom }}</h1></div></header>
+    {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    <form id="presence-form" method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('modifier_presence') }}"><input type="hidden" name="participant_id" value="{{ participant.id }}"><input type="hidden" name="date" value="{{ date|date('Y-m-d') }}">
+        <section class="food-form-card presence-edit-form"><h2>Présence</h2><fieldset><legend>Statut</legend><label><input type="radio" name="statut" value="present"{{ statut=='present'?' checked':'' }}> Présent</label><label><input type="radio" name="statut" value="absent"{{ statut=='absent'?' checked':'' }}> Absent ce jour</label><label><input type="radio" name="statut" value="depart"{{ statut=='depart'?' checked':'' }}> A quitté le séjour</label></fieldset><label>Commentaire<textarea name="commentaire" maxlength="500" rows="4">{{ commentaire }}</textarea><small>Obligatoire lorsque la personne quitte le séjour.</small></label></section>
+        <div class="food-form-actions"><a class="food-secondary" href="{{ path('app_presence',{date:date|date('Y-m-d')}) }}">Annuler</a><button class="food-primary" type="submit">Enregistrer la présence</button></div>
+    </form>
+</main>
+{% endblock %}

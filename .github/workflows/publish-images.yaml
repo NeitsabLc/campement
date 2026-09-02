@@ -1,0 +1,331 @@
+name: Publication des images
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publication-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publier-candidat:
+    name: Publier le candidat ${{ matrix.image }}
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: php
+            file: docker/php/Dockerfile
+            target: php-production
+          - image: nginx
+            file: docker/php/Dockerfile
+            target: nginx-production
+          - image: postgres
+            file: docker/postgres/Dockerfile
+            target: postgres-runtime
+          - image: liquibase
+            file: docker/liquibase/Dockerfile
+            target: liquibase-runtime
+          - image: backup
+            file: docker/postgres/Dockerfile
+            target: backup-runtime
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Definir le nom et l'etiquette immuable
+        shell: bash
+        run: |
+          proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "CANDIDATE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Se connecter a GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          . ./scripts/registry-helpers.sh
+          registry_login_with_retry ghcr.io "$GITHUB_ACTOR" "$GHCR_TOKEN"
+
+      - name: Construire et publier le candidat avec SBOM et provenance
+        id: build
+        shell: bash
+        run: |
+          docker buildx create --name campement-builder --use
+          docker buildx build \
+            --file "${{ matrix.file }}" \
+            --target "${{ matrix.target }}" \
+            --tag "${REGISTRY_IMAGE}:${CANDIDATE_TAG}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --sbom=true \
+            --provenance=mode=max \
+            --push \
+            --metadata-file /tmp/build-metadata.json \
+            .
+          digest=$(jq -r '."containerimage.digest"' /tmp/build-metadata.json)
+          if ! printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "Digest construit invalide : ${digest}" >&2
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Attester le candidat
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: ${{ env.REGISTRY_IMAGE }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Afficher la reference immuable
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "${REGISTRY_IMAGE}@${IMAGE_DIGEST}"
+
+  tester-candidats:
+    name: Tester les images candidates
+    if: github.ref == 'refs/heads/main'
+    needs: publier-candidat
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Se connecter a GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          . ./scripts/registry-helpers.sh
+          registry_login_with_retry ghcr.io "$GITHUB_ACTOR" "$GHCR_TOKEN"
+
+      - name: Resoudre les cinq digests candidats
+        shell: bash
+        run: |
+          resoudre_digest() {
+            local reference="$1"
+            local digest=""
+            local tentative
+
+            for tentative in 1 2 3 4 5 6; do
+              digest=$(docker buildx imagetools inspect "$reference" 2>/dev/null | awk '$1 == "Digest:" { print $2; exit }') || true
+              if printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+                printf '%s\n' "$digest"
+                return 0
+              fi
+              if [ "$tentative" -lt 6 ]; then
+                sleep 10
+              fi
+            done
+
+            echo "Digest indisponible apres ${tentative} tentatives : ${reference}" >&2
+            return 1
+          }
+
+          proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
+          for image in php nginx postgres liquibase backup; do
+            depot="ghcr.io/${proprietaire}/campement-${image}"
+            candidat="${depot}:sha-${GITHUB_SHA}"
+            if ! digest=$(resoudre_digest "$candidat"); then
+              echo "Image candidate absente ou digest invalide : ${candidat}" >&2
+              exit 1
+            fi
+            variable="CAMP_RELEASE_${image^^}_IMAGE"
+            echo "${variable}=${depot}@${digest}" >> "$GITHUB_ENV"
+          done
+
+      - name: Verifier les attestations signees
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./scripts/verify-release-images.sh
+
+      - name: Preparer la configuration isolee
+        shell: bash
+        run: |
+          cp .env.example .env
+          cp app/.env.example app/.env
+          APP_SECRET_CI="$(openssl rand -hex 32)"
+          echo "::add-mask::${APP_SECRET_CI}"
+          sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" .env
+          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::${valeur}"
+            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
+          done
+          echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
+
+      - name: Tester exactement les images candidates
+        env:
+          COMPOSE_PROJECT_NAME: campement-release-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          NGINX_HOST_PORT: 18083
+          POSTGRES_HOST_PORT: 15437
+          USE_RELEASE_IMAGES: "1"
+        run: |
+          export SMOKE_BACKUP_IMAGE="$CAMP_RELEASE_BACKUP_IMAGE"
+          export SMOKE_POSTGRES_IMAGE="$CAMP_RELEASE_POSTGRES_IMAGE"
+          ./scripts/ci-production-smoke.sh
+
+  valider-tag:
+    name: Valider la version a promouvoir
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: Recuperer l'historique Git
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Verifier le tag et son appartenance a main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Le tag doit respecter vMAJEUR.MINEUR.CORRECTIF." >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+          objet_tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}")
+          if [ "$(jq -r '.object.type' <<<"$objet_tag")" != "tag" ]; then
+            echo "Le tag de release doit etre annote et signe." >&2
+            exit 1
+          fi
+          signature_valide=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/tags/$(jq -r '.object.sha' <<<"$objet_tag")" \
+            --jq '.verification.verified')
+          if [ "$signature_valide" != "true" ]; then
+            echo "La signature du tag de release n'est pas validee par GitHub." >&2
+            exit 1
+          fi
+
+      - name: Exiger les validations du commit candidat
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          for controle in "Qualite et tests" "Configuration de production" "Tester les images candidates"; do
+            valide=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+              --jq ".check_runs | map(select(.name == \"${controle}\" and .conclusion == \"success\")) | length > 0")
+            if [ "$valide" != "true" ]; then
+              echo "Controle requis absent ou non valide : ${controle}" >&2
+              exit 1
+            fi
+          done
+
+  promouvoir-version:
+    name: Promouvoir ${{ matrix.image }} sans reconstruire
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: valider-tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        image:
+          - php
+          - nginx
+          - postgres
+          - liquibase
+          - backup
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Definir les references
+        shell: bash
+        run: |
+          proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
+          version="${GITHUB_REF_NAME#v}"
+          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "CANDIDATE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+
+      - name: Se connecter a GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          . ./scripts/registry-helpers.sh
+          registry_login_with_retry ghcr.io "$GITHUB_ACTOR" "$GHCR_TOKEN"
+
+      - name: Promouvoir exactement le digest candidat
+        shell: bash
+        run: |
+          resoudre_digest() {
+            local reference="$1"
+            local digest=""
+            local tentative
+
+            for tentative in 1 2 3 4 5 6; do
+              digest=$(docker buildx imagetools inspect "$reference" 2>/dev/null | awk '$1 == "Digest:" { print $2; exit }') || true
+              if printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+                printf '%s\n' "$digest"
+                return 0
+              fi
+              if [ "$tentative" -lt 6 ]; then
+                sleep 10
+              fi
+            done
+
+            echo "Digest indisponible apres ${tentative} tentatives : ${reference}" >&2
+            return 1
+          }
+
+          candidat="${REGISTRY_IMAGE}:${CANDIDATE_TAG}"
+          if ! digest=$(resoudre_digest "$candidat"); then
+            echo "Image candidate absente ou digest invalide : ${candidat}" >&2
+            exit 1
+          fi
+
+          digest_promu=$(docker buildx imagetools inspect "${REGISTRY_IMAGE}:${VERSION}" 2>/dev/null | awk '$1 == "Digest:" { print $2; exit }') || digest_promu=""
+          if [ "$digest_promu" = "$digest" ]; then
+            echo "${REGISTRY_IMAGE}:${VERSION} deja promue vers ${digest}"
+            exit 0
+          fi
+
+          source_immuable="${REGISTRY_IMAGE}@${digest}"
+          docker buildx imagetools create \
+            --prefer-index=false \
+            --tag "${REGISTRY_IMAGE}:${VERSION}" \
+            "$source_immuable"
+
+          digest_promu=$(resoudre_digest "${REGISTRY_IMAGE}:${VERSION}")
+          if [ "$digest_promu" != "$digest" ]; then
+            echo "Digest promu incorrect pour ${REGISTRY_IMAGE}:${VERSION}" >&2
+            exit 1
+          fi
+
+          echo "${REGISTRY_IMAGE}:${VERSION} -> ${digest}"

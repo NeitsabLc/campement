@@ -1,0 +1,24 @@
+services:
+  php:
+    image: "${CAMP_RELEASE_PHP_IMAGE:?CAMP_RELEASE_PHP_IMAGE doit contenir une reference GHCR par digest}"
+    build: !reset null
+
+  nginx:
+    image: "${CAMP_RELEASE_NGINX_IMAGE:?CAMP_RELEASE_NGINX_IMAGE doit contenir une reference GHCR par digest}"
+    build: !reset null
+
+  maintenance:
+    image: "${CAMP_RELEASE_PHP_IMAGE:?CAMP_RELEASE_PHP_IMAGE doit contenir une reference GHCR par digest}"
+    build: !reset null
+
+  backup:
+    image: "${CAMP_RELEASE_BACKUP_IMAGE:?CAMP_RELEASE_BACKUP_IMAGE doit contenir une reference GHCR par digest}"
+    build: !reset null
+
+  database:
+    image: "${CAMP_RELEASE_POSTGRES_IMAGE:?CAMP_RELEASE_POSTGRES_IMAGE doit contenir une reference GHCR par digest}"
+    build: !reset null
+
+  liquibase:
+    image: "${CAMP_RELEASE_LIQUIBASE_IMAGE:?CAMP_RELEASE_LIQUIBASE_IMAGE doit contenir une reference GHCR par digest}"
+    build: !reset null

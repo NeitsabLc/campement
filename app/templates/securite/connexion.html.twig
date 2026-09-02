@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Connexion | Campement{% endblock %}
+{% block body_class %}login-shell{% endblock %}
+
+{% block body %}
+    <main class="login-page">
+        <section class="login-panel" aria-labelledby="connexion-title">
+            <div class="login-identity" aria-label="Campement, Gestion des camps accompagnés">
+                <span class="login-identity__symbol" aria-hidden="true">CA</span>
+                <span>
+                    <strong>Campement</strong>
+                    <small>Gestion des camps accompagnés</small>
+                </span>
+                <img class="login-identity__sgdf-logo" src="{{ asset('images/logo-sgdf-horizontal.png') }}" alt="Scouts et Guides de France">
+            </div>
+
+            <header class="login-header">
+                <p class="login-eyebrow">Gestion des camps accompagnés</p>
+                <h1 id="connexion-title">Ravi de vous revoir</h1>
+                <p>Connectez-vous pour organiser votre séjour et préparer l’accueil des unités participantes.</p>
+            </header>
+
+            {% if erreur %}
+                <div class="login-alert login-alert--error" role="alert">Identifiants incorrects.</div>
+            {% endif %}
+            {% for message in app.flashes('success') %}<div class="login-alert login-alert--success" role="status">{{ message }}</div>{% endfor %}
+
+            <form class="login-form" method="post" action="{{ path('app_connexion') }}">
+                <div class="login-field">
+                    <label for="email">Adresse e-mail</label>
+                    <input
+                        id="email"
+                        name="_username"
+                        type="email"
+                        value="{{ derniere_adresse }}"
+                        autocomplete="email"
+                        required
+                        autofocus
+                    >
+                </div>
+
+                <div class="login-field">
+                    <label for="mot-de-passe">Mot de passe</label>
+                    <div class="login-password" data-controller="password-visibility">
+                        <input
+                            id="mot-de-passe"
+                            name="_password"
+                            type="password"
+                            autocomplete="current-password"
+                            required
+                            data-password-visibility-target="field"
+                        >
+                        <button type="button" class="login-password__toggle" aria-label="Afficher le mot de passe" aria-pressed="false" data-action="password-visibility#toggle">
+                            <svg data-password-visibility-target="showIcon" aria-hidden="true" viewBox="0 0 24 24" width="22" height="22"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                            <svg data-password-visibility-target="hideIcon" aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" hidden><path d="M3 3l18 18M10.6 6.1A10.8 10.8 0 0 1 12 6c6 0 9.5 6 9.5 6a14.4 14.4 0 0 1-2.1 2.8M14.7 14.8A3.8 3.8 0 0 1 9.2 9.3M6.2 7.1A15.4 15.4 0 0 0 2.5 12s3.5 6 9.5 6a10.6 10.6 0 0 0 3.1-.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                <button class="login-submit" type="submit">Se connecter</button>
+            </form>
+            <p class="login-note"><a href="{{ path('app_mot_de_passe_oublie') }}">Mot de passe oublié ?</a></p>
+            <p class="login-legal">En vous connectant, vous reconnaissez avoir pris connaissance des <a href="{{ path('app_conditions_utilisation') }}">conditions d’utilisation</a> et de la <a href="{{ path('app_politique_confidentialite') }}">politique de confidentialité</a>.</p>
+        </section>
+        <aside class="login-illustration" aria-hidden="true">
+            <div class="login-welcome">
+                <p class="login-eyebrow login-eyebrow--light">Bienvenue au camp</p>
+                <p>« Tout ce qu’il faut pour vivre pleinement l’aventure. »</p>
+            </div>
+        </aside>
+    </main>
+{% endblock %}

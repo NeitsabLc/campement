@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Campement{% endblock %}</title>
+        <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon.svg') }}">
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        {% endblock %}
+
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app', {nonce: app.request.attributes.get('csp_nonce')}) }}{% endblock %}
+        {% endblock %}
+
+        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
+        {% if app.environment == 'dev' and frankenphp_hot_reload %}
+        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
+        <script nonce="{{ app.request.attributes.get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
+        <script nonce="{{ app.request.attributes.get('csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
+        {% endif %}
+    </head>
+    <body class="{% block body_class %}{{ app.user ? 'app-shell' : 'auth-shell' }}{% endblock %}">
+        <a class="skip-link" href="#contenu-principal">Aller au contenu</a>
+        {% set afficher_navigation = app.user and app.current_route != 'app_sortie_consommation' %}
+        {% if afficher_navigation %}
+            <button class="mobile-nav-toggle" type="button" data-sidebar-toggle aria-label="Ouvrir le menu">☰</button>
+            <aside class="sidebar{{ is_granted('ROLE_ADMIN') ? ' sidebar--admin' : '' }}" data-sidebar>
+                <div class="sidebar__brand">
+                    <div class="sidebar__brand-identity" aria-label="Campement">
+                        <span class="sidebar__brand-symbol" aria-hidden="true">CA</span>
+                        <span><strong>Campement</strong></span>
+                    </div>
+                    <button type="button" data-sidebar-collapse aria-label="Replier le menu">‹</button>
+                </div>
+                <nav class="sidebar__nav" aria-label="Navigation principale">
+                    {% set compte_groupe_sans_sejour = is_granted('ROLE_GROUPE') and not sejour_actif %}
+                    {% if not compte_groupe_sans_sejour %}
+                    {% set route_intendance = app.current_route starts with 'app_fournisseur' or app.current_route starts with 'app_denree' or app.current_route starts with 'app_mouvement' or app.current_route starts with 'app_recette' or app.current_route starts with 'app_menu' or app.current_route starts with 'app_distribution' or app.current_route == 'app_commande' %}
+                    {% set route_administratif = app.current_route starts with 'app_participant' or app.current_route starts with 'app_presence' or app.current_route starts with 'app_export' %}
+                    {% set route_gestion = (is_granted('ROLE_ADMIN') and app.current_route starts with 'app_sejour') or app.current_route starts with 'app_utilisateur' %}
+                    <a class="sidebar__link" href="{{ path('app_tableau_de_bord') }}"{{ app.current_route == 'app_tableau_de_bord' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4Z"/><path d="M9 20v-6h6v6"/></svg></span><span class="sidebar__text">Accueil</span></a>
+                    {% if is_granted('ROLE_GESTIONNAIRE') and not is_granted('ROLE_ADMIN') %}<a class="sidebar__link" href="{{ path('app_sejours') }}"{{ app.current_route starts with 'app_sejour' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 8-16 8 16Z"/><path d="M12 4v16"/></svg></span><span class="sidebar__text">Mes séjours</span></a>{% endif %}
+                    {% if sejour_actif %}<div class="sidebar__stay"><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 8-16 8 16Z"/><path d="M12 4v16"/></svg></span><span class="sidebar__text"><small>Séjour actif</small><strong>{{ sejour_actif.nom }}</strong><small>{{ sejour_actif.dateDebut|date('d/m/Y') }}–{{ sejour_actif.dateFin|date('d/m/Y') }}</small></span></div>{% endif %}
+                    {% if is_granted('ROLE_GROUPE') and app.user.groupe %}<a class="sidebar__link" href="{{ path('app_sortie_consommation', {jeton: app.user.groupe.sejour.jetonDistributionPublique}) }}"><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12h13"/><path d="m13 8 4 4-4 4"/><path d="M20 5v14"/></svg></span><span class="sidebar__text">Distribution</span></a>{% endif %}
+                    {% if is_granted('ROLE_GROUPE') and sejour_actif and sejour_actif.moduleAdministratifActif %}<a class="sidebar__link" href="{{ path('app_participants') }}"{{ app.current_route starts with 'app_participant' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 11a3 3 0 0 1 0 6"/></svg></span><span class="sidebar__text">Participants</span></a>{% endif %}
+                    {% if is_granted('ROLE_GROUPE') and sejour_actif and sejour_actif.moduleIntendanceActif %}<a class="sidebar__link" href="{{ path('app_menus') }}"{{ app.current_route starts with 'app_menu' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg></span><span class="sidebar__text">Menus</span></a>{% endif %}
+                    {% if is_granted('ROLE_GESTIONNAIRE') and sejour_actif %}<a class="sidebar__link" href="{{ path('app_groupes') }}"{{ app.current_route starts with 'app_groupe' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="10" r="2.5"/><path d="M2 20a6 6 0 0 1 12 0M13 20a5 5 0 0 1 9 0"/></svg></span><span class="sidebar__text">Unités participantes</span></a>{% endif %}
+
+                    {% if is_granted('ROLE_GESTIONNAIRE') and sejour_actif and sejour_actif.moduleAdministratifActif %}<details class="sidebar__section" data-sidebar-section{{ route_administratif ? ' open' : '' }}><summary{{ route_administratif ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg></span><span class="sidebar__text">Administratif</span><span class="sidebar__chevron sidebar__text">›</span></summary><div class="sidebar-module-panel"><header><span><small>Module</small><strong>Administratif</strong></span><button type="button" data-sidebar-panel-close aria-label="Fermer le sous-menu">×</button></header><nav aria-label="Sous-menu Administratif"><a href="{{ path('app_participants') }}"{{ app.current_route starts with 'app_participant' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 11a3 3 0 0 1 0 6"/></svg></span><span><strong>Participants</strong><small>Dossiers des jeunes et adultes</small></span></a><a href="{{ path('app_presence') }}"{{ app.current_route starts with 'app_presence' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 2v4M16 2v4M5 9h14"/><path d="m9 14 2 2 4-4"/></svg></span><span><strong>Registre de présence</strong><small>Arrivées, départs et absences</small></span></a><a href="{{ path('app_export') }}"{{ app.current_route starts with 'app_export' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4"/><path d="M5 19h14"/></svg></span><span><strong>Export</strong><small>Documents du séjour</small></span></a></nav></div></details>{% endif %}
+                    {% if is_granted('ROLE_GESTIONNAIRE') and sejour_actif and sejour_actif.moduleIntendanceActif %}<details class="sidebar__section" data-sidebar-section{{ route_intendance ? ' open' : '' }}><summary{{ route_intendance ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 3v7a3 3 0 0 0 3 3V3M9 3v18M18 3c-2 2-3 5-3 8v3h3v7"/></svg></span><span class="sidebar__text">Intendance</span><span class="sidebar__chevron sidebar__text">›</span></summary><div class="sidebar-module-panel"><header><span><small>Module</small><strong>Intendance</strong></span><button type="button" data-sidebar-panel-close aria-label="Fermer le sous-menu">×</button></header><nav aria-label="Sous-menu Intendance"><a href="{{ path('app_fournisseurs') }}"{{ app.current_route starts with 'app_fournisseur' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg></span><span><strong>Fournisseurs</strong><small>Contacts et commandes</small></span></a><a href="{{ path('app_denrees') }}"{{ app.current_route starts with 'app_denree' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></svg></span><span><strong>Denrées</strong><small>Catalogue alimentaire</small></span></a><a href="{{ path('app_mouvements_stock') }}"{{ app.current_route starts with 'app_mouvement' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 8h14M14 4l4 4-4 4M20 16H6M10 12l-4 4 4 4"/></svg></span><span><strong>Mouvements de stock</strong><small>Entrées et sorties</small></span></a><a href="{{ path('app_recettes') }}"{{ app.current_route starts with 'app_recette' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg></span><span><strong>Recettes</strong><small>Préparations enregistrées</small></span></a><a href="{{ path('app_menus') }}"{{ app.current_route starts with 'app_menu' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 2v4M16 2v4M5 9h14"/></svg></span><span><strong>Menus</strong><small>Planification des repas</small></span></a><a href="{{ path('app_distribution') }}"{{ app.current_route starts with 'app_distribution' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12h12M12 8l4 4-4 4M19 5v14"/></svg></span><span><strong>Distribution</strong><small>Préparation Scout Market</small></span></a><a href="{{ path('app_commande') }}"{{ app.current_route == 'app_commande' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h2l2 10h9l2-7H7M10 19h.01M17 19h.01"/></svg></span><span><strong>Commande</strong><small>Quantités à commander</small></span></a></nav></div></details>{% endif %}
+                    {% if is_granted('ROLE_GESTIONNAIRE') and sejour_actif and sejour_actif.moduleSituationsParticulieresActif %}<a class="sidebar__link" href="{{ path('app_situations_particulieres') }}"{{ app.current_route starts with 'app_situation' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 21V4M5 5h11l-2 4 2 4H5"/></svg></span><span class="sidebar__text">Situations particulières</span></a>{% endif %}
+                    {% if is_granted('ROLE_GESTIONNAIRE') %}
+                        <details class="sidebar__section sidebar__section--management" data-sidebar-section>
+                            <summary{{ route_gestion ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M18 13v6M15 16h6"/></svg></span><span class="sidebar__text">Gestion</span><span class="sidebar__chevron sidebar__text">›</span></summary>
+                            <div class="sidebar-module-panel"><header><span><small>Section</small><strong>Gestion</strong></span><button type="button" data-sidebar-panel-close aria-label="Fermer le sous-menu">×</button></header><nav aria-label="Sous-menu Gestion">
+                                {% if is_granted('ROLE_ADMIN') %}<a href="{{ path('app_sejours') }}"{{ app.current_route starts with 'app_sejour' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m4 20 8-16 8 16Z"/><path d="M12 4v16"/></svg></span><span><strong>Séjours</strong><small>Sélection et configuration</small></span></a>{% endif %}
+                                <a href="{{ path('app_utilisateurs') }}"{{ app.current_route starts with 'app_utilisateur' ? ' aria-current="page"' : '' }}><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 11a3 3 0 0 1 0 6M19 20v-2"/></svg></span><span><strong>Utilisateurs</strong><small>Comptes et accès</small></span></a>
+                            </nav></div>
+                        </details>
+                    {% endif %}
+                    {% endif %}
+                </nav>
+                <nav class="sidebar__legal-mobile" aria-label="Informations légales">
+                    <span>Version {{ app_version }}</span>
+                    <a href="{{ path('app_conditions_utilisation') }}">Conditions d’utilisation</a>
+                    <a href="{{ path('app_politique_confidentialite') }}">Politique de confidentialité</a>
+                </nav>
+                <div class="sidebar__account">
+                    <a class="sidebar__user user-summary" href="{{ path('app_mon_profil') }}"{{ app.current_route == 'app_mon_profil' ? ' aria-current="page"' : '' }} title="Mon profil"><span class="sidebar__avatar">{{ app.user.prenom|first }}{{ app.user.nom|first }}</span><span class="sidebar__text"><strong>{{ app.user.prenom }} {{ app.user.nom }}</strong><small>Mon profil</small><span class="visually-hidden">{{ app.user.role }}</span></span></a>
+                    <form class="sidebar__logout-form" method="post" action="{{ path('app_deconnexion') }}">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                        <button class="sidebar__logout" type="submit" aria-label="Se déconnecter" title="Se déconnecter"><span class="sidebar__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4M15 16l4-4-4-4M19 12H9"/></svg></span></button>
+                    </form>
+                </div>
+            </aside><div class="sidebar-backdrop" data-sidebar-toggle></div>
+        {% endif %}
+
+        <div id="contenu-principal" tabindex="-1"{% if afficher_navigation %} class="page-content"{% endif %}>
+            {% block body %}{% endblock %}
+        </div>
+        <footer class="legal-footer{{ afficher_navigation ? ' legal-footer--with-sidebar' : '' }}">
+            <span>Version {{ app_version }}</span>
+            <span class="legal-footer__separator" aria-hidden="true">—</span>
+            <a href="{{ path('app_conditions_utilisation') }}">Conditions d’utilisation</a>
+            <span class="legal-footer__separator" aria-hidden="true">—</span>
+            <a href="{{ path('app_politique_confidentialite') }}">Politique de confidentialité</a>
+        </footer>
+    </body>
+</html>

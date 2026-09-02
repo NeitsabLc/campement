@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mouvement de stock | Campement{% endblock %}
+
+{% block body %}
+<main class="stock-movement-page food-form-page" data-controller="stock-movement">
+    <script nonce="{{ app.request.attributes.get('csp_nonce') }}" type="application/json" data-stock-movement-target="catalog">{{ catalogueMouvement|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+    <nav class="food-breadcrumb"><a href="{{ path('app_mouvements_stock') }}">Mouvements de stock</a><span>/</span><span>{{ mouvementExistant ? mouvementExistant.dateMouvement|date('d/m/Y H:i') : 'Ajouter' }}</span></nav>
+    <header class="stock-movement-heading food-form-heading"><div>
+        <h1>{{ mouvementExistant ? 'Mouvement du ' ~ mouvementExistant.dateMouvement|date('d/m/Y H:i') : 'Ajouter un mouvement de stock' }}</h1>
+    </div></header>
+
+    {% if not sejour %}
+        <section class="stock-movement-card stock-movement-empty"><h2>Saisie indisponible</h2><p>Aucun séjour actif n’est configuré.</p></section>
+    {% else %}
+        {% if erreurs %}<div class="stock-movement-errors" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+        <form id="movement-form" method="post" novalidate data-turbo="false" data-action="submit->stock-movement#stampBrowserTime">
+            <input type="hidden" name="_token" value="{{ csrf_token('mouvement_stock') }}">
+            <input type="hidden" name="date_navigateur" data-browser-datetime>
+            <section class="stock-movement-card food-form-card">
+                <h2>Nature du mouvement</h2>
+                <div class="movement-type-switch">
+                    {% for code, libelle in {'SORTIE':'Sortie','ENTREE':'Entrée'} %}
+                        <label><input type="radio" name="type" value="{{ code }}"{{ valeurs.type == code ? ' checked' : '' }} data-stock-movement-target="type" data-action="change->stock-movement#refresh"><span>{{ code == 'SORTIE' ? '↗' : '↙' }} <strong>{{ libelle }}</strong><small>Denrée {{ code == 'SORTIE' ? 'retirée du' : 'ajoutée au' }} stock</small></span></label>
+                    {% endfor %}
+                </div>
+                <div class="stock-movement-grid">
+                    <label>Origine du mouvement <b>*</b><select name="origine" required data-stock-movement-target="origin" data-action="change->stock-movement#refresh"><option value="">Sélectionner une origine</option>{% for origine in originesActives %}<option value="{{ origine.id }}" data-code="{{ origine.code }}"{{ valeurs.origine == origine.id ~ '' ? ' selected' : '' }}>{{ origine.libelle }}</option>{% endfor %}</select></label>
+                    <label data-stock-movement-target="groupField">Groupe <b>*</b><select name="groupe" data-stock-movement-target="group"><option value="">Sélectionner un groupe</option>{% for groupe in groupesActifs %}<option value="{{ groupe.id }}"{{ valeurs.groupe == groupe.id ~ '' ? ' selected' : '' }}>{{ groupe.nom }}</option>{% endfor %}</select><small>Obligatoire pour une distribution.</small></label>
+                    <label data-stock-movement-target="supplierField">Fournisseur <b>*</b><select name="fournisseur" data-stock-movement-target="supplier" data-action="change->stock-movement#refresh"><option value="">Sélectionner un fournisseur</option>{% for fournisseur in fournisseursActifs %}<option value="{{ fournisseur.id }}"{{ valeurs.fournisseur == fournisseur.id ~ '' ? ' selected' : '' }}>{{ fournisseur.nom }}</option>{% endfor %}</select><small>Les denrées seront filtrées selon ce fournisseur.</small></label>
+                </div>
+            </section>
+
+            <section class="stock-movement-card food-form-card movement-lines-card">
+                <div class="movement-lines-heading"><h2>Denrées</h2></div>
+                <div class="movement-lines-table">
+                    <div class="movement-lines-header"><span>Denrée</span><span>Conditionnement et quantité</span><span></span></div>
+                    <div data-stock-movement-target="lines">
+                        {% for ligneValeurs in lignesValeurs %}
+                            {% include 'mouvement_stock/_ligne.html.twig' with {index: loop.index0, ligneValeurs: ligneValeurs, modifiable: false} %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="movement-lines-add"><button class="food-secondary" type="button" data-action="stock-movement#addLine">+ Ajouter une denrée</button></div>
+            </section>
+
+            {% if mouvementExistant %}
+                <section class="stock-movement-card food-form-card"><h2>Traçabilité</h2><label>Motif de la modification <b>*</b><textarea name="motif_audit" maxlength="1000" rows="3" required>{{ motifAudit }}</textarea><small>L’état avant et après, votre identité et la date seront conservés dans l’historique d’audit.</small></label></section>
+            {% endif %}
+
+            <template data-stock-movement-target="lineTemplate">{% include 'mouvement_stock/_ligne.html.twig' with {index: '__INDEX__', ligneValeurs: {}, modifiable: false} %}</template>
+            <div class="stock-movement-actions"><a class="food-secondary" href="{{ path('app_mouvements_stock') }}">Annuler</a><button class="food-primary" type="submit">{{ mouvementExistant ? 'Enregistrer les modifications' : 'Enregistrer le mouvement' }}</button></div>
+        </form>
+    {% endif %}
+</main>
+{% endblock %}

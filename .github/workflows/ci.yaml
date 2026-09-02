@@ -1,0 +1,216 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COMPOSE_PROJECT_NAME: campement-ci-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  tests:
+    name: Qualite et tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Installer Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Preparer la configuration de CI
+        run: |
+          cp .env.example .env
+          cp app/.env.example app/.env
+          APP_SECRET_CI="$(openssl rand -hex 32)"
+          echo "::add-mask::${APP_SECRET_CI}"
+          sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" .env
+          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::${valeur}"
+            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
+          done
+          echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
+
+      - name: Valider la configuration Docker Compose
+        run: |
+          docker compose config --quiet
+          POSTGRES_HEALTHCHECK_USER=campement_admin \
+            docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+          digest="sha256:$(printf '0%.0s' {1..64})"
+          export CAMP_RELEASE_PHP_IMAGE="ghcr.io/neitsablc/campement-php@${digest}"
+          export CAMP_RELEASE_NGINX_IMAGE="ghcr.io/neitsablc/campement-nginx@${digest}"
+          export CAMP_RELEASE_POSTGRES_IMAGE="ghcr.io/neitsablc/campement-postgres@${digest}"
+          export CAMP_RELEASE_LIQUIBASE_IMAGE="ghcr.io/neitsablc/campement-liquibase@${digest}"
+          export CAMP_RELEASE_BACKUP_IMAGE="ghcr.io/neitsablc/campement-backup@${digest}"
+          docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --quiet
+          test -z "$(docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --format json | jq -r '.services[] | select(.build != null) | .image')"
+
+      - name: Construire l'image PHP
+        run: docker compose build --pull php
+
+      - name: Installer les dependances PHP
+        run: >-
+          docker compose run --rm php composer install
+          --no-interaction
+          --prefer-dist
+          --no-progress
+
+      - name: Demarrer l'application
+        run: |
+          docker compose up --detach database php nginx
+          APP_BASE_URL="http://$(docker compose port nginx 8080)"
+          echo "APP_BASE_URL=${APP_BASE_URL}" >> "$GITHUB_ENV"
+
+      - name: Valider Composer
+        run: docker compose exec --no-TTY php composer validate --strict --no-check-publish
+
+      - name: Auditer les dependances Composer
+        run: docker compose exec --no-TTY php composer audit --locked --no-interaction
+
+      - name: Auditer les dependances Importmap
+        run: docker compose exec --no-TTY php php bin/console importmap:audit
+
+      - name: Valider les changelogs Liquibase
+        run: docker compose --profile tools run --rm liquibase validate
+
+      - name: Valider les mappings Doctrine
+        run: >-
+          docker compose exec --no-TTY php
+          php bin/console doctrine:schema:validate --skip-sync
+
+      - name: Compiler les assets
+        run: |
+          docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug
+          docker compose exec --no-TTY php php bin/console importmap:install
+          docker compose exec --no-TTY php php bin/console asset-map:compile --env=prod --no-debug
+
+      - name: Analyser statiquement le code PHP
+        run: |
+          docker compose exec --no-TTY php php bin/console cache:warmup --env=dev
+          docker compose exec --no-TTY php vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+      - name: Controler le style PHP
+        run: docker compose exec --no-TTY php composer lint:php
+
+      - name: Preparer les images pour l'analyse de vulnerabilites
+        run: |
+          docker compose -f compose.yaml -f compose.prod.yaml build php nginx database liquibase backup
+          docker save campement-php-production:local --output /tmp/campement-php.tar
+          docker save campement-nginx-production:local --output /tmp/campement-nginx.tar
+          docker save campement-postgres-production:local --output /tmp/campement-postgres.tar
+          docker save campement-liquibase-production:local --output /tmp/campement-liquibase.tar
+          docker save campement-backup:local --output /tmp/campement-backup.tar
+
+      - name: Analyser les vulnerabilites des images d'execution
+        run: |
+          for archive in php nginx postgres liquibase backup; do
+            docker run --rm \
+              --volume /tmp:/scan:ro \
+              --volume campement-trivy-cache:/root/.cache/trivy \
+              ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c \
+              image --input "/scan/campement-${archive}.tar" \
+              --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1
+          done
+
+      - name: Reinitialiser la base de tests
+        run: |
+          POSTGRES_DB="$(docker compose exec --no-TTY database printenv POSTGRES_DB)"
+          TEST_DATABASE="${POSTGRES_DB}_test"
+          docker compose exec --no-TTY database sh -c \
+            'dropdb --username="$POSTGRES_USER" --force --if-exists "$1"' sh "$TEST_DATABASE"
+          docker compose exec --no-TTY database sh -c \
+            'createdb --username="$POSTGRES_USER" --owner="$POSTGRES_USER" "$1"' sh "$TEST_DATABASE"
+          docker compose --profile tools run --rm \
+            -e "LIQUIBASE_COMMAND_URL=jdbc:postgresql://database:5432/${TEST_DATABASE}" \
+            liquibase update --context-filter=dev
+
+      - name: Executer les tests
+        run: docker compose exec --no-TTY php php bin/phpunit
+
+      - name: Initialiser les donnees de controle
+        run: docker compose --profile tools run --rm liquibase update --context-filter=dev
+
+      - name: Installer les dependances d'accessibilite
+        run: npm ci
+
+      - name: Auditer les dependances npm
+        run: npm audit --audit-level=high
+
+      - name: Installer Chromium et Firefox
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Attendre que l'application soit disponible
+        run: curl --fail --retry 30 --retry-delay 2 --retry-all-errors "${APP_BASE_URL}/login"
+
+      - name: Executer les controles d'accessibilite
+        run: npm run test:accessibility
+
+      - name: Executer les tests E2E
+        run: npm run test:browser
+
+      - name: Afficher les journaux en cas d'echec
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --no-color --tail=200 database php nginx
+
+      - name: Arreter les services
+        if: always()
+        run: docker compose down --volumes --remove-orphans
+
+  production-smoke:
+    name: Configuration de production
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Preparer la configuration de production isolee
+        run: |
+          cp .env.example .env
+          cp app/.env.example app/.env
+          APP_SECRET_CI="$(openssl rand -hex 32)"
+          echo "::add-mask::${APP_SECRET_CI}"
+          sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
+          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" .env
+          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
+            valeur="$(openssl rand -hex 24)"
+            echo "::add-mask::${valeur}"
+            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
+          done
+          echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
+
+      - name: Tester la superposition Compose de production
+        env:
+          COMPOSE_PROJECT_NAME: campement-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          NGINX_HOST_PORT: 18082
+          POSTGRES_HOST_PORT: 15436
+        run: ./scripts/ci-production-smoke.sh

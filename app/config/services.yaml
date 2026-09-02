@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=../vendor/symfony/dependency-injection/Loader/schema/services.schema.json
+
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+# See also https://symfony.com/doc/current/service_container/import.html
+
+# Put parameters here that don't need to change on each machine where the app is deployed
+# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
+parameters:
+    app.version: '1.0.0'
+    env(APP_PUBLIC_URL): 'http://localhost:8080'
+    env(MAILER_FROM_EMAIL): 'campement@neitsab.net'
+    env(MAILER_FROM_NAME): 'Campement'
+    env(TRUSTED_HOST_PATTERN): '^(localhost|127\.0\.0\.1)$'
+    env(TRUSTED_PROXIES): '127.0.0.1'
+    app.document_storage_dir: '%kernel.project_dir%/var/documents_participants'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    # makes classes in src/ available to be used as services
+    # this creates a service per class whose id is the fully-qualified class name
+    App\:
+        resource: '../src/'
+
+    App\Service\StockageDocumentParticipant:
+        arguments:
+            $repertoireDocuments: '%app.document_storage_dir%'
+
+    App\Command\AnonymiserSejoursTerminesCommand:
+        arguments:
+            $mailerFromEmail: '%env(MAILER_FROM_EMAIL)%'
+            $mailerFromName: '%env(MAILER_FROM_NAME)%'
+
+    App\Logging\SensitiveDataProcessor:
+        tags:
+            - { name: monolog.processor }
+
+    # add more service definitions when explicit configuration is needed
+    # please note that last definitions always *replace* previous ones

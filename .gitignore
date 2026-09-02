@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Local environment
+.env
+.env.local
+.env.release
+.env.*.local
+.local/
+
+# Docker overrides
+compose.override.yaml
+docker-compose.override.yaml
+docker/postgres/pg_hba.prod.conf
+
+# Local production backups
+app/.env.local.backup*
+compose*.before-*
+compose-production-*.patch
+
+# Temporary files
+*.log
+*.tmp
+node_modules/
+playwright-report/
+test-results/
+
+# Local database imports
+database/import/

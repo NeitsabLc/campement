@@ -1,0 +1,93 @@
+services:
+  php:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: php-development
+      args:
+        PHP_VERSION: "${PHP_VERSION}"
+        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7}"
+    working_dir: /var/www/app
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?serverVersion=18&charset=utf8"
+    volumes:
+      - ./app:/var/www/app
+      # Les dépendances Composer restent dans le système de fichiers Linux de
+      # Docker. Cela évite les erreurs de lecture intermittentes des bind mounts
+      # Docker Desktop sur macOS, tout en conservant le code source synchronisé.
+      - composer_dependencies:/var/www/app/vendor
+      - documents_participants:/var/www/app/var/documents_participants
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - campement
+
+  nginx:
+    restart: unless-stopped
+    image: "nginx:${NGINX_VERSION}@${NGINX_IMAGE_DIGEST:-sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de}"
+    ports:
+      - "${NGINX_BIND_ADDRESS:-127.0.0.1}:${NGINX_HOST_PORT:-8080}:8080"
+    volumes:
+      - ./app:/var/www/app:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+    networks:
+      - campement
+
+  database:
+    restart: unless-stopped
+    image: "postgres:${POSTGRES_VERSION}@${POSTGRES_IMAGE_DIGEST:-sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15}"
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    ports:
+      - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - database_data:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_HEALTHCHECK_USER:-${POSTGRES_USER}} -d ${POSTGRES_DB}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - campement
+
+  liquibase:
+    image: "campement-liquibase:${APP_IMAGE_TAG:-local}"
+    build:
+      context: .
+      dockerfile: docker/liquibase/Dockerfile
+      target: liquibase-runtime
+      args:
+        LIQUIBASE_VERSION: "${LIQUIBASE_VERSION}"
+        LIQUIBASE_IMAGE_DIGEST: "${LIQUIBASE_IMAGE_DIGEST:-sha256:dfe136c26d39088d87d1bd27f833d6ac5b738a180d7c960b065c7be525725d01}"
+    profiles:
+      - tools
+    working_dir: /liquibase/changelog
+    volumes:
+      - ./database/changelog:/liquibase/changelog:ro
+    environment:
+      LIQUIBASE_COMMAND_URL: "jdbc:postgresql://database:5432/${POSTGRES_DB}"
+      LIQUIBASE_COMMAND_USERNAME: "${POSTGRES_USER}"
+      LIQUIBASE_COMMAND_PASSWORD: "${POSTGRES_PASSWORD}"
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: "db.changelog-master.yaml"
+      LIQUIBASE_LIQUIBASE_SCHEMA_NAME: "public"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - campement
+
+volumes:
+  database_data:
+  composer_dependencies:
+  documents_participants:
+
+networks:
+  campement:

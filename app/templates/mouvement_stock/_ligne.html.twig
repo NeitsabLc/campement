@@ -1,0 +1,27 @@
+{% set prefix = modifiable ? '' : 'lignes[' ~ index ~ ']' %}
+{% set valeurDenree = ligneValeurs.denree|default('') %}
+<div class="movement-line" data-stock-movement-target="line"
+     data-selected-food="{{ valeurDenree|e('html_attr') }}"
+     data-selected-exit-unit="{{ ligneValeurs.conditionnement_sortie|default('')|e('html_attr') }}"
+     data-selected-reference="{{ ligneValeurs.reference|default('')|e('html_attr') }}"
+     data-packaging-values="{{ ligneValeurs.conditionnements|default({})|json_encode|e('html_attr') }}">
+    <div class="movement-line-food">
+        <label>Denrée <b>*</b><select name="{{ prefix ? prefix ~ '[denree]' : 'denree' }}" required data-controller="searchable-select" data-line-food data-action="change->stock-movement#refreshLine"><option value="">Sélectionner une denrée</option></select></label>
+    </div>
+    <div class="movement-line-detail" data-line-exit>
+        <div class="stock-movement-grid">
+            <label>Conditionnement <b>*</b><select name="{{ prefix ? prefix ~ '[conditionnement_sortie]' : 'conditionnement_sortie' }}" data-line-exit-unit data-action="change->stock-movement#refreshLine"><option value="">Sélectionner un conditionnement</option></select></label>
+            <label>Quantité <b>*</b><div class="movement-quantity"><input name="{{ prefix ? prefix ~ '[quantite]' : 'quantite' }}" value="{{ ligneValeurs.quantite|default('') }}" inputmode="decimal" placeholder="0" data-line-quantity><span data-line-unit>—</span></div></label>
+        </div>
+    </div>
+    <div class="movement-line-detail" data-line-entry hidden>
+        <label class="movement-supplier" data-line-inventory-supplier hidden>Fournisseur <b>*</b><select name="{{ prefix ? prefix ~ '[reference]' : 'reference' }}" data-line-reference data-action="change->stock-movement#refreshLine"><option value="">Sélectionner un fournisseur</option></select></label>
+        <div data-line-packagings-container></div>
+        <p class="movement-no-supplier" data-line-no-supplier hidden>Aucun fournisseur actif n’est associé à cette denrée.</p>
+    </div>
+    <div class="movement-lot" data-line-lot hidden>
+        <label><span>Numéro de lot</span><div class="movement-lot-input"><input type="text" name="{{ prefix ? prefix ~ '[numero_lot]' : 'numero_lot' }}" value="{{ ligneValeurs.numero_lot|default('') }}" maxlength="100" autocomplete="off" placeholder="Ex. L240731A" data-line-lot-value><button type="button" class="food-secondary" data-action="stock-movement#scanLot">Scanner le lot</button></div><small data-line-lot-status>Le résultat du scan reste modifiable avant l’enregistrement.</small></label>
+        <input type="file" accept="image/*" capture="environment" data-line-lot-camera data-action="change->stock-movement#readLotImage" hidden>
+    </div>
+    <div class="movement-line-action">{% if not modifiable %}<button type="button" class="movement-remove-line" data-action="stock-movement#removeLine" aria-label="Retirer cette denrée">Retirer</button>{% endif %}</div>
+</div>

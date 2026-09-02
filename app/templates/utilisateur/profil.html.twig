@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon profil | Campement{% endblock %}
+
+{% block body %}
+<main class="profile-page food-form-page">
+    <header class="food-form-heading">
+        <div><h1>Mon profil</h1></div>
+    </header>
+
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+
+    <div class="profile-layout">
+        <form method="post">
+            <section class="food-form-card">
+                <h2>Informations personnelles</h2>
+                <p class="profile-card-intro">Ces informations permettent de vous identifier dans Campement.</p>
+                {% if erreurs_informations %}<div class="flash flash--error" role="alert">{% for erreur in erreurs_informations %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+                <input type="hidden" name="_token" value="{{ csrf_token('modifier_profil') }}">
+                <input type="hidden" name="formulaire" value="informations">
+                <div class="user-form-grid">
+                    <label for="profil_prenom">Prénom<input id="profil_prenom" name="prenom" maxlength="100" required autocomplete="given-name" value="{{ donnees.prenom }}"></label>
+                    <label for="profil_nom">Nom<input id="profil_nom" name="nom" maxlength="100" required autocomplete="family-name" value="{{ donnees.nom }}"></label>
+                </div>
+                <label class="user-field" for="profil_email">Adresse électronique<input id="profil_email" type="email" name="email" maxlength="180" required autocomplete="email" value="{{ donnees.email }}"></label>
+                <div class="profile-card-actions"><button class="food-primary" type="submit">Enregistrer les informations</button></div>
+            </section>
+        </form>
+
+        <form method="post">
+            <section class="food-form-card">
+                <h2>Mot de passe</h2>
+                <p class="profile-card-intro">Utilisez au moins 12 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial.</p>
+                {% if erreurs_mot_de_passe %}<div class="flash flash--error" role="alert">{% for erreur in erreurs_mot_de_passe %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+                <input type="hidden" name="_token" value="{{ csrf_token('modifier_mot_de_passe_profil') }}">
+                <input type="hidden" name="formulaire" value="mot_de_passe">
+                <label class="user-field" for="profil_mot_de_passe_actuel">Mot de passe actuel<input id="profil_mot_de_passe_actuel" type="password" name="mot_de_passe_actuel" required autocomplete="current-password"></label>
+                <div class="user-form-grid">
+                    <label for="profil_mot_de_passe">Nouveau mot de passe<input id="profil_mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password"></label>
+                    <label for="profil_confirmation">Confirmer le mot de passe<input id="profil_confirmation" type="password" name="confirmation" required minlength="12" autocomplete="new-password"></label>
+                </div>
+                <div class="profile-card-actions"><button class="food-primary" type="submit">Modifier le mot de passe</button></div>
+            </section>
+        </form>
+    </div>
+</main>
+{% endblock %}

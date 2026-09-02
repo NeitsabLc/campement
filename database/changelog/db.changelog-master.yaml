@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - includeAll:
+      path: versioned
+      relativeToChangelogFile: true
+      errorIfMissingOrEmpty: false
+
+  - includeAll:
+      path: repeatable
+      relativeToChangelogFile: true
+      errorIfMissingOrEmpty: false
+
+  - includeAll:
+      path: dev
+      relativeToChangelogFile: true
+      errorIfMissingOrEmpty: false
+      contextFilter: "@dev"

@@ -1,0 +1,75 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Politique de confidentialité | Campement{% endblock %}
+{% block body_class %}legal-shell{{ app.user ? ' app-shell' : '' }}{% endblock %}
+
+{% block body %}
+<main class="legal-page">
+    <header class="legal-heading">
+        <a class="legal-brand" href="{{ app.user ? path('app_tableau_de_bord') : path('app_connexion') }}" aria-label="Retour à Campement"><span aria-hidden="true">CA</span><strong>Campement</strong></a>
+        <p>Vos données</p>
+        <h1>Politique de confidentialité</h1>
+        <p class="legal-updated">Dernière mise à jour : 20 août 2026</p>
+    </header>
+
+    <article class="legal-content">
+        <p>Cette page explique simplement quelles données sont utilisées dans Campement, pourquoi elles le sont et comment demander à les consulter ou les corriger.</p>
+
+        <div class="legal-notice"><strong>Responsable du traitement</strong><p>Campement est actuellement administré à titre associatif par son exploitant. Pour toute question relative aux données personnelles, le point de contact est <a href="mailto:campement@neitsab.net">campement@neitsab.net</a>. L’identité et l’adresse complète de la structure responsable seront ajoutées dès leur formalisation.</p></div>
+
+        <h2>1. Personnes concernées</h2>
+        <p>Les traitements peuvent concerner les utilisateurs de Campement, les participants mineurs ou adultes, leurs parents ou responsables légaux, les contacts d’urgence, les responsables et encadrants des unités, ainsi que les fournisseurs.</p>
+
+        <h2>2. Données utilisées</h2>
+        <ul>
+            <li><strong>Comptes :</strong> nom, prénom, adresse e-mail, rôle, rattachement à un séjour ou à une unité et informations de connexion nécessaires à la sécurité.</li>
+            <li><strong>Participants :</strong> identité, date de naissance, coordonnées, dates de présence, coordonnées des parents et du contact d’urgence.</li>
+            <li><strong>Encadrement :</strong> qualifications et informations nécessaires à l’organisation du séjour.</li>
+            <li><strong>Documents :</strong> autorisations de départ, fiches sanitaires, informations vaccinales et justificatifs de qualification.</li>
+            <li><strong>Présences et sécurité :</strong> arrivées, départs, absences et rattachement éventuel à une situation particulière.</li>
+            <li><strong>Gestion du séjour :</strong> unités participantes, fournisseurs, menus, stocks et distributions.</li>
+            <li><strong>Traçabilité des stocks :</strong> nom et adresse e-mail de l’utilisateur, date, nature et motif d’une modification ou d’une annulation, ainsi que l’état du mouvement de stock avant et après l’opération.</li>
+        </ul>
+        <p>Les données relatives aux participants sont saisies dans Campement par les responsables du séjour ou par les animateurs et animatrices habilités, à partir des informations qui leur sont communiquées pour organiser le séjour et assurer la prise en charge des participants.</p>
+
+        <h2>3. Pourquoi ces données sont-elles utilisées ?</h2>
+        <p>Les données servent exclusivement à administrer les accès, organiser les séjours, gérer les participants et leurs présences, préparer les repas et distributions, disposer des documents nécessaires et contribuer à la sécurité des personnes. Elles sont traitées dans le cadre de l’organisation du séjour, des responsabilités de ses organisateurs et, lorsque cela s’applique, de leurs obligations légales.</p>
+        <p>Les informations sanitaires et relatives aux situations particulières ne doivent être utilisées que par les personnes qui en ont besoin pour protéger et prendre en charge les participants.</p>
+
+        <h2>4. Qui peut accéder aux données ?</h2>
+        <p>L’accès dépend du rôle attribué à chaque utilisateur et de son rattachement à un séjour ou à une unité. Peuvent recevoir tout ou partie des informations : les administrateurs techniques, les responsables et gestionnaires du séjour et les responsables des unités participantes, dans la limite de leurs missions.</p>
+        <p>Les prestataires techniques nécessaires à l’hébergement, aux sauvegardes ou à l’envoi d’e-mails peuvent également traiter des données uniquement pour fournir ces services.</p>
+        <p>L’envoi des e-mails applicatifs utilise le service MX Plan d’OVHcloud. Campement ne prévoit aucun transfert de données vers un pays situé hors de l’Espace économique européen. OVHcloud indique néanmoins que certaines opérations encadrées peuvent être réalisées depuis un pays reconnu comme offrant un niveau de protection adéquat ou, lorsqu’un autre transfert est nécessaire, au moyen des garanties prévues par le RGPD.</p>
+
+        <h2>5. Durées de conservation</h2>
+        <ul>
+            <li><strong>Dossiers des participants, présences et documents associés :</strong> suppression automatique à partir de 48 heures après la fin du séjour.</li>
+            <li><strong>Situations particulières :</strong> suppression automatique 14 jours après la fin du séjour. Les liens avec les participants sont supprimés dès l’anonymisation à 48 heures.</li>
+            <li><strong>Jetons de réinitialisation de mot de passe :</strong> durée de validité limitée puis suppression lors de leur utilisation ou de leur remplacement.</li>
+            <li><strong>Comptes utilisateurs :</strong> suppression automatique un mois après leur désactivation, sauf réactivation pendant ce délai. Cette suppression n’efface pas le libellé nominatif déjà enregistré dans l’historique des mouvements de stock.</li>
+            <li><strong>Unités et données d’intendance :</strong> conservation sans échéance automatique afin de préserver l’historique opérationnel des séjours ; ces données peuvent être supprimées lorsqu’elles ne sont plus nécessaires.</li>
+            <li><strong>Historique des mouvements de stock :</strong> le nom, l’adresse e-mail, le motif et les états avant et après l’opération sont conservés sans échéance automatique afin d’assurer la traçabilité des modifications et annulations. Le lien technique vers le compte est supprimé avec celui-ci, mais le libellé nominatif reste conservé.</li>
+            <li><strong>Sauvegardes :</strong> rotation automatique après 7 jours.</li>
+            <li><strong>Journaux applicatifs Symfony :</strong> seuls les deux fichiers de journalisation les plus récents sont conservés. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
+            <li><strong>Journaux des conteneurs :</strong> Docker conserve au maximum cinq fichiers de 10 Mo par service.</li>
+            <li><strong>Journaux Nginx :</strong> aucune rotation automatique n’est configurée. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
+        </ul>
+        <p>Les fichiers exportés ou imprimés par les utilisateurs sortent du stockage de Campement : leur destinataire doit les supprimer dès qu’ils ne sont plus nécessaires.</p>
+
+        <h2>6. Sécurité</h2>
+        <p>Campement utilise des comptes nominatifs, des droits d’accès par rôle, des mots de passe protégés, une limitation des tentatives de connexion et des protections contre les requêtes frauduleuses. Les utilisateurs doivent contribuer à cette sécurité en protégeant leurs identifiants et leurs exports.</p>
+
+        <h2>7. Cookies</h2>
+        <p>Campement utilise uniquement des cookies techniques nécessaires à la connexion, au maintien de la session et à la sécurité des formulaires. Ils ne servent ni à la publicité ni au suivi de navigation sur d’autres sites. Ces cookies étant indispensables au service, aucun bandeau de consentement n’est affiché.</p>
+
+        <h2>8. Vos droits</h2>
+        <p>Selon la situation et la base juridique applicable, vous pouvez demander l’accès à vos données ou à celles de l’enfant dont vous êtes responsable, leur rectification, leur effacement ou la limitation de leur utilisation. Vous pouvez également vous opposer à certains traitements lorsque ce droit s’applique.</p>
+        <p>Adressez votre demande à <a href="mailto:campement@neitsab.net">campement@neitsab.net</a>, en précisant suffisamment la personne et le séjour concernés. Une vérification d’identité pourra être demandée si elle est nécessaire. Vous pouvez également adresser une réclamation à la <a href="https://www.cnil.fr/" rel="external">CNIL</a>.</p>
+
+        <h2>9. Évolution de cette politique</h2>
+        <p>Cette politique peut être mise à jour pour refléter une évolution du service ou de son organisation. La version en vigueur est celle publiée sur cette page.</p>
+
+        <p class="legal-related">Voir également les <a href="{{ path('app_conditions_utilisation') }}">conditions d’utilisation</a>.</p>
+    </article>
+</main>
+{% endblock %}
