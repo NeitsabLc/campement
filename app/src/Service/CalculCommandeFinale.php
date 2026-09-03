@@ -15,8 +15,8 @@ final class CalculCommandeFinale
 
     /**
      * @param list<array{menu: \App\Entity\Menu, lignes: list<array{denree: Denree, regime: ?\App\Enum\RegimeAlimentaire, quantite: float, unite: \App\Entity\Unite}>}> $commandes
-     * @param array<string, array{entrees: float, sorties: float}> $stocksActuels
-     * @param list<ReferenceFournisseurConditionnement> $niveaux
+     * @param array<string, array{entrees: float, sorties: float}>                                                                                                      $stocksActuels
+     * @param list<ReferenceFournisseurConditionnement>                                                                                                                 $niveaux
      *
      * @return list<array{denree: Denree, besoin: float, stock_previsionnel: float, quantite_commande: float, unite: \App\Entity\Unite}>
      */
@@ -65,7 +65,7 @@ final class CalculCommandeFinale
 
     /**
      * @param list<array{menu: \App\Entity\Menu, lignes: list<array{denree: Denree, regime: ?\App\Enum\RegimeAlimentaire, quantite: float, unite: \App\Entity\Unite}>}> $commandes
-     * @param list<ReferenceFournisseurConditionnement> $niveaux
+     * @param list<ReferenceFournisseurConditionnement>                                                                                                                 $niveaux
      *
      * @return array<string, array{denree: Denree, quantite: float}>
      */
