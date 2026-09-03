@@ -1258,7 +1258,7 @@ select {
 .manager-inline-meal .meal-editor__actions{margin-top:1.25rem}
 .manager-day-form{margin:0}.manager-day-form__actions{display:flex;justify-content:flex-end;margin:2rem -1.75rem -1.5rem;padding:1.5rem;border-top:1px solid var(--border);background:#f8fbfc}.manager-day-form__actions .save-meal-button{min-width:min(100%,18rem)}
 .manager-special-heading{margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)}.manager-special-heading h2{margin:0;font-family:var(--font-title);font-size:1.5rem}.manager-special-heading p{margin:.3rem 0 0;color:var(--text-muted)}
-.menus-heading{justify-content:space-between}.menus-heading>div p{margin:.25rem 0 0;color:#627783}.menus-heading__action{margin-left:auto}
+.menus-heading{justify-content:space-between}.menus-heading>div p{margin:.25rem 0 0;color:var(--text-muted)}.menus-heading__action{margin-left:auto}
 @media(max-width:44rem){.manager-menu-block{padding:1.15rem 1rem;border-radius:.35rem}.manager-inline-meal__heading{align-items:flex-start}.manager-inline-meal .menu-adders{grid-template-columns:minmax(0,1fr)}.manager-day-form__actions{margin-right:-1rem;margin-bottom:-1.15rem;margin-left:-1rem}}
 
 .menus-heading {
