@@ -9,7 +9,7 @@
 parameters:
     app.version: '1.0.0'
     env(APP_PUBLIC_URL): 'http://localhost:8080'
-    env(MAILER_FROM_EMAIL): 'campement@neitsab.net'
+    env(MAILER_FROM_EMAIL): 'no-reply@neitsab.net'
     env(MAILER_FROM_NAME): 'Campement'
     env(TRUSTED_HOST_PATTERN): '^(localhost|127\.0\.0\.1)$'
     env(TRUSTED_PROXIES): '127.0.0.1'
