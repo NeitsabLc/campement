@@ -202,14 +202,15 @@ pour Symfony, pour les outils de test navigateur Playwright/Axe et pour les
 GitHub Actions ; les mises à jour majeures restent proposées séparément. Chaque
 commit intégré à `main` produit une seule fois les
 cinq images candidates dans GHCR sous une étiquette immuable
-`sha-<commit>`, avec SBOM, provenance BuildKit et attestation GitHub signée via
-Sigstore. Lorsqu'un tag `v*` désigne ce commit, le
+`sha-<commit>`, avec SBOM, provenance BuildKit et signature Sigstore sans clé
+liée au dépôt, au workflow, à la branche et au commit. Lorsqu'un tag `v*`
+désigne ce commit, le
 workflow `publish-images.yaml` ajoute les étiquettes sémantiques sans
 reconstruire les images et contrôle que leurs digests restent identiques.
 
 La livraison reste manuelle : GitHub ne se connecte pas au serveur et ne
 déploie rien. L'opérateur copie `.env.release.example` vers `.env.release`, y
-place les cinq références GHCR épinglées par digest, s'authentifie auprès de
+place le SHA Git et les cinq références GHCR épinglées par digest, s'authentifie auprès de
 GHCR si nécessaire, puis utilise :
 
 ```bash
@@ -227,11 +228,12 @@ et un token limité à `read:packages`, transmis avec `docker login
 --password-stdin`. Ce token reste hors de `.env`, `.env.release`, Git et des
 journaux de commande.
 
-`release-verify` exige Docker Buildx et GitHub CLI. Il vérifie chaque digest et
-l'attestation signée émise par le workflow de `main` et stockée dans GHCR. La
+`release-verify` exige Docker Buildx et Cosign. Il vérifie chaque digest et la
+signature sans clé émise par le workflow de `main`, y compris le SHA Git du
+workflow, puis consulte les preuves de transparence Sigstore. La
 surcharge `compose.release.yaml` supprime les
 instructions `build` : une livraison ne peut donc pas reconstruire localement
-une image différente de celle qui a été attestée et testée.
+une image différente de celle qui a été signée et testée.
 
 ## Organisation du code applicatif
 

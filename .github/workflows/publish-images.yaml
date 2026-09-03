@@ -158,7 +158,7 @@ jobs:
           done
           echo "CAMP_RELEASE_GIT_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
 
-      - name: Verifier les attestations signees
+      - name: Verifier les signatures Sigstore
         run: ./scripts/verify-release-images.sh
 
       - name: Preparer la configuration isolee

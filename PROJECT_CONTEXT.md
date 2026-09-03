@@ -736,15 +736,15 @@ leur export.
 
 Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les bases
 Docker. Chaque commit de `main` construit une seule fois les cinq images et les
-publie dans GHCR sous `sha-<commit>`, avec SBOM, provenance et attestation
-GitHub signée via Sigstore. Un tag `v*` n'est publiable que si son commit
+publie dans GHCR sous `sha-<commit>`, avec SBOM, provenance et signature
+Sigstore sans clé liée au dépôt, au workflow, à la branche et au commit. Un tag `v*` n'est publiable que si son commit
 provient de `main` et si ces images candidates existent ; les étiquettes
 sémantiques sont alors ajoutées aux mêmes digests, sans reconstruction.
 
 La livraison reste manuelle et n'utilise aucun runner de production. Le fichier
-local `.env.release` contient uniquement les cinq références GHCR immuables par
+local `.env.release` contient le SHA Git et les cinq références GHCR immuables par
 digest. La surcharge `compose.release.yaml` retire toutes les constructions
-locales ; les commandes `make release-*` vérifient les attestations signées,
+locales ; les commandes `make release-*` vérifient les signatures Sigstore,
 téléchargent les images, exécutent Liquibase et démarrent les services sans que
 GitHub se connecte au serveur.
 
