@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
-          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-app-${{ matrix.image }}" >> "$GITHUB_ENV"
           echo "CANDIDATE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Se connecter a GHCR
@@ -144,7 +144,7 @@ jobs:
 
           proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
           for image in php nginx postgres liquibase backup; do
-            depot="ghcr.io/${proprietaire}/campement-${image}"
+            depot="ghcr.io/${proprietaire}/campement-app-${image}"
             candidat="${depot}:sha-${GITHUB_SHA}"
             if ! digest=$(resoudre_digest "$candidat"); then
               echo "Image candidate absente ou digest invalide : ${candidat}" >&2
@@ -270,7 +270,7 @@ jobs:
         run: |
           proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
           version="${GITHUB_REF_NAME#v}"
-          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-app-${{ matrix.image }}" >> "$GITHUB_ENV"
           echo "CANDIDATE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "VERSION=${version}" >> "$GITHUB_ENV"
 

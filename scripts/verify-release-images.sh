@@ -21,7 +21,7 @@ workflow="${depot}/.github/workflows/publish-images.yaml"
 verifier_image() {
     nom=$1
     reference=$2
-    prefixe="ghcr.io/neitsablc/campement-${nom}@sha256:"
+    prefixe="ghcr.io/neitsablc/campement-app-${nom}@sha256:"
 
     case "$reference" in
         "$prefixe"*) ;;
