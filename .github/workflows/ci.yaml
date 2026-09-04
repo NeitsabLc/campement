@@ -80,7 +80,31 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Auditer les dependances npm
-        run: npm audit --audit-level=high
+        run: |
+          set -euo pipefail
+          rapport=$(mktemp)
+          trap 'rm -f "$rapport"' EXIT
+          for tentative in 1 2 3; do
+            if npm_config_fetch_retries=0 npm_config_fetch_timeout=30000 \
+                npm audit --audit-level=high --json >"$rapport"; then
+              jq . "$rapport"
+              exit 0
+            fi
+
+            cat "$rapport"
+            if jq -e '((.metadata.vulnerabilities.high // 0) + (.metadata.vulnerabilities.critical // 0)) > 0' \
+                "$rapport" >/dev/null 2>&1; then
+              echo "Vulnerabilites npm elevees ou critiques detectees." >&2
+              exit 1
+            fi
+
+            if [ "$tentative" -lt 3 ]; then
+              echo "Audit npm indisponible (${tentative}/3), nouvelle tentative." >&2
+              sleep $((tentative * 10))
+            fi
+          done
+          echo "Audit npm indisponible apres trois tentatives." >&2
+          exit 1
 
       - name: Construire l'image PHP
         run: docker compose build --pull php
