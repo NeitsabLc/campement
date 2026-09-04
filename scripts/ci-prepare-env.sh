@@ -21,6 +21,7 @@ app_secret_ci=$(openssl rand -hex 32)
 echo "::add-mask::${app_secret_ci}"
 remplacer_variable app/.env APP_ENV prod
 remplacer_variable app/.env APP_SECRET "$app_secret_ci"
+chmod 0644 app/.env
 remplacer_variable .env APP_SECRET "$app_secret_ci"
 
 for variable in \
