@@ -114,7 +114,9 @@ jobs:
         run: docker compose exec --no-TTY php composer audit --locked --no-interaction
 
       - name: Auditer les dependances Importmap
-        run: docker compose exec --no-TTY php php bin/console importmap:audit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: docker compose exec --no-TTY -e GITHUB_TOKEN php php bin/console importmap:audit
 
       - name: Valider les changelogs Liquibase
         run: docker compose --profile tools run --rm liquibase validate
