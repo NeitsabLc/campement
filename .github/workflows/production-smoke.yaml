@@ -1,0 +1,33 @@
+name: Controle de production
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-smoke:
+    name: Configuration de production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Preparer la configuration de production isolee
+        run: ./scripts/ci-prepare-env.sh
+
+      - name: Tester la superposition Compose de production
+        env:
+          COMPOSE_PROJECT_NAME: campement-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          NGINX_HOST_PORT: 18082
+          POSTGRES_HOST_PORT: 15436
+        run: ./scripts/ci-production-smoke.sh

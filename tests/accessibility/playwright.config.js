@@ -7,6 +7,7 @@ export default defineConfig({
   workers: 1,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['line']] : 'list',
+  outputDir: '../../test-results/accessibility',
   use: {
     baseURL: process.env.APP_BASE_URL ?? 'http://127.0.0.1:8080',
     browserName: 'chromium',

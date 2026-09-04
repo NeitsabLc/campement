@@ -2,12 +2,11 @@
 
 set -eu
 
+script_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+# shellcheck source=registry-helpers.sh
+. "$script_dir/registry-helpers.sh"
+
 : "${CAMP_RELEASE_GIT_SHA:?CAMP_RELEASE_GIT_SHA doit etre renseigne}"
-: "${CAMP_RELEASE_PHP_IMAGE:?CAMP_RELEASE_PHP_IMAGE doit etre renseignee}"
-: "${CAMP_RELEASE_NGINX_IMAGE:?CAMP_RELEASE_NGINX_IMAGE doit etre renseignee}"
-: "${CAMP_RELEASE_POSTGRES_IMAGE:?CAMP_RELEASE_POSTGRES_IMAGE doit etre renseignee}"
-: "${CAMP_RELEASE_LIQUIBASE_IMAGE:?CAMP_RELEASE_LIQUIBASE_IMAGE doit etre renseignee}"
-: "${CAMP_RELEASE_BACKUP_IMAGE:?CAMP_RELEASE_BACKUP_IMAGE doit etre renseignee}"
 
 for commande in docker cosign; do
     if ! command -v "$commande" >/dev/null 2>&1; then
@@ -54,10 +53,15 @@ verifier_image() {
         --certificate-github-workflow-sha "$CAMP_RELEASE_GIT_SHA" >/dev/null
 }
 
-verifier_image php "$CAMP_RELEASE_PHP_IMAGE"
-verifier_image nginx "$CAMP_RELEASE_NGINX_IMAGE"
-verifier_image postgres "$CAMP_RELEASE_POSTGRES_IMAGE"
-verifier_image liquibase "$CAMP_RELEASE_LIQUIBASE_IMAGE"
-verifier_image backup "$CAMP_RELEASE_BACKUP_IMAGE"
+for image in $(release_image_names); do
+    variable=$(printf '%s' "$image" | tr '[:lower:]' '[:upper:]')
+    variable="CAMP_RELEASE_${variable}_IMAGE"
+    eval "reference=\${${variable}:-}"
+    if [ -z "$reference" ]; then
+        echo "${variable} doit etre renseignee" >&2
+        exit 1
+    fi
+    verifier_image "$image" "$reference"
+done
 
 echo "Les cinq images et leurs signatures Sigstore sont valides."

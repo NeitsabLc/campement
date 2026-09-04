@@ -13,6 +13,7 @@ parameters:
     env(MAILER_FROM_NAME): 'Campement'
     env(TRUSTED_HOST_PATTERN): '^(localhost|127\.0\.0\.1)$'
     env(TRUSTED_PROXIES): '127.0.0.1'
+    env(GITHUB_TOKEN): ''
     app.document_storage_dir: '%kernel.project_dir%/var/documents_participants'
 
 services:
@@ -38,6 +39,12 @@ services:
     App\Logging\SensitiveDataProcessor:
         tags:
             - { name: monolog.processor }
+
+    asset_mapper.importmap.auditor:
+        class: Symfony\Component\AssetMapper\ImportMap\ImportMapAuditor
+        arguments:
+            $configReader: '@asset_mapper.importmap.config_reader'
+            $httpClient: '@github_advisories.client'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

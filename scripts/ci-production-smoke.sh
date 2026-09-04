@@ -130,7 +130,18 @@ compose exec --no-TTY database sh -ec '
         --set=ON_ERROR_STOP=1 \
         --command="CREATE TABLE campement.ci_migrator_privilege_check (id integer); DROP TABLE campement.ci_migrator_privilege_check"
 '
-compose up --detach php nginx
+compose up --detach --wait --wait-timeout 60 php nginx
+
+database_container=$(compose ps --quiet database)
+php_container=$(compose ps --quiet php)
+nginx_container=$(compose ps --quiet nginx)
+test "$(docker inspect --format '{{.State.Health.Status}}' "$database_container")" = healthy
+test "$(docker inspect --format '{{.State.Health.Status}}' "$php_container")" = healthy
+test "$(docker inspect --format '{{.State.Health.Status}}' "$nginx_container")" = healthy
+docker inspect --format '{{json .HostConfig.PortBindings}}' "$database_container" \
+    | grep -q '"5432/tcp".*"HostIp":"127.0.0.1"'
+docker inspect --format '{{json .HostConfig.PortBindings}}' "$nginx_container" \
+    | grep -q '"HostIp":"127.0.0.1"'
 
 curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors \
     --output /dev/null \
