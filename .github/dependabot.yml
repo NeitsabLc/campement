@@ -5,7 +5,7 @@ updates:
     directory: /app
     schedule:
       interval: weekly
-    target-branch: dev
+    target-branch: main
     groups:
       symfony:
         patterns:
@@ -18,7 +18,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    target-branch: dev
+    target-branch: main
     groups:
       tests-navigateur:
         patterns:
@@ -33,7 +33,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    target-branch: dev
+    target-branch: main
     groups:
       actions-github:
         patterns:
@@ -46,16 +46,16 @@ updates:
     directory: /docker/php
     schedule:
       interval: weekly
-    target-branch: dev
+    target-branch: main
 
   - package-ecosystem: docker
     directory: /docker/postgres
     schedule:
       interval: weekly
-    target-branch: dev
+    target-branch: main
 
   - package-ecosystem: docker
     directory: /docker/liquibase
     schedule:
       interval: weekly
-    target-branch: dev
+    target-branch: main
