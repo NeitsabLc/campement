@@ -42,6 +42,12 @@ services:
     mem_limit: 512m
     cpus: 1.0
     pids_limit: 128
+    healthcheck:
+      test: [CMD, php, -r, 'exit(false === @fsockopen("127.0.0.1", 9000) ? 1 : 0);']
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
 
   nginx:
     logging: *production-logging
@@ -70,6 +76,20 @@ services:
     mem_limit: 128m
     cpus: 0.5
     pids_limit: 64
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget --quiet --output-document=/dev/null
+          --header='Host: ${APP_HOSTNAME:-localhost}'
+          http://127.0.0.1:8080/login
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    depends_on:
+      php:
+        condition: service_healthy
 
   maintenance:
     logging: *production-logging

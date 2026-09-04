@@ -718,12 +718,13 @@ Le dépôt ne documente que les invariants nécessaires au développement :
 * aucune commande destructive ne doit cibler un environnement contenant des
   données à conserver.
 
-La CI générale s'exécute sur `dev` et `main`, audite Composer, Importmap et npm,
-puis construit et analyse avec Trivy les cinq images finales PHP, Nginx,
-PostgreSQL, Liquibase et sauvegarde ; le scan PHP couvre aussi `vendor/`
-réellement livré.
-Pour chaque push et pull request visant `dev` ou `main`, un job indépendant
-exécute `scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
+La CI générale s'exécute une seule fois sur chaque pull request visant `dev`.
+Elle audite Composer, Importmap et npm, recherche les secrets versionnés, puis
+construit et analyse avec Trivy les cinq images finales PHP, Nginx, PostgreSQL,
+Liquibase et sauvegarde ; le scan PHP couvre aussi `vendor/` réellement livré.
+Une pull request visant `main` exécute uniquement le workflow indépendant
+`production-smoke.yaml` et son statut `Configuration de production`. Il lance
+`scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
 des images finales, base vierge, migrations, transition des rôles PostgreSQL,
 requête Doctrine avec le rôle applicatif, refus d'en-têtes `Host` et
 `X-Forwarded-Host` hostiles,
