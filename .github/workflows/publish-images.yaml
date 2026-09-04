@@ -19,7 +19,7 @@ jobs:
   publier-candidat:
     name: Publier le candidat ${{ matrix.image }}
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
@@ -66,28 +66,34 @@ jobs:
       - name: Installer Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
+      - name: Configurer Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
       - name: Construire et publier le candidat avec SBOM et provenance
         id: build
-        shell: bash
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ env.REGISTRY_IMAGE }}:${{ env.CANDIDATE_TAG }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=publication-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=publication-${{ matrix.image }}
+
+      - name: Valider le digest construit
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          docker buildx create --name campement-builder --use
-          docker buildx build \
-            --file "${{ matrix.file }}" \
-            --target "${{ matrix.target }}" \
-            --tag "${REGISTRY_IMAGE}:${CANDIDATE_TAG}" \
-            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
-            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
-            --sbom=true \
-            --provenance=mode=max \
-            --push \
-            --metadata-file /tmp/build-metadata.json \
-            .
-          digest=$(jq -r '."containerimage.digest"' /tmp/build-metadata.json)
-          if ! printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
-            echo "Digest construit invalide : ${digest}" >&2
+          if ! printf '%s\n' "$IMAGE_DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "Digest construit invalide : ${IMAGE_DIGEST}" >&2
             exit 1
           fi
-          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Signer le candidat avec Sigstore
         env:
@@ -103,7 +109,7 @@ jobs:
     name: Tester les images candidates
     if: github.ref == 'refs/heads/main'
     needs: publier-candidat
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       contents: read
@@ -125,31 +131,12 @@ jobs:
       - name: Resoudre les cinq digests candidats
         shell: bash
         run: |
-          resoudre_digest() {
-            local reference="$1"
-            local digest=""
-            local tentative
-
-            for tentative in 1 2 3 4 5 6; do
-              digest=$(docker buildx imagetools inspect "$reference" 2>/dev/null | awk '$1 == "Digest:" { print $2; exit }') || true
-              if printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
-                printf '%s\n' "$digest"
-                return 0
-              fi
-              if [ "$tentative" -lt 6 ]; then
-                sleep 10
-              fi
-            done
-
-            echo "Digest indisponible apres ${tentative} tentatives : ${reference}" >&2
-            return 1
-          }
-
+          . ./scripts/registry-helpers.sh
           proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
-          for image in php nginx postgres liquibase backup; do
+          for image in $(release_image_names); do
             depot="ghcr.io/${proprietaire}/campement-app-${image}"
             candidat="${depot}:sha-${GITHUB_SHA}"
-            if ! digest=$(resoudre_digest "$candidat"); then
+            if ! digest=$(registry_resolve_digest_with_retry "$candidat"); then
               echo "Image candidate absente ou digest invalide : ${candidat}" >&2
               exit 1
             fi
@@ -162,21 +149,7 @@ jobs:
         run: ./scripts/verify-release-images.sh
 
       - name: Preparer la configuration isolee
-        shell: bash
-        run: |
-          cp .env.example .env
-          cp app/.env.example app/.env
-          APP_SECRET_CI="$(openssl rand -hex 32)"
-          echo "::add-mask::${APP_SECRET_CI}"
-          sed -i "s/^APP_ENV=.*/APP_ENV=prod/" app/.env
-          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" app/.env
-          sed -i "s/^APP_SECRET=.*/APP_SECRET=${APP_SECRET_CI}/" .env
-          for variable in POSTGRES_PASSWORD POSTGRES_APP_PASSWORD POSTGRES_MIGRATOR_PASSWORD POSTGRES_BACKUP_PASSWORD POSTGRES_HEALTHCHECK_PASSWORD; do
-            valeur="$(openssl rand -hex 24)"
-            echo "::add-mask::${valeur}"
-            echo "${variable}=${valeur}" >> "$GITHUB_ENV"
-          done
-          echo "POSTGRES_HEALTHCHECK_USER=campement_admin" >> "$GITHUB_ENV"
+        run: ./scripts/ci-prepare-env.sh
 
       - name: Tester exactement les images candidates
         env:
@@ -192,11 +165,11 @@ jobs:
   valider-tag:
     name: Valider la version a promouvoir
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
+      actions: read
       contents: read
-      checks: read
     steps:
       - name: Recuperer l'historique Git
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -229,25 +202,48 @@ jobs:
             exit 1
           fi
 
-      - name: Exiger les validations du commit candidat
+      - name: Attendre la validation des images candidates
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          for controle in "Qualite et tests" "Configuration de production" "Tester les images candidates"; do
-            valide=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
-              --jq ".check_runs | map(select(.name == \"${controle}\" and .conclusion == \"success\")) | length > 0")
-            if [ "$valide" != "true" ]; then
-              echo "Controle requis absent ou non valide : ${controle}" >&2
-              exit 1
+          for tentative in $(seq 1 54); do
+            if ! etat=$(gh api --method GET \
+                "repos/${GITHUB_REPOSITORY}/actions/workflows/publish-images.yaml/runs" \
+                -f branch=main \
+                -f event=push \
+                -f head_sha="$GITHUB_SHA" \
+                -f per_page=10 \
+                --jq '.workflow_runs | sort_by(.created_at) | last | if . == null then "absent" elif .status != "completed" then .status else .conclusion end'); then
+              etat=indisponible
             fi
+
+            case "$etat" in
+              success)
+                echo "Les images candidates de ${GITHUB_SHA} ont ete validees."
+                exit 0
+                ;;
+              absent|indisponible|queued|in_progress|pending|requested|waiting)
+                if [ "$tentative" -lt 54 ]; then
+                  echo "Validation candidate ${etat}, nouvelle tentative dans 10 secondes."
+                  sleep 10
+                fi
+                ;;
+              *)
+                echo "La publication candidate de ${GITHUB_SHA} a termine avec l'etat ${etat}." >&2
+                exit 1
+                ;;
+            esac
           done
+
+          echo "Validation candidate indisponible apres 9 minutes pour ${GITHUB_SHA}." >&2
+          exit 1
 
   promouvoir-version:
     name: Promouvoir ${{ matrix.image }} sans reconstruire
     if: startsWith(github.ref, 'refs/tags/v')
     needs: valider-tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -272,9 +268,11 @@ jobs:
         run: |
           proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
           version="${GITHUB_REF_NAME#v}"
-          echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-app-${{ matrix.image }}" >> "$GITHUB_ENV"
-          echo "CANDIDATE_TAG=sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          {
+            echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-app-${{ matrix.image }}"
+            echo "CANDIDATE_TAG=sha-${GITHUB_SHA}"
+            echo "VERSION=${version}"
+          } >> "$GITHUB_ENV"
 
       - name: Se connecter a GHCR
         env:
@@ -286,28 +284,9 @@ jobs:
       - name: Promouvoir exactement le digest candidat
         shell: bash
         run: |
-          resoudre_digest() {
-            local reference="$1"
-            local digest=""
-            local tentative
-
-            for tentative in 1 2 3 4 5 6; do
-              digest=$(docker buildx imagetools inspect "$reference" 2>/dev/null | awk '$1 == "Digest:" { print $2; exit }') || true
-              if printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
-                printf '%s\n' "$digest"
-                return 0
-              fi
-              if [ "$tentative" -lt 6 ]; then
-                sleep 10
-              fi
-            done
-
-            echo "Digest indisponible apres ${tentative} tentatives : ${reference}" >&2
-            return 1
-          }
-
+          . ./scripts/registry-helpers.sh
           candidat="${REGISTRY_IMAGE}:${CANDIDATE_TAG}"
-          if ! digest=$(resoudre_digest "$candidat"); then
+          if ! digest=$(registry_resolve_digest_with_retry "$candidat"); then
             echo "Image candidate absente ou digest invalide : ${candidat}" >&2
             exit 1
           fi
@@ -324,7 +303,7 @@ jobs:
             --tag "${REGISTRY_IMAGE}:${VERSION}" \
             "$source_immuable"
 
-          digest_promu=$(resoudre_digest "${REGISTRY_IMAGE}:${VERSION}")
+          digest_promu=$(registry_resolve_digest_with_retry "${REGISTRY_IMAGE}:${VERSION}")
           if [ "$digest_promu" != "$digest" ]; then
             echo "Digest promu incorrect pour ${REGISTRY_IMAGE}:${VERSION}" >&2
             exit 1

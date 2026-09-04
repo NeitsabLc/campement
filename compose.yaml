@@ -26,7 +26,7 @@ services:
 
   nginx:
     restart: unless-stopped
-    image: "nginx:${NGINX_VERSION}@${NGINX_IMAGE_DIGEST:-sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de}"
+    image: "nginx:${NGINX_VERSION}@${NGINX_IMAGE_DIGEST:-sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c70ae650cd66104c}"
     ports:
       - "${NGINX_BIND_ADDRESS:-127.0.0.1}:${NGINX_HOST_PORT:-8080}:8080"
     volumes:

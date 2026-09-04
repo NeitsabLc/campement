@@ -165,26 +165,28 @@ contenant des données à conserver.
 
 ### Intégration continue
 
-Le workflow GitHub Actions `.github/workflows/ci.yaml` s'exécute :
+Les workflows GitHub Actions s'exécutent :
 
-- sur chaque pull request visant `dev` ou `main`, afin de valider le changement
-  avant son merge ;
-- sur chaque push dans `dev` ou `main`, notamment après un merge ;
-- manuellement depuis l'onglet Actions de GitHub.
+- `.github/workflows/ci.yaml` sur chaque pull request visant `dev`, avec le job
+  `Qualite et tests` ;
+- `.github/workflows/production-smoke.yaml` sur chaque pull request visant
+  `main`, avec le job `Configuration de production`.
 
-La CI valide la configuration Docker Compose, Composer, les changelogs
-Liquibase et les mappings Doctrine. Elle audite les dépendances Composer,
-Importmap et npm, analyse le code avec PHPStan et contrôle avec Trivy les
-vulnérabilités élevées ou critiques des cinq images finales PHP, Nginx,
-PostgreSQL, Liquibase et sauvegarde sur chaque événement. Elle compile aussi
-les assets, recrée une base PostgreSQL de test isolée, exécute PHPUnit, les
-scénarios d'accessibilité et les parcours E2E dans le navigateur.
+Pour les pull requests vers `dev`, la CI valide la configuration Docker Compose,
+Composer, les changelogs Liquibase et les mappings Doctrine. Elle audite les
+dépendances Composer, Importmap et npm, analyse le code avec PHPStan et contrôle
+avec Trivy les vulnérabilités élevées ou critiques des cinq images finales PHP,
+Nginx, PostgreSQL, Liquibase et sauvegarde. La base de vulnérabilités Trivy est
+mise en cache quotidiennement entre les exécutions d'une même pull request. La CI
+compile aussi les assets,
+recrée une base PostgreSQL de test isolée, exécute PHPUnit, les scénarios
+d'accessibilité et les parcours E2E dans le navigateur. En cas d'échec de
+Playwright, les captures et traces disponibles sont conservées pendant sept
+jours dans les artefacts du workflow.
 
-Sur chaque push et chaque pull request visant `dev` ou `main`, un job indépendant
-construit puis démarre la surcharge Compose de production. Le ruleset de `main`
-exige uniquement le contrôle `Qualite et tests` : le smoke test reste un signal
-complémentaire volontairement non bloquant, et aucun contrôle n'est imposé à
-`dev`, afin de conserver un cycle de développement léger. Ce smoke test initialise
+Pour les pull requests vers `main`, le job de contrôle construit puis démarre la
+surcharge Compose de production. Les rulesets doivent exiger `Qualite et tests`
+sur `dev` et `Configuration de production` sur `main`. Ce smoke test initialise
 une base vierge, applique Liquibase, vérifie les rôles
 PostgreSQL limités et authentifiés en SCRAM, la connexion applicative, le refus
 d'en-têtes `Host` et `X-Forwarded-Host` hostiles, puis une sauvegarde chiffrée
@@ -203,10 +205,12 @@ GitHub Actions ; les mises à jour majeures restent proposées séparément. Cha
 commit intégré à `main` produit une seule fois les
 cinq images candidates dans GHCR sous une étiquette immuable
 `sha-<commit>`, avec SBOM, provenance BuildKit et signature Sigstore sans clé
-liée au dépôt, au workflow, à la branche et au commit. Lorsqu'un tag `v*`
-désigne ce commit, le
+liée au dépôt, au workflow, à la branche et au commit. Les constructions utilisent
+un cache BuildKit distinct par image. Lorsqu'un tag `v*` désigne ce commit, le
 workflow `publish-images.yaml` ajoute les étiquettes sémantiques sans
-reconstruire les images et contrôle que leurs digests restent identiques.
+reconstruire les images et contrôle que leurs digests restent identiques. Si la
+publication candidate du commit est encore en cours, la promotion attend sa
+validation pendant neuf minutes au maximum.
 
 La livraison reste manuelle : GitHub ne se connecte pas au serveur et ne
 déploie rien. L'opérateur copie `.env.release.example` vers `.env.release`, y

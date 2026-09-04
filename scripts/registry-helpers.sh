@@ -20,3 +20,31 @@ registry_login_with_retry() {
         tentative=$((tentative + 1))
     done
 }
+
+registry_resolve_digest_with_retry() (
+    reference=${1:?La reference de l image doit etre renseignee}
+    maximum=${2:-6}
+    delai=${3:-10}
+    tentative=1
+
+    while [ "$tentative" -le "$maximum" ]; do
+        digest=$(docker buildx imagetools inspect "$reference" 2>/dev/null \
+            | awk '$1 == "Digest:" { print $2; exit }') || true
+        if printf '%s\n' "$digest" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            printf '%s\n' "$digest"
+            return 0
+        fi
+
+        if [ "$tentative" -lt "$maximum" ]; then
+            sleep "$delai"
+        fi
+        tentative=$((tentative + 1))
+    done
+
+    echo "Digest indisponible apres ${maximum} tentatives : ${reference}" >&2
+    return 1
+)
+
+release_image_names() {
+    printf '%s\n' php nginx postgres liquibase backup
+}
