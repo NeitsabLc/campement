@@ -5,8 +5,9 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
+  release:
+    types:
+      - published
 
 permissions:
   contents: read
@@ -213,7 +214,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verifier le tag et son appartenance a main
+      - name: Verifier la release, le tag et leur appartenance a main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -223,21 +224,48 @@ jobs:
             echo "Le tag doit respecter vMAJEUR.MINEUR.CORRECTIF." >&2
             exit 1
           fi
-          git fetch --no-tags origin main:refs/remotes/origin/main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-
           objet_tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}")
-          if [ "$(jq -r '.object.type' <<<"$objet_tag")" != "tag" ]; then
-            echo "Le tag de release doit etre annote et signe." >&2
+          type_tag=$(jq -r '.object.type' <<<"$objet_tag")
+          cible_tag=$(jq -r '.object.sha' <<<"$objet_tag")
+
+          case "$type_tag" in
+            commit)
+              release=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}")
+              if [ "$(jq -r '.draft' <<<"$release")" != false ] \
+                || [ "$(jq -r '.prerelease' <<<"$release")" != false ] \
+                || [ "$(jq -r '.published_at != null' <<<"$release")" != true ] \
+                || [ "$(jq -r '.tag_name' <<<"$release")" != "$GITHUB_REF_NAME" ] \
+                || [ "$(jq -r '.author.login | ascii_downcase' <<<"$release")" != "${GITHUB_REPOSITORY_OWNER,,}" ]; then
+                echo "La release automatique associee au tag est invalide." >&2
+                exit 1
+              fi
+              git_sha=$cible_tag
+              ;;
+            tag)
+              tag_annote=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${cible_tag}")
+              if [ "$(jq -r '.verification.verified' <<<"$tag_annote")" != true ]; then
+                echo "La signature du tag annote n'est pas validee par GitHub." >&2
+                exit 1
+              fi
+              if [ "$(jq -r '.object.type' <<<"$tag_annote")" != commit ]; then
+                echo "Le tag annote ne designe pas directement un commit." >&2
+                exit 1
+              fi
+              git_sha=$(jq -r '.object.sha' <<<"$tag_annote")
+              ;;
+            *)
+              echo "Type de tag Git inattendu : ${type_tag}" >&2
+              exit 1
+              ;;
+          esac
+
+          if [ "$git_sha" != "$GITHUB_SHA" ]; then
+            echo "Le tag ne designe pas le commit attendu par le workflow." >&2
             exit 1
           fi
-          signature_valide=$(gh api \
-            "repos/${GITHUB_REPOSITORY}/git/tags/$(jq -r '.object.sha' <<<"$objet_tag")" \
-            --jq '.verification.verified')
-          if [ "$signature_valide" != "true" ]; then
-            echo "La signature du tag de release n'est pas validee par GitHub." >&2
-            exit 1
-          fi
+
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$git_sha" origin/main
 
       - name: Attendre la validation des images candidates
         env:
