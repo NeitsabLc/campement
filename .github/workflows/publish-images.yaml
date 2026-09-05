@@ -2,6 +2,11 @@ name: Publication des images
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Version existante a promouvoir, sans prefixe v (laisser vide pour republier un candidat)
+        required: false
+        type: string
   push:
     branches:
       - main
@@ -19,7 +24,9 @@ concurrency:
 jobs:
   publier-candidat:
     name: Publier le candidat ${{ matrix.image }}
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.release_version == '')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -108,7 +115,9 @@ jobs:
 
   tester-candidats:
     name: Tester les images candidates
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.release_version == '')
     needs: publier-candidat
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -202,39 +211,62 @@ jobs:
 
   valider-tag:
     name: Valider la version a promouvoir
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && inputs.release_version != '')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       actions: read
       contents: read
+    outputs:
+      git_sha: ${{ steps.release.outputs.git_sha }}
+      version: ${{ steps.release.outputs.version }}
     steps:
+      - name: Definir la release demandee
+        env:
+          VERSION_MANUELLE: ${{ inputs.release_version }}
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            version=$VERSION_MANUELLE
+          else
+            version=${GITHUB_REF_NAME#v}
+          fi
+
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "La version doit respecter MAJEUR.MINEUR.CORRECTIF." >&2
+            exit 1
+          fi
+
+          {
+            echo "RELEASE_VERSION=$version"
+            echo "RELEASE_TAG=v$version"
+          } >> "$GITHUB_ENV"
+
       - name: Recuperer l'historique Git
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.release_version) || github.ref }}
 
       - name: Verifier la release, le tag et leur appartenance a main
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "Le tag doit respecter vMAJEUR.MINEUR.CORRECTIF." >&2
-            exit 1
-          fi
-          objet_tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${GITHUB_REF_NAME}")
+          objet_tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}")
           type_tag=$(jq -r '.object.type' <<<"$objet_tag")
           cible_tag=$(jq -r '.object.sha' <<<"$objet_tag")
 
           case "$type_tag" in
             commit)
-              release=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}")
+              release=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
               if [ "$(jq -r '.draft' <<<"$release")" != false ] \
                 || [ "$(jq -r '.prerelease' <<<"$release")" != false ] \
                 || [ "$(jq -r '.published_at != null' <<<"$release")" != true ] \
-                || [ "$(jq -r '.tag_name' <<<"$release")" != "$GITHUB_REF_NAME" ] \
+                || [ "$(jq -r '.tag_name' <<<"$release")" != "$RELEASE_TAG" ] \
                 || [ "$(jq -r '.author.login | ascii_downcase' <<<"$release")" != "${GITHUB_REPOSITORY_OWNER,,}" ]; then
                 echo "La release automatique associee au tag est invalide." >&2
                 exit 1
@@ -259,13 +291,19 @@ jobs:
               ;;
           esac
 
-          if [ "$git_sha" != "$GITHUB_SHA" ]; then
-            echo "Le tag ne designe pas le commit attendu par le workflow." >&2
+          if [ "$git_sha" != "$(git rev-parse HEAD)" ]; then
+            echo "Le tag ne designe pas le commit recupere par le workflow." >&2
             exit 1
           fi
 
           git fetch --no-tags origin main:refs/remotes/origin/main
           git merge-base --is-ancestor "$git_sha" origin/main
+
+          echo "RELEASE_GIT_SHA=$git_sha" >> "$GITHUB_ENV"
+          {
+            echo "git_sha=$git_sha"
+            echo "version=$RELEASE_VERSION"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Attendre la validation des images candidates
         env:
@@ -277,7 +315,7 @@ jobs:
                 "repos/${GITHUB_REPOSITORY}/actions/workflows/publish-images.yaml/runs" \
                 -f branch=main \
                 -f event=push \
-                -f head_sha="$GITHUB_SHA" \
+                -f head_sha="$RELEASE_GIT_SHA" \
                 -f per_page=10 \
                 --jq '.workflow_runs | sort_by(.created_at) | last | if . == null then "absent" elif .status != "completed" then .status else .conclusion end'); then
               etat=indisponible
@@ -285,7 +323,7 @@ jobs:
 
             case "$etat" in
               success)
-                echo "Les images candidates de ${GITHUB_SHA} ont ete validees."
+                echo "Les images candidates de ${RELEASE_GIT_SHA} ont ete validees."
                 exit 0
                 ;;
               absent|indisponible|queued|in_progress|pending|requested|waiting)
@@ -295,18 +333,18 @@ jobs:
                 fi
                 ;;
               *)
-                echo "La publication candidate de ${GITHUB_SHA} a termine avec l'etat ${etat}." >&2
+                echo "La publication candidate de ${RELEASE_GIT_SHA} a termine avec l'etat ${etat}." >&2
                 exit 1
                 ;;
             esac
           done
 
-          echo "Validation candidate indisponible apres 9 minutes pour ${GITHUB_SHA}." >&2
+          echo "Validation candidate indisponible apres 9 minutes pour ${RELEASE_GIT_SHA}." >&2
           exit 1
 
   promouvoir-version:
     name: Promouvoir ${{ matrix.image }} sans reconstruire
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.valider-tag.result == 'success'
     needs: valider-tag
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -327,16 +365,20 @@ jobs:
     steps:
       - name: Recuperer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.valider-tag.outputs.git_sha }}
 
       - name: Definir les references
+        env:
+          RELEASE_GIT_SHA: ${{ needs.valider-tag.outputs.git_sha }}
+          RELEASE_VERSION: ${{ needs.valider-tag.outputs.version }}
         shell: bash
         run: |
           proprietaire="${GITHUB_REPOSITORY_OWNER,,}"
-          version="${GITHUB_REF_NAME#v}"
           {
             echo "REGISTRY_IMAGE=ghcr.io/${proprietaire}/campement-app-${{ matrix.image }}"
-            echo "CANDIDATE_TAG=sha-${GITHUB_SHA}"
-            echo "VERSION=${version}"
+            echo "CANDIDATE_TAG=sha-${RELEASE_GIT_SHA}"
+            echo "VERSION=${RELEASE_VERSION}"
           } >> "$GITHUB_ENV"
 
       - name: Se connecter a GHCR
