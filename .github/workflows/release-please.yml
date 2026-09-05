@@ -1,4 +1,4 @@
-name: Préparer une version
+name: Préparer ou publier une version
 
 on:
   push:
@@ -14,11 +14,11 @@ concurrency:
 
 jobs:
   release-please:
-    name: Calculer la prochaine version
+    name: Piloter la prochaine version
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Créer ou actualiser la PR de release
+      - name: Créer, actualiser ou publier la release
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
