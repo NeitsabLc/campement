@@ -39,8 +39,9 @@ propose une version majeure. Les autres types usuels (`docs:`, `test:`,
 Après chaque fusion sur `main`, Release Please crée ou actualise une pull
 request de release contenant la prochaine version, `version.txt`, la version
 affichée par l'application et le journal des changements. Sa fusion reste une
-décision manuelle après validation de la recette. La création du tag signé et
-la promotion vers la production restent des opérations séparées.
+décision manuelle après validation de la recette. Cette fusion crée
+automatiquement la GitHub Release et son tag `vX.Y.Z`. La promotion vers la
+production reste une opération manuelle séparée.
 
 ## Fonctionnalités
 
