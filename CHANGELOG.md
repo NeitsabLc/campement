@@ -4,6 +4,16 @@ Le projet repart sur une histoire autonome à compter de la séparation avec
 Scout Market. Les versions antérieures à cette base sont conservées dans
 l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
 
+## [1.0.1](https://github.com/NeitsabLc/campement/compare/v1.0.0...v1.0.1) (2026-09-05)
+
+
+### Corrections
+
+* **deps-dev:** bump friendsofphp/php-cs-fixer from 3.95.18 to 3.95.24 in /app ([8b524d0](https://github.com/NeitsabLc/campement/commit/8b524d0194447ceacbf00f5ccc32af09f013bd8c))
+* **deps-dev:** bump friendsofphp/php-cs-fixer in /app ([70c6a8b](https://github.com/NeitsabLc/campement/commit/70c6a8bdbf362ff40449228526a0c567e5d2672a))
+* **deps:** bump the symfony group across 1 directory with 12 updates ([a0c841e](https://github.com/NeitsabLc/campement/commit/a0c841e63333400885c8e31e2feb54aeb2cf289f))
+* **deps:** bump the symfony group across 1 directory with 12 updates ([31992b7](https://github.com/NeitsabLc/campement/commit/31992b7879d68dc9c680cae6694b185104760e7e))
+
 ## [1.0.0] - 2026-09-02
 
 ### Base applicative
