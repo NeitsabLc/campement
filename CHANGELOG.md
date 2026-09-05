@@ -4,6 +4,15 @@ Le projet repart sur une histoire autonome à compter de la séparation avec
 Scout Market. Les versions antérieures à cette base sont conservées dans
 l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
 
+## [1.0.2](https://github.com/NeitsabLc/campement/compare/v1.0.1...v1.0.2) (2026-09-05)
+
+
+### Corrections
+
+* **release:** automatiser la creation des tags ([f7b6509](https://github.com/NeitsabLc/campement/commit/f7b65094bddae0a5ccfe414d660c4d6778ce4f3c))
+* **release:** automatiser la creation des tags ([1174124](https://github.com/NeitsabLc/campement/commit/11741242615c141001d21ef428a9ef7e4d6ad2d1))
+* **release:** promouvoir les releases publiees ([22765a8](https://github.com/NeitsabLc/campement/commit/22765a87743dedb71abdcfea04660bd881d463f8))
+
 ## [1.0.1](https://github.com/NeitsabLc/campement/compare/v1.0.0...v1.0.1) (2026-09-05)
 
 
