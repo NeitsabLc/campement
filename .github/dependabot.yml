@@ -6,6 +6,9 @@ updates:
     schedule:
       interval: weekly
     target-branch: main
+    commit-message:
+      prefix: "fix"
+      include: "scope"
     groups:
       symfony:
         patterns:
@@ -19,6 +22,9 @@ updates:
     schedule:
       interval: weekly
     target-branch: main
+    commit-message:
+      prefix: "fix"
+      include: "scope"
     groups:
       tests-navigateur:
         patterns:
@@ -34,6 +40,9 @@ updates:
     schedule:
       interval: weekly
     target-branch: main
+    commit-message:
+      prefix: "fix"
+      include: "scope"
     groups:
       actions-github:
         patterns:
@@ -47,15 +56,24 @@ updates:
     schedule:
       interval: weekly
     target-branch: main
+    commit-message:
+      prefix: "fix"
+      include: "scope"
 
   - package-ecosystem: docker
     directory: /docker/postgres
     schedule:
       interval: weekly
     target-branch: main
+    commit-message:
+      prefix: "fix"
+      include: "scope"
 
   - package-ecosystem: docker
     directory: /docker/liquibase
     schedule:
       interval: weekly
     target-branch: main
+    commit-message:
+      prefix: "fix"
+      include: "scope"
