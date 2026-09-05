@@ -4,16 +4,6 @@ Le projet repart sur une histoire autonome à compter de la séparation avec
 Scout Market. Les versions antérieures à cette base sont conservées dans
 l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
 
-## [Non publié]
-
-### Modifié
-
-- reprise du design de la page Menus de Scout Market : navigation par date,
-  édition des quatre repas d’une journée sur une seule page et vue dédiée aux
-  repas Explo et pique-niques ;
-- suppression complète de la notion de seuil minimum de stock dans les
-  denrées, l’interface, la duplication de séjour et le schéma initial.
-
 ## [1.0.0] - 2026-09-02
 
 ### Base applicative
@@ -24,6 +14,14 @@ l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
   `V001` et un jeu de démonstration `D001` ;
 - maintien des modules propres à Campement sans modification de la production
   existante.
+
+### Modifié
+
+- reprise du design de la page Menus de Scout Market : navigation par date,
+  édition des quatre repas d’une journée sur une seule page et vue dédiée aux
+  repas Explo et pique-niques ;
+- suppression complète de la notion de seuil minimum de stock dans les
+  denrées, l'interface, la duplication de séjour et le schéma initial.
 
 ### Intendance
 

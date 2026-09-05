@@ -20,6 +20,23 @@ env:
   npm_config_fetch_timeout: 120000
 
 jobs:
+  titre-pr:
+    name: Convention du titre de PR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Valider le titre Conventional Commit
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        shell: bash
+        run: |
+          motif='^(feat|fix|perf|refactor|docs|test|build|ci|chore|style|security|revert)(\([[:alnum:]_.\/-]+\))?!?: .+'
+          if ! printf '%s\n' "$PR_TITLE" | grep -Eq "$motif"; then
+            echo 'Le titre doit suivre Conventional Commits.' >&2
+            echo 'Exemples : feat: ajouter un export, fix(auth): corriger la connexion.' >&2
+            exit 1
+          fi
+
   tests:
     name: Qualite et tests
     runs-on: ubuntu-24.04
@@ -28,6 +45,18 @@ jobs:
     steps:
       - name: Recuperer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Valider la version applicative
+        shell: bash
+        run: |
+          version=$(tr -d '\r\n' <version.txt)
+          if ! printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version SemVer invalide : ${version}" >&2
+            exit 1
+          fi
+          grep -Fqx \
+            "    app.version: '${version}' # x-release-please-version" \
+            app/config/services.yaml
 
       - name: Installer Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
