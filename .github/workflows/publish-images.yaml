@@ -162,6 +162,43 @@ jobs:
           export SMOKE_POSTGRES_IMAGE="$CAMP_RELEASE_POSTGRES_IMAGE"
           ./scripts/ci-production-smoke.sh
 
+  deployer-recette:
+    name: Déclencher le déploiement en recette
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: tester-candidats
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Prévenir le dépôt de déploiement
+        env:
+          GH_TOKEN: ${{ secrets.HOMELAB_DEPLOY_DISPATCH_TOKEN }}
+          CANDIDATE_GIT_SHA: ${{ github.sha }}
+          DEPLOY_REPOSITORY: NeitsabLc/homelab-deploy
+        shell: bash
+        run: |
+          if ! printf '%s\n' "$CANDIDATE_GIT_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "SHA candidat invalide : ${CANDIDATE_GIT_SHA}" >&2
+            exit 1
+          fi
+
+          jq -n \
+            --arg git_sha "$CANDIDATE_GIT_SHA" \
+            '{
+              event_type: "campement-candidate-ready",
+              client_payload: {
+                application: "campement",
+                git_sha: $git_sha
+              }
+            }' \
+            | gh api \
+                --method POST \
+                "repos/${DEPLOY_REPOSITORY}/dispatches" \
+                --input -
+
+          echo "Déploiement en recette demandé pour ${CANDIDATE_GIT_SHA}."
+
   valider-tag:
     name: Valider la version a promouvoir
     if: startsWith(github.ref, 'refs/tags/v')
