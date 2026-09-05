@@ -28,6 +28,20 @@ Les procédures et paramètres propres à la production restent hors des fichier
 suivis. Ils sont maintenus localement dans `.local/PRODUCTION_RUNBOOK.md` et
 `.local/Campement_DAT_DIN_DEX.docx`, tous deux ignorés par Git.
 
+### Versions
+
+Les titres des pull requests suivent Conventional Commits. Les types `fix:` et
+`feat:` proposent respectivement une nouvelle version corrective et mineure ;
+un `!` après le type ou la portée signale une rupture de compatibilité et
+propose une version majeure. Les autres types usuels (`docs:`, `test:`,
+`build:`, `ci:` et `chore:`) ne provoquent pas seuls de changement de version.
+
+Après chaque fusion sur `main`, Release Please crée ou actualise une pull
+request de release contenant la prochaine version, `version.txt`, la version
+affichée par l'application et le journal des changements. Sa fusion reste une
+décision manuelle après validation de la recette. La création du tag signé et
+la promotion vers la production restent des opérations séparées.
+
 ## Fonctionnalités
 
 - authentification, invitations, mots de passe, rôles et comptes actifs ;
