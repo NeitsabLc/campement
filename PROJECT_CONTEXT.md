@@ -736,18 +736,17 @@ ressources. Les secrets et clés éphémères générés par la CI sont masqués
 leur export.
 
 Dependabot surveille chaque semaine Composer, npm, GitHub Actions et les bases
-Docker. Chaque commit de `main` construit une seule fois les cinq images et les
-publie dans GHCR sous `sha-<commit>`, avec SBOM, provenance et signature
-Sigstore sans clé liée au dépôt, au workflow, à la branche et au commit. Un tag `v*` n'est publiable que si son commit
-provient de `main` et si ces images candidates existent ; les étiquettes
-sémantiques sont alors ajoutées aux mêmes digests, sans reconstruction.
+Docker. Les commits ordinaires de `main` ne publient aucune image. Une release
+`v*` n'est publiable que si son commit provient de `main` ; elle construit une
+seule fois les cinq images dans GHCR sous `sha-<commit>`, avec SBOM, provenance
+et signature Sigstore sans clé liée au dépôt, au workflow, au tag et au commit.
+Après test, les étiquettes sémantiques sont ajoutées aux mêmes digests, sans
+reconstruction, puis la recette est déclenchée.
 
-La livraison reste manuelle et n'utilise aucun runner de production. Le fichier
-local `.env.release` contient le SHA Git et les cinq références GHCR immuables par
-digest. La surcharge `compose.release.yaml` retire toutes les constructions
-locales ; les commandes `make release-*` vérifient les signatures Sigstore,
-téléchargent les images, exécutent Liquibase et démarrent les services sans que
-GitHub se connecte au serveur.
+La promotion en production reste manuelle depuis `homelab-deploy`. Le manifeste
+contient le SHA Git et les cinq références GHCR immuables par digest. La
+surcharge `compose.release.yaml` retire toutes les constructions locales ; le
+runner vérifie les signatures Sigstore avant le déploiement sur `web01`.
 
 La logique applicative complexe n'est pas conservée dans les contrôleurs : les
 formulaires participants, la présentation des menus, les invitations et
