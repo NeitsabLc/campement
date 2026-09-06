@@ -221,11 +221,19 @@ commit intégré à `main` produit une seule fois les
 cinq images candidates dans GHCR sous une étiquette immuable
 `sha-<commit>`, avec SBOM, provenance BuildKit et signature Sigstore sans clé
 liée au dépôt, au workflow, à la branche et au commit. Les constructions utilisent
-un cache BuildKit distinct par image. Lorsqu'un tag `v*` désigne ce commit, le
-workflow `publish-images.yaml` ajoute les étiquettes sémantiques sans
-reconstruire les images et contrôle que leurs digests restent identiques. Si la
-publication candidate du commit est encore en cours, la promotion attend sa
-validation pendant neuf minutes au maximum.
+un cache BuildKit distinct par image. Lorsqu'une GitHub Release publiée et son
+tag `v*` désignent ce commit, le workflow `publish-images.yaml` ajoute les
+étiquettes sémantiques sans reconstruire les images et contrôle que leurs
+digests restent identiques. Si la publication candidate du commit est encore en
+cours, la promotion attend sa validation pendant neuf minutes au maximum.
+
+Si l'événement de publication d'une release n'a pas déclenché la promotion,
+le workflow `Publication des images` peut être relancé manuellement depuis
+`main` avec le numéro de la release dans `release_version` (sans préfixe `v`).
+Cette reprise exige une release publiée valide, retrouve le candidat déjà testé
+par son SHA puis lui ajoute l'étiquette de version sans reconstruire l'image.
+Laisser ce champ vide conserve le comportement manuel historique : republier
+et tester les candidats du commit courant.
 
 La livraison reste manuelle : GitHub ne se connecte pas au serveur et ne
 déploie rien. L'opérateur copie `.env.release.example` vers `.env.release`, y
