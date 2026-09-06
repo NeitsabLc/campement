@@ -38,10 +38,10 @@ propose une version majeure. Les autres types usuels (`docs:`, `test:`,
 
 Après chaque fusion sur `main`, Release Please crée ou actualise une pull
 request de release contenant la prochaine version, `version.txt`, la version
-affichée par l'application et le journal des changements. Sa fusion reste une
-décision manuelle après validation de la recette. Cette fusion crée
-automatiquement la GitHub Release et son tag `vX.Y.Z`. La promotion vers la
-production reste une opération manuelle séparée.
+affichée par l'application et le journal des changements. La fusion manuelle de
+cette pull request crée la GitHub Release et son tag `vX.Y.Z`, puis construit et
+déploie cette version en recette. Après validation de la recette, la promotion
+vers la production reste une opération manuelle séparée.
 
 ## Fonctionnalités
 
@@ -216,27 +216,24 @@ ne déploie rien.
 Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
 et Docker vers `dev`. Les mises à jour mineures et correctives sont regroupées
 pour Symfony, pour les outils de test navigateur Playwright/Axe et pour les
-GitHub Actions ; les mises à jour majeures restent proposées séparément. Chaque
-commit intégré à `main` produit une seule fois les
-cinq images candidates dans GHCR sous une étiquette immuable
-`sha-<commit>`, avec SBOM, provenance BuildKit et signature Sigstore sans clé
-liée au dépôt, au workflow, à la branche et au commit. Les constructions utilisent
-un cache BuildKit distinct par image. Lorsqu'une GitHub Release publiée et son
-tag `v*` désignent ce commit, le workflow `publish-images.yaml` ajoute les
-étiquettes sémantiques sans reconstruire les images et contrôle que leurs
-digests restent identiques. Si la publication candidate du commit est encore en
-cours, la promotion attend sa validation pendant neuf minutes au maximum.
+GitHub Actions ; les mises à jour majeures restent proposées séparément. Les
+commits ordinaires intégrés à `main` ne publient aucune image. Lorsqu'une GitHub
+Release et son tag `v*` sont créés, le workflow `publish-images.yaml` construit
+une seule fois les cinq images candidates dans GHCR sous l'étiquette immuable
+`sha-<commit>`, avec SBOM, provenance BuildKit et signature Sigstore sans clé.
+Il teste ces digests, leur ajoute les étiquettes sémantiques sans reconstruction,
+puis déclenche le déploiement du même commit en recette. Les constructions
+utilisent un cache BuildKit distinct par image.
 
-Si l'événement de publication d'une release n'a pas déclenché la promotion,
-le workflow `Publication des images` peut être relancé manuellement depuis
-`main` avec le numéro de la release dans `release_version` (sans préfixe `v`).
-Cette reprise exige une release publiée valide, retrouve le candidat déjà testé
-par son SHA puis lui ajoute l'étiquette de version sans reconstruire l'image.
-Laisser ce champ vide conserve le comportement manuel historique : republier
-et tester les candidats du commit courant.
+Si la promotion ou la recette échoue après la construction des candidats, le
+workflow `Publication des images de version` peut être relancé manuellement
+depuis `main` avec le numéro de la release dans `release_version` (sans préfixe
+`v`). Cette reprise exige une release publiée valide, reteste les candidats
+immuables existants de son SHA, les repromeut si nécessaire, puis redéclenche la
+recette.
 
-La livraison reste manuelle : GitHub ne se connecte pas au serveur et ne
-déploie rien. L'opérateur copie `.env.release.example` vers `.env.release`, y
+La promotion en production reste manuelle. L'opérateur copie
+`.env.release.example` vers `.env.release`, y
 place le SHA Git et les cinq références GHCR épinglées par digest, s'authentifie auprès de
 GHCR si nécessaire, puis utilise :
 

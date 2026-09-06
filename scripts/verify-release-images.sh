@@ -16,7 +16,7 @@ for commande in docker cosign; do
 done
 
 depot=NeitsabLc/campement
-identite="https://github.com/${depot}/.github/workflows/publish-images.yaml@refs/heads/main"
+identite="^https://github[.]com/${depot}/[.]github/workflows/publish-images[.]yaml@refs/(heads/main|tags/v[0-9]+[.][0-9]+[.][0-9]+)$"
 emetteur="https://token.actions.githubusercontent.com"
 
 if ! printf '%s\n' "$CAMP_RELEASE_GIT_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
@@ -46,10 +46,9 @@ verifier_image() {
     echo "Verification de ${nom} (${reference})"
     docker buildx imagetools inspect "$reference" >/dev/null
     cosign verify "$reference" \
-        --certificate-identity "$identite" \
+        --certificate-identity-regexp "$identite" \
         --certificate-oidc-issuer "$emetteur" \
         --certificate-github-workflow-repository "$depot" \
-        --certificate-github-workflow-ref refs/heads/main \
         --certificate-github-workflow-sha "$CAMP_RELEASE_GIT_SHA" >/dev/null
 }
 
