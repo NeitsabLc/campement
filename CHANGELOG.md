@@ -12,6 +12,13 @@ l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
   publication des images limitée aux releases, le déploiement de la recette par
   `homelab-deploy` et l’expéditeur `no-reply@neitsab.net`.
 
+## [1.0.5](https://github.com/NeitsabLc/campement/compare/v1.0.4...v1.0.5) (2026-09-07)
+
+
+### Corrections
+
+* restaurer le monogramme CA de Campement ([c429ed3](https://github.com/NeitsabLc/campement/commit/c429ed3e2e342e9469405f841b9a64255dfd9315))
+
 ## [1.0.4](https://github.com/NeitsabLc/campement/compare/v1.0.3...v1.0.4) (2026-09-07)
 
 
