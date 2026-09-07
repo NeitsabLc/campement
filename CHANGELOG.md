@@ -4,6 +4,14 @@ Le projet repart sur une histoire autonome à compter de la séparation avec
 Scout Market. Les versions antérieures à cette base sont conservées dans
 l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
 
+## Non publié
+
+### Documentation
+
+- alignement du README et du contexte projet sur la CI visant `main`, la
+  publication des images limitée aux releases, le déploiement de la recette par
+  `homelab-deploy` et l’expéditeur `no-reply@neitsab.net`.
+
 ## [1.0.3](https://github.com/NeitsabLc/campement/compare/v1.0.2...v1.0.3) (2026-09-07)
 
 

@@ -180,14 +180,14 @@ contenant des données à conserver.
 
 ### Intégration continue
 
-Les workflows GitHub Actions s'exécutent :
+Chaque pull request visant `main` exécute deux workflows complémentaires :
 
-- `.github/workflows/ci.yaml` sur chaque pull request visant `dev`, avec le job
+- `.github/workflows/ci.yaml`, avec les jobs `Convention du titre de PR` et
   `Qualite et tests` ;
-- `.github/workflows/production-smoke.yaml` sur chaque pull request visant
-  `main`, avec le job `Configuration de production`.
+- `.github/workflows/production-smoke.yaml`, avec le job
+  `Configuration de production`.
 
-Pour les pull requests vers `dev`, la CI valide la configuration Docker Compose,
+La CI générale valide la configuration Docker Compose,
 Composer, les changelogs Liquibase et les mappings Doctrine. Elle audite les
 dépendances Composer, Importmap et npm, analyse le code avec PHPStan et contrôle
 avec Trivy les vulnérabilités élevées ou critiques des cinq images finales PHP,
@@ -199,9 +199,9 @@ d'accessibilité et les parcours E2E dans le navigateur. En cas d'échec de
 Playwright, les captures et traces disponibles sont conservées pendant sept
 jours dans les artefacts du workflow.
 
-Pour les pull requests vers `main`, le job de contrôle construit puis démarre la
-surcharge Compose de production. Les rulesets doivent exiger `Qualite et tests`
-sur `dev` et `Configuration de production` sur `main`. Ce smoke test initialise
+Le job de contrôle de production construit puis démarre la surcharge Compose de
+production. Le ruleset de `main` doit exiger `Convention du titre de PR`,
+`Qualite et tests` et `Configuration de production`. Ce smoke test initialise
 une base vierge, applique Liquibase, vérifie les rôles
 PostgreSQL limités et authentifiés en SCRAM, la connexion applicative, le refus
 d'en-têtes `Host` et `X-Forwarded-Host` hostiles, puis une sauvegarde chiffrée
@@ -214,7 +214,7 @@ Les secrets et clés utilisés sont éphémères et masqués dans les journaux ;
 ne déploie rien.
 
 Dependabot propose chaque semaine les mises à jour Composer, npm, GitHub Actions
-et Docker vers `dev`. Les mises à jour mineures et correctives sont regroupées
+et Docker vers `main`. Les mises à jour mineures et correctives sont regroupées
 pour Symfony, pour les outils de test navigateur Playwright/Axe et pour les
 GitHub Actions ; les mises à jour majeures restent proposées séparément. Les
 commits ordinaires intégrés à `main` ne publient aucune image. Lorsqu'une GitHub
@@ -222,15 +222,28 @@ Release et son tag `v*` sont créés, le workflow `publish-images.yaml` construi
 une seule fois les cinq images candidates dans GHCR sous l'étiquette immuable
 `sha-<commit>`, avec SBOM, provenance BuildKit et signature Sigstore sans clé.
 Il teste ces digests, leur ajoute les étiquettes sémantiques sans reconstruction,
-puis déclenche le déploiement du même commit en recette. Les constructions
-utilisent un cache BuildKit distinct par image.
+puis envoie au dépôt privé `homelab-deploy` l’événement
+`campement-candidate-ready`, contenant l’identifiant de l’application et le SHA
+Git validé. Ce dépôt reste la source de vérité de l’environnement de recette et
+de ses secrets ; le dépôt Campement ne contient aucun accès direct à l’hôte de
+recette. Les constructions utilisent un cache BuildKit distinct par image.
 
 Si la promotion ou la recette échoue après la construction des candidats, le
 workflow `Publication des images de version` peut être relancé manuellement
 depuis `main` avec le numéro de la release dans `release_version` (sans préfixe
 `v`). Cette reprise exige une release publiée valide, reteste les candidats
 immuables existants de son SHA, les repromeut si nécessaire, puis redéclenche la
-recette.
+recette. Le secret GitHub `HOMELAB_DEPLOY_DISPATCH_TOKEN` doit uniquement
+autoriser l’envoi de cet événement au dépôt de déploiement.
+
+### Courriels applicatifs
+
+Les environnements distants doivent fournir un `MAILER_DSN` réel et secret.
+L’expéditeur applicatif est configuré par `MAILER_FROM_EMAIL`, avec
+`no-reply@neitsab.net` comme valeur par défaut, et par `MAILER_FROM_NAME`, avec
+`Campement` comme libellé par défaut. Ces variables sont injectées dans les
+services PHP et maintenance ; elles doivent être vérifiées en recette avant la
+promotion manuelle en production.
 
 La promotion en production reste manuelle. L'opérateur copie
 `.env.release.example` vers `.env.release`, y
