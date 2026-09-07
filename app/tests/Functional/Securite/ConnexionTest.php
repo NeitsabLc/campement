@@ -21,6 +21,7 @@ final class ConnexionTest extends WebTestCase
         self::assertSelectorExists('a[href="/mot-de-passe-oublie"]');
         self::assertSelectorExists('.login-password[data-controller="password-visibility"] input[type="password"][data-password-visibility-target="field"]');
         self::assertSelectorExists('button[data-action="password-visibility#toggle"][aria-label="Afficher le mot de passe"]');
+        self::assertSelectorExists('form.login-form[data-turbo="false"]');
 
         $politique = $client->getResponse()->headers->get('Content-Security-Policy');
         self::assertNotNull($politique);
@@ -103,6 +104,7 @@ final class ConnexionTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'Bienvenue sur l’application Campement');
         self::assertSelectorTextContains('.user-summary', 'ROLE_ADMIN');
+        self::assertSelectorExists('form.sidebar__logout-form[data-turbo="false"]');
     }
 
     public function testUnMotDePasseIncorrectEstRefuse(): void
