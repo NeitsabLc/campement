@@ -718,11 +718,11 @@ Le dépôt ne documente que les invariants nécessaires au développement :
 * aucune commande destructive ne doit cibler un environnement contenant des
   données à conserver.
 
-La CI générale s'exécute une seule fois sur chaque pull request visant `dev`.
+La CI générale s'exécute une seule fois sur chaque pull request visant `main`.
 Elle audite Composer, Importmap et npm, recherche les secrets versionnés, puis
 construit et analyse avec Trivy les cinq images finales PHP, Nginx, PostgreSQL,
 Liquibase et sauvegarde ; le scan PHP couvre aussi `vendor/` réellement livré.
-Une pull request visant `main` exécute uniquement le workflow indépendant
+La même pull request exécute aussi le workflow indépendant
 `production-smoke.yaml` et son statut `Configuration de production`. Il lance
 `scripts/ci-production-smoke.sh` dans un projet Compose jetable : construction
 des images finales, base vierge, migrations, transition des rôles PostgreSQL,
@@ -741,7 +741,16 @@ Docker. Les commits ordinaires de `main` ne publient aucune image. Une release
 seule fois les cinq images dans GHCR sous `sha-<commit>`, avec SBOM, provenance
 et signature Sigstore sans clé liée au dépôt, au workflow, au tag et au commit.
 Après test, les étiquettes sémantiques sont ajoutées aux mêmes digests, sans
-reconstruction, puis la recette est déclenchée.
+reconstruction, puis le workflow envoie l’événement
+`campement-candidate-ready` au dépôt privé `homelab-deploy`. Ce dépôt porte la
+configuration et les secrets de l’environnement de recette ; Campement ne se
+connecte pas directement à cet environnement.
+
+Les environnements distants injectent `MAILER_DSN`, `MAILER_FROM_EMAIL` et
+`MAILER_FROM_NAME` dans les services PHP et maintenance. L’adresse d’expédition
+par défaut est `no-reply@neitsab.net` et le nom par défaut est `Campement`. Le
+transport SMTP reste un secret propre à chaque environnement et doit être testé
+en recette avant toute promotion en production.
 
 La promotion en production reste manuelle depuis `homelab-deploy`. Le manifeste
 contient le SHA Git et les cinq références GHCR immuables par digest. La
@@ -765,12 +774,13 @@ doit jamais être forcé dans un commit.
 
 Le dépôt suit désormais ce cycle de publication :
 
-* `dev` est la branche d’intégration des évolutions ;
-* `main` est la branche stable utilisée pour les livraisons ;
-* une publication passe de `dev` vers `main` après validation de la suite de
-  tests et reçoit un tag `vX.Y` sur le commit livré ;
-* tout correctif réalisé sur `main` doit être reporté dans `dev` afin d’éviter
-  une divergence durable.
+* `main` est la branche stable et l’unique cible des pull requests ;
+* chaque pull request doit satisfaire les contrôles de titre, de qualité et de
+  configuration de production avant fusion ;
+* Release Please prépare la version sémantique et le changelog ;
+* la fusion de la pull request de release crée un tag `vX.Y.Z`, publie et teste
+  les images, puis déclenche la recette ;
+* la promotion de la recette vers la production reste manuelle.
 
 * Présenter les changements structurants avant leur réalisation lorsqu’un choix
   métier ou technique reste nécessaire.
