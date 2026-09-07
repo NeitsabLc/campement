@@ -4,6 +4,17 @@ Le projet repart sur une histoire autonome à compter de la séparation avec
 Scout Market. Les versions antérieures à cette base sont conservées dans
 l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
 
+## [1.0.3](https://github.com/NeitsabLc/campement/compare/v1.0.2...v1.0.3) (2026-09-07)
+
+
+### Corrections
+
+* **auth:** forcer le rechargement apres authentification ([156f29c](https://github.com/NeitsabLc/campement/commit/156f29cce8671efde19a019887ea583d5b885ba3))
+* **auth:** forcer le rechargement après authentification ([960b5c4](https://github.com/NeitsabLc/campement/commit/960b5c4721ac66480a984e9982e779fdd3567dfa))
+* **build:** actualiser le paquet age Alpine ([0397593](https://github.com/NeitsabLc/campement/commit/03975930afe40314efd0aa2aa9249202782be3c0))
+* **build:** aligner la version age de l'environnement ([45d5234](https://github.com/NeitsabLc/campement/commit/45d5234773beafc8b1b265236782f4129b3ca0a4))
+* **release:** permettre la reprise d'une promotion ([3fed58a](https://github.com/NeitsabLc/campement/commit/3fed58a8795fecac46524c2dda66280014f07103))
+
 ## [1.0.2](https://github.com/NeitsabLc/campement/compare/v1.0.1...v1.0.2) (2026-09-05)
 
 
