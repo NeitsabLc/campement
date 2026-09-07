@@ -12,6 +12,20 @@ l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
   publication des images limitée aux releases, le déploiement de la recette par
   `homelab-deploy` et l’expéditeur `no-reply@neitsab.net`.
 
+## [1.0.4](https://github.com/NeitsabLc/campement/compare/v1.0.3...v1.0.4) (2026-09-07)
+
+
+### Corrections
+
+* actualiser le monogramme de la favicon ([c12180f](https://github.com/NeitsabLc/campement/commit/c12180f5944e992eba270981fc004fcc803a8fa2))
+* actualiser le monogramme de la favicon ([ef44b10](https://github.com/NeitsabLc/campement/commit/ef44b10e6330770dba1b748c32ceece430567806))
+
+
+### Documentation
+
+* actualiser la livraison et la recette ([5c5705c](https://github.com/NeitsabLc/campement/commit/5c5705c93d5c9d521a676bb0ac3980f2f94735ec))
+* actualiser la livraison et la recette ([b7bcb82](https://github.com/NeitsabLc/campement/commit/b7bcb825974d07bcf881ea4e5ea8d0e6f6a91b51))
+
 ## [1.0.3](https://github.com/NeitsabLc/campement/compare/v1.0.2...v1.0.3) (2026-09-07)
 
 
