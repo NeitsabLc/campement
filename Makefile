@@ -74,7 +74,7 @@ release-db-update: release-config ## Appliquer les migrations avec l'image Liqui
 
 .PHONY: release-up
 release-up: release-config ## Démarrer manuellement les images GHCR sans reconstruction
-	$(DOCKER_COMPOSE_RELEASE) up -d --no-build database php nginx backup maintenance
+	$(DOCKER_COMPOSE_RELEASE) up -d --no-build database php nginx backup
 
 .PHONY: release-ps
 release-ps: ## Afficher l'état des conteneurs issus des images GHCR
@@ -228,7 +228,7 @@ backup-restore-test: ## Chiffrer puis restaurer la base et les documents dans un
 
 .PHONY: maintenance-now
 maintenance-now: ## Exécuter immédiatement un cycle de maintenance de production
-	$(DOCKER_COMPOSE_PROD) run --rm -e MAINTENANCE_ONCE=1 maintenance
+	$(DOCKER_COMPOSE_PROD) --profile maintenance run --rm maintenance
 
 .PHONY: prod-db-roles-prepare
 prod-db-roles-prepare: ## Préparer les rôles PostgreSQL limités sans retirer les accès existants
