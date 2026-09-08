@@ -7,6 +7,7 @@
       "package-name": "campement",
       "include-v-in-tag": true,
       "include-component-in-tag": false,
+      "skip-changelog": true,
       "pull-request-title-pattern": "chore: preparer la version ${version}",
       "changelog-sections": [
         {
