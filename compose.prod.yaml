@@ -92,8 +92,10 @@ services:
         condition: service_healthy
 
   maintenance:
+    profiles:
+      - maintenance
     logging: *production-logging
-    restart: unless-stopped
+    restart: "no"
     image: "campement-php-production:${APP_IMAGE_TAG:-local}"
     build:
       context: .

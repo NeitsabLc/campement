@@ -175,11 +175,12 @@ compose exec --no-TTY php php bin/console cache:warmup --env=prod --no-debug
 compose exec --no-TTY php php bin/console dbal:run-sql \
     "SELECT current_database(), current_user, current_schema()"
 
-compose --profile tools create maintenance backup liquibase
+compose --profile maintenance --profile tools create maintenance backup liquibase
 assert_container_hardened php www-data 536870912 1000000000 128
 assert_container_hardened nginx nginx 134217728 500000000 64
 assert_container_hardened database postgres 1073741824 2000000000 256
 assert_container_hardened maintenance www-data 268435456 500000000 64
+test "$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$(compose ps --quiet --all maintenance)")" = "no"
 assert_container_hardened backup postgres 536870912 1000000000 128
 assert_container_hardened liquibase liquibase 536870912 1000000000 128
 
@@ -254,7 +255,9 @@ compose run --rm --no-deps \
     --entrypoint /usr/local/bin/campement-verify-backup \
     backup "/backups/$(basename "$archive_base")" "/backups/$(basename "$archive_documents")"
 
-compose run --rm --env MAINTENANCE_ONCE=1 maintenance
+maintenance_output=$(compose --profile maintenance run --rm maintenance)
+printf '%s\n' "$maintenance_output" | grep -q '"event":"maintenance_started"'
+printf '%s\n' "$maintenance_output" | grep -q '"event":"maintenance_succeeded"'
 
 compose exec --no-TTY database campement-harden-roles finalize
 

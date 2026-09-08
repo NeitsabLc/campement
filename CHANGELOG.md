@@ -6,6 +6,11 @@ l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
 
 ## Non publié
 
+### Exploitation
+
+- exécution de la maintenance métier en tâche ponctuelle, prête à être planifiée
+  par un timer persistant avec verrouillage et reprise sur échec.
+
 ### Documentation
 
 - alignement du README et du contexte projet sur la CI visant `main`, la
