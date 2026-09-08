@@ -17,6 +17,13 @@ l’ancien historique du dépôt et ne constituent pas une chaîne de migration.
   publication des images limitée aux releases, le déploiement de la recette par
   `homelab-deploy` et l’expéditeur `no-reply@neitsab.net`.
 
+## [1.0.6](https://github.com/NeitsabLc/campement/compare/v1.0.5...v1.0.6) (2026-09-08)
+
+
+### Corrections
+
+* **maintenance:** exécuter les purges en tâche ponctuelle ([#26](https://github.com/NeitsabLc/campement/issues/26)) ([e213248](https://github.com/NeitsabLc/campement/commit/e213248d90a16e43e3cbb1e3d649012d5b108c8f))
+
 ## [1.0.5](https://github.com/NeitsabLc/campement/compare/v1.0.4...v1.0.5) (2026-09-07)
 
 
