@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Fournisseurs | Campement{% endblock %}
+
+{% block body %}
+<main class="suppliers-page stock-list-page entity-list-page" data-controller="supplier-dialog food-catalog" data-supplier-dialog-open-value="{{ erreurs is not empty ? 'true' : 'false' }}">
+    <header class="suppliers-heading stock-list-heading entity-list-heading">
+        <h1>Fournisseurs</h1>
+        {% if sejour %}<a class="food-primary food-add-button" href="{{ path('app_fournisseur_ajouter') }}" aria-label="Ajouter un fournisseur"><span aria-hidden="true">＋</span><span class="food-add-button__label">Ajouter un fournisseur</span></a>{% endif %}
+    </header>
+
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status" data-supplier-dialog-target="message">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert" data-supplier-dialog-target="message">{{ message }}</div>{% endfor %}
+
+    {% if not sejour %}
+        <section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour avant de gérer ses fournisseurs.</p></section>
+    {% else %}
+        {% embed 'components/list_table.html.twig' with {variant: 'suppliers', headings: ['Nom', 'Téléphone', 'E-mail', 'Actions'], card_class: 'entity-list-card'} %}
+            {% block tools %}<div class="foods-tools supplier-list-tools"><label class="food-search"><span aria-hidden="true">⌕</span><span class="visually-hidden">Rechercher</span><input type="search" placeholder="Rechercher un fournisseur…" data-food-catalog-target="search" data-action="input->food-catalog#filter"></label><nav class="food-tabs"><a href="{{ path('app_fournisseurs') }}"{{ not afficher_inactifs ? ' aria-current="page"' : '' }}>Actifs</a><a class="food-tabs__inactive" href="{{ path('app_fournisseurs',{inactifs:1}) }}"{{ afficher_inactifs ? ' aria-current="page"' : '' }}>Désactivés</a></nav></div>{% endblock %}
+            {% block rows %}
+            {% if fournisseurs is empty %}<div class="shared-list-empty" role="row"><span role="cell">Aucun fournisseur.</span></div>{% else %}
+                    {% for fournisseur in fournisseurs %}<div data-food-catalog-target="row" data-name="{{ fournisseur.nom|lower }}">
+                        <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_fournisseur_modifier',{id:fournisseur.id}) }}"><form class="foods-swipe-action{{ fournisseur.actif ? '' : ' foods-swipe-action--reactivate' }}" method="post" action="{{ fournisseur.actif ? path('app_fournisseur_desactiver',{id:fournisseur.id}) : path('app_fournisseur_reactiver',{id:fournisseur.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token((fournisseur.actif ? 'desactiver_fournisseur_' : 'reactiver_fournisseur_')~fournisseur.id) }}"><button type="submit">{{ fournisseur.actif ? 'Désactiver' : 'Réactiver' }}</button></form><article class="shared-list-row supplier-row{{ fournisseur.actif ? ' clickable-row' : ' supplier-row--inactive' }}" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
+                            <div class="supplier-row__identity" role="cell">
+                                <h3>{{ fournisseur.nom }}{% if not fournisseur.actif %} <span class="inactive-supplier-badge">Inactif</span>{% endif %}</h3>
+                            </div>
+                            <div class="supplier-contact" role="cell"><span>{{ fournisseur.telephone ?: 'Non renseigné' }}</span></div>
+                            <div class="supplier-contact" role="cell">{% if fournisseur.email %}<a href="mailto:{{ fournisseur.email }}">{{ fournisseur.email }}</a>{% else %}<span>Non renseigné</span>{% endif %}</div>
+                            {% if fournisseur.actif %}
+                                <div class="supplier-actions" role="cell">
+                                <a class="edit-supplier-button" href="{{ path('app_fournisseur_modifier', {id: fournisseur.id}) }}" aria-label="Modifier {{ fournisseur.nom }}" title="Modifier {{ fournisseur.nom }}"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
+                                <button class="delete-supplier-button" type="button" aria-label="Désactiver {{ fournisseur.nom }}" title="Désactiver {{ fournisseur.nom }}"
+                                    data-action="supplier-dialog#openDelete"
+                                    data-supplier-name="{{ fournisseur.nom|e('html_attr') }}"
+                                    data-delete-url="{{ path('app_fournisseur_desactiver', {id: fournisseur.id}) }}"
+                                    data-delete-token="{{ csrf_token('desactiver_fournisseur_' ~ fournisseur.id) }}"
+                                ><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Désactiver</span></button>
+                                </div>
+                            {% else %}
+                                <form class="supplier-actions reactivate-supplier-form" role="cell" method="post" action="{{ path('app_fournisseur_reactiver', {id: fournisseur.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('reactiver_fournisseur_' ~ fournisseur.id) }}">
+                                    <button class="reactivate-supplier-button" type="submit" aria-label="Réactiver {{ fournisseur.nom }}" title="Réactiver {{ fournisseur.nom }}">
+                                        <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M20 6v5h-5M19 11a7.5 7.5 0 1 0 .2 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        <span>Réactiver</span>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </article></div></div>
+                    {% endfor %}
+            {% endif %}{% endblock %}
+        {% endembed %}
+
+        <dialog class="supplier-dialog" aria-labelledby="supplier-dialog-title" data-supplier-dialog-target="dialog" data-action="click->supplier-dialog#closeOnBackdrop">
+            <section class="supplier-dialog__content">
+                <header class="supplier-dialog__header">
+                    <div><h2 id="supplier-dialog-title" data-supplier-dialog-target="title">{{ donnees.fournisseur_id ? 'Modifier le fournisseur' : 'Ajouter un fournisseur' }}</h2><p>Renseignez les coordonnées du fournisseur.</p></div>
+                    <button class="supplier-dialog__close" type="button" aria-label="Fermer" data-action="supplier-dialog#close">×</button>
+                </header>
+                {% if erreurs %}<div class="distribution-errors flash" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+                <form method="post" class="supplier-dialog__form" data-supplier-dialog-target="form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('enregistrer_fournisseur') }}">
+                    <input type="hidden" name="fournisseur_id" value="{{ donnees.fournisseur_id }}" data-supplier-dialog-target="supplierId">
+                    <div class="supplier-form-field"><label for="supplier-name">Nom du fournisseur <b>*</b></label><input id="supplier-name" name="nom" maxlength="150" required autocomplete="organization" value="{{ donnees.nom }}" data-supplier-dialog-target="name"></div>
+                    <div class="supplier-form-grid">
+                        <div class="supplier-form-field"><label for="supplier-phone">Téléphone</label><input id="supplier-phone" name="telephone" maxlength="30" autocomplete="tel" value="{{ donnees.telephone }}" data-supplier-dialog-target="phone"></div>
+                        <div class="supplier-form-field"><label for="supplier-email">E-mail</label><input id="supplier-email" name="email" type="email" maxlength="150" autocomplete="email" value="{{ donnees.email }}" data-supplier-dialog-target="email"></div>
+                    </div>
+                    <div class="supplier-form-field"><label for="supplier-address">Adresse</label><textarea id="supplier-address" name="adresse" maxlength="1000" rows="3" autocomplete="street-address" data-supplier-dialog-target="address">{{ donnees.adresse }}</textarea></div>
+                    <div class="supplier-dialog__actions">
+                        <button class="cancel-supplier-button" type="button" data-action="supplier-dialog#close">Annuler</button>
+                        <button class="save-supplier-button" type="submit" data-supplier-dialog-target="submit">{{ donnees.fournisseur_id ? 'Enregistrer les modifications' : 'Créer le fournisseur' }}</button>
+                    </div>
+                </form>
+            </section>
+        </dialog>
+
+        <dialog class="delete-supplier-dialog" aria-labelledby="delete-supplier-dialog-title" data-supplier-dialog-target="deleteDialog" data-action="click->supplier-dialog#closeDeleteOnBackdrop">
+            <section class="delete-supplier-dialog__content">
+                <div class="delete-supplier-dialog__icon" aria-hidden="true">!</div>
+                <h2 id="delete-supplier-dialog-title">Désactiver ce fournisseur ?</h2>
+                <p>Le fournisseur <strong data-supplier-dialog-target="deleteName"></strong> ne sera plus proposé dans les listes.</p>
+                <p class="delete-supplier-dialog__warning">Les denrées conserveront leurs références et leurs conditionnements existants.</p>
+                <form method="post" data-supplier-dialog-target="deleteForm">
+                    <input type="hidden" name="_token" data-supplier-dialog-target="deleteToken">
+                    <div class="supplier-dialog__actions">
+                        <button class="cancel-supplier-button" type="button" data-action="supplier-dialog#closeDelete">Annuler</button>
+                        <button class="confirm-delete-supplier-button" type="submit">Désactiver le fournisseur</button>
+                    </div>
+                </form>
+            </section>
+        </dialog>
+    {% endif %}
+</main>
+{% endblock %}

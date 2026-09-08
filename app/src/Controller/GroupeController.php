@@ -1,0 +1,298 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use App\Entity\Groupe;
+use App\Entity\GroupeRepas;
+use App\Entity\Utilisateur;
+use App\Enum\ModeRepasGroupe;
+use App\Repository\GroupeRepasRepository;
+use App\Repository\GroupeRepository;
+use App\Repository\MenuRepository;
+use App\Repository\ParticipantRepository;
+use App\Repository\SejourPublicCibleRepository;
+use App\Service\ContexteSejour;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Uid\Uuid;
+
+#[IsGranted(Utilisateur::ROLE_GESTIONNAIRE)]
+final class GroupeController extends AbstractController
+{
+    #[Route('/groupes', name: 'app_groupes', methods: ['GET', 'POST'])]
+    #[Route('/groupes/ajouter', name: 'app_groupe_ajouter', methods: ['GET', 'POST'])]
+    #[Route('/groupes/{id}/modifier', name: 'app_groupe_modifier', methods: ['GET', 'POST'])]
+    public function index(
+        Request $request,
+        ContexteSejour $sejourRepository,
+        GroupeRepository $groupeRepository,
+        GroupeRepasRepository $groupeRepasRepository,
+        MenuRepository $menuRepository,
+        ParticipantRepository $participantRepository,
+        SejourPublicCibleRepository $publicCibleRepository,
+        EntityManagerInterface $entityManager,
+        ?string $id = null,
+    ): Response {
+        $sejour = $sejourRepository->actif();
+        $types = [];
+        if (null !== $sejour) {
+            foreach ($publicCibleRepository->findActifsPourSejour($sejour) as $configuration) {
+                $public = $configuration->getPublicCible();
+                $types[strtolower(str_replace('_', '-', $public->getCode()))] = $public->getLibelle();
+            }
+        }
+        $afficherInactifs = $request->query->getBoolean('inactifs');
+        $groupeRoute = null !== $id && Uuid::isValid($id) ? $groupeRepository->find($id) : null;
+        if (null !== $id && (null === $sejour || null === $groupeRoute || $groupeRoute->getSejour() !== $sejour)) {
+            throw $this->createNotFoundException('Unité participante introuvable pour le séjour actif.');
+        }
+        $donnees = [
+            'groupe_id' => $request->request->getString('groupe_id', $id ?? ''),
+            'nom' => trim($request->request->getString('nom')),
+            'effectif_jeune' => $request->request->getString('effectif_jeune'),
+            'effectif_adulte' => $request->request->getString('effectif_adulte'),
+            'nombre_vegetariens' => $request->request->getString('nombre_vegetariens', (string) ($groupeRoute?->getNombreVegetariens() ?? 0)),
+            'nombre_sans_lactose' => $request->request->getString('nombre_sans_lactose', (string) ($groupeRoute?->getNombreSansLactose() ?? 0)),
+            'nombre_sans_gluten' => $request->request->getString('nombre_sans_gluten', (string) ($groupeRoute?->getNombreSansGluten() ?? 0)),
+            'type' => $request->request->getString('type'),
+            'date_debut_presence' => $request->request->getString('date_debut_presence'),
+            'date_fin_presence' => $request->request->getString('date_fin_presence'),
+        ];
+        if (null !== $sejour) {
+            $donnees['date_debut_presence'] = $donnees['date_debut_presence'] ?: $sejour->getDateDebut()->format('Y-m-d');
+            $donnees['date_fin_presence'] = $donnees['date_fin_presence'] ?: $sejour->getDateFin()->format('Y-m-d');
+        }
+        if (!$request->isMethod('POST') && null !== $groupeRoute) {
+            $donnees = [
+                'groupe_id' => (string) $groupeRoute->getId(),
+                'nom' => $groupeRoute->getNom(),
+                'effectif_jeune' => (string) $groupeRoute->getEffectifJeune(),
+                'effectif_adulte' => (string) $groupeRoute->getEffectifAdulte(),
+                'nombre_vegetariens' => (string) $groupeRoute->getNombreVegetariens(),
+                'nombre_sans_lactose' => (string) $groupeRoute->getNombreSansLactose(),
+                'nombre_sans_gluten' => (string) $groupeRoute->getNombreSansGluten(),
+                'type' => $groupeRoute->getType(),
+                'date_debut_presence' => $groupeRoute->getDateDebutPresence()->format('Y-m-d'),
+                'date_fin_presence' => $groupeRoute->getDateFinPresence()->format('Y-m-d'),
+            ];
+        }
+        $menusConfiguration = [];
+        $menusConfigurationParId = [];
+        $configurationsRepasExistantes = [];
+        $choixRepasParMode = [
+            ModeRepasGroupe::EXPLO->value => [],
+            ModeRepasGroupe::PIQUE_NIQUE_1->value => [],
+            ModeRepasGroupe::PIQUE_NIQUE_2->value => [],
+            ModeRepasGroupe::NON_PRIS->value => [],
+        ];
+        if (null !== $sejour && null !== $groupeRoute) {
+            foreach ($menuRepository->findActifsPourSejour($sejour) as $menu) {
+                if ($menu->isSpecial() || null === $menu->getDateMenu()) {
+                    continue;
+                }
+                $menusConfiguration[] = $menu;
+                $menusConfigurationParId[(string) $menu->getId()] = $menu;
+            }
+            $configurationsRepasExistantes = $groupeRepasRepository->findPourGroupe($groupeRoute);
+            foreach ($configurationsRepasExistantes as $configuration) {
+                $choixRepasParMode[$configuration->getMode()->value][] = (string) $configuration->getMenu()->getId();
+            }
+            if ($request->isMethod('POST')) {
+                $choixRepasParMode = [
+                    ModeRepasGroupe::EXPLO->value => $request->request->all('repas_explo'),
+                    ModeRepasGroupe::PIQUE_NIQUE_1->value => $request->request->all('repas_pique_nique_1'),
+                    ModeRepasGroupe::PIQUE_NIQUE_2->value => $request->request->all('repas_pique_nique_2'),
+                    ModeRepasGroupe::NON_PRIS->value => $request->request->all('repas_non_pris'),
+                ];
+            }
+        }
+        $erreurs = [];
+
+        if ($request->isMethod('POST') && null !== $sejour) {
+            if (!$this->isCsrfTokenValid('enregistrer_groupe', $request->request->getString('_token'))) {
+                throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            }
+
+            $groupe = null;
+            if ('' !== $donnees['groupe_id']) {
+                if (Uuid::isValid($donnees['groupe_id'])) {
+                    $groupePossible = $groupeRepository->find($donnees['groupe_id']);
+                    if (null !== $groupePossible && $groupePossible->getSejour() === $sejour) {
+                        $groupe = $groupePossible;
+                    }
+                }
+
+                if (null === $groupe) {
+                    $erreurs[] = 'L’unité participante à modifier est introuvable pour ce séjour.';
+                }
+            }
+
+            if ('' === $donnees['nom']) {
+                $erreurs[] = 'Le nom de l’unité est obligatoire.';
+            } elseif (mb_strlen($donnees['nom']) > 150) {
+                $erreurs[] = 'Le nom de l’unité ne peut pas dépasser 150 caractères.';
+            } elseif ($groupeRepository->existeAvecNomPourSejour($sejour, $donnees['nom'], $groupe)) {
+                $erreurs[] = 'Une unité participante portant ce nom existe déjà pour ce séjour.';
+            }
+
+            foreach (['effectif_jeune' => 'jeunes', 'effectif_adulte' => 'adultes'] as $champ => $libelle) {
+                if (false === filter_var($donnees[$champ], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]])) {
+                    $erreurs[] = sprintf('L’effectif %s doit être un nombre entier positif ou nul.', $libelle);
+                }
+            }
+
+            if ($sejour->isModuleIntendanceActif()) {
+                $effectifTotal = filter_var($donnees['effectif_jeune'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                $effectifAdulte = filter_var($donnees['effectif_adulte'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                $effectifTotal = false !== $effectifTotal && false !== $effectifAdulte ? $effectifTotal + $effectifAdulte : null;
+                foreach ([
+                    'nombre_vegetariens' => 'végétariennes',
+                    'nombre_sans_lactose' => 'sans lactose',
+                    'nombre_sans_gluten' => 'sans gluten',
+                ] as $champ => $libelle) {
+                    $nombre = filter_var($donnees[$champ], FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
+                    if (false === $nombre) {
+                        $erreurs[] = sprintf('Le nombre de personnes %s doit être un entier positif ou nul.', $libelle);
+                    } elseif (null !== $effectifTotal && $nombre > $effectifTotal) {
+                        $erreurs[] = sprintf('Le nombre de personnes %s ne peut pas dépasser l’effectif total.', $libelle);
+                    }
+                }
+            }
+
+            if (!isset($types[$donnees['type']])) {
+                $erreurs[] = 'Sélectionnez un type de public disponible pour ce séjour.';
+            }
+
+            $dateDebutPresence = \DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_debut_presence']);
+            $dateFinPresence = \DateTimeImmutable::createFromFormat('!Y-m-d', $donnees['date_fin_presence']);
+            if (false === $dateDebutPresence || false === $dateFinPresence
+                || $dateDebutPresence->format('Y-m-d') !== $donnees['date_debut_presence']
+                || $dateFinPresence->format('Y-m-d') !== $donnees['date_fin_presence']) {
+                $erreurs[] = 'Renseignez des dates de présence valides.';
+            } elseif ($dateDebutPresence < $sejour->getDateDebut() || $dateFinPresence > $sejour->getDateFin()) {
+                $erreurs[] = sprintf(
+                    'La présence de l’unité doit être comprise entre le %s et le %s.',
+                    $sejour->getDateDebut()->format('d/m/Y'),
+                    $sejour->getDateFin()->format('d/m/Y'),
+                );
+            } elseif ($dateFinPresence < $dateDebutPresence) {
+                $erreurs[] = 'La date de fin de présence doit être postérieure ou égale à la date de début.';
+            }
+
+            $configurationsRepasValides = [];
+            if (null !== $groupeRoute) {
+                foreach ($choixRepasParMode as $modeBrut => $menuIds) {
+                    $mode = ModeRepasGroupe::from($modeBrut);
+                    foreach ($menuIds as $menuId) {
+                        if (!is_string($menuId) || !isset($menusConfigurationParId[$menuId])) {
+                            $erreurs[] = 'La configuration des repas de l’unité contient un choix invalide.';
+                            continue;
+                        }
+                        if (isset($configurationsRepasValides[$menuId])) {
+                            $erreurs[] = 'Un même repas ne peut pas appartenir à plusieurs catégories.';
+                            continue;
+                        }
+                        $configurationsRepasValides[$menuId] = $mode;
+                    }
+                }
+            }
+
+            if ([] === $erreurs) {
+                $creation = null === $groupe;
+                $groupe ??= (new Groupe())->setSejour($sejour);
+                $groupe
+                    ->setNom($donnees['nom'])
+                    ->setEffectifJeune((int) $donnees['effectif_jeune'])
+                    ->setEffectifAdulte((int) $donnees['effectif_adulte'])
+                    ->setType($donnees['type'])
+                    ->setDateDebutPresence($dateDebutPresence)
+                    ->setDateFinPresence($dateFinPresence);
+                if ($sejour->isModuleIntendanceActif()) {
+                    $groupe
+                        ->setNombreVegetariens((int) $donnees['nombre_vegetariens'])
+                        ->setNombreSansLactose((int) $donnees['nombre_sans_lactose'])
+                        ->setNombreSansGluten((int) $donnees['nombre_sans_gluten']);
+                }
+                if ($creation) {
+                    $entityManager->persist($groupe);
+                } elseif (null !== $groupeRoute) {
+                    $existantes = [];
+                    foreach ($configurationsRepasExistantes as $configurationExistante) {
+                        $existantes[(string) $configurationExistante->getMenu()->getId()] = $configurationExistante;
+                    }
+                    foreach ($configurationsRepasValides as $menuId => $mode) {
+                        $configuration = $existantes[$menuId] ?? new GroupeRepas($groupe, $menusConfigurationParId[$menuId], $mode);
+                        unset($existantes[$menuId]);
+                        $configuration->setMode($mode);
+                        $entityManager->persist($configuration);
+                    }
+                    foreach ($existantes as $configurationExistante) {
+                        $entityManager->remove($configurationExistante);
+                    }
+                }
+                $entityManager->flush();
+
+                $this->addFlash('success', sprintf(
+                    'L’unité « %s » a bien été %s.',
+                    $groupe->getNom(),
+                    $creation ? 'créée' : 'modifiée',
+                ));
+
+                return $this->redirectToRoute('app_groupes');
+            }
+        }
+
+        $vue = 'app_groupes' === $request->attributes->get('_route') && !$request->isMethod('POST')
+            ? 'groupe/index.html.twig'
+            : 'groupe/formulaire.html.twig';
+
+        return $this->render($vue, [
+            'sejour' => $sejour,
+            'groupes' => null === $sejour ? [] : $groupeRepository->findPourSejour($sejour, $afficherInactifs),
+            'effectifs_reels' => null !== $sejour && $sejour->isModuleAdministratifActif()
+                ? $participantRepository->compterParGroupePourSejour($sejour)
+                : [],
+            'afficher_inactifs' => $afficherInactifs,
+            'types' => $types,
+            'menus_configuration' => $menusConfiguration,
+            'choix_repas_par_mode' => $choixRepasParMode,
+            'donnees' => $donnees,
+            'erreurs' => $erreurs,
+        ]);
+    }
+
+    #[Route('/groupes/{id}/supprimer', name: 'app_groupes_supprimer', methods: ['POST'])]
+    public function supprimer(
+        string $id,
+        Request $request,
+        ContexteSejour $sejourRepository,
+        GroupeRepository $groupeRepository,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        if (!Uuid::isValid($id)) {
+            throw $this->createNotFoundException('Unité participante introuvable.');
+        }
+
+        $sejour = $sejourRepository->actif();
+        $groupe = $groupeRepository->find($id);
+        if (null === $sejour || null === $groupe || (string) $groupe->getSejour()->getId() !== (string) $sejour->getId()) {
+            throw $this->createNotFoundException('Unité participante introuvable pour le séjour actif.');
+        }
+
+        if (!$this->isCsrfTokenValid('supprimer_groupe_'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+        }
+
+        $groupe->setActif(false);
+        $entityManager->flush();
+        $this->addFlash('success', sprintf('L’unité « %s » a bien été désactivée.', $groupe->getNom()));
+
+        return $this->redirectToRoute('app_groupes');
+    }
+}

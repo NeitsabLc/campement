@@ -1,0 +1,26 @@
+vulnerabilities:
+  # Alpine associe ces CVE de commandes util-linux a tous ses sous-paquets.
+  # L'image Nginx ne contient que libuuid ; mount et nsenter y sont fournis
+  # par BusyBox. L'expiration force une nouvelle verification lorsque le
+  # paquet Alpine corrige sera disponible.
+  - id: CVE-2026-53612
+    statement: Le binaire mount de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19
+  - id: CVE-2026-53613
+    statement: Le binaire mount de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19
+  - id: CVE-2026-53614
+    statement: Le binaire mount de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19
+  - id: CVE-2026-76642
+    statement: Le binaire mount de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19
+  - id: CVE-2026-78408
+    statement: Le binaire nsenter de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19
+  - id: CVE-2026-78409
+    statement: Le binaire mount de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19
+  - id: CVE-2026-78410
+    statement: Le binaire mount de util-linux n'est pas present dans l'image.
+    expired_at: 2026-09-19

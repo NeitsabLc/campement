@@ -1,0 +1,102 @@
+import { expect, test } from '@playwright/test';
+import { comptes, seConnecter } from './helpers.js';
+
+test('@compatibilite la connexion et la navigation fonctionnent dans Firefox', async ({ page }) => {
+  await seConnecter(page, comptes.groupe);
+
+  await page.getByRole('navigation', { name: 'Navigation principale' })
+    .getByRole('link', { name: 'Menus', exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/menus(?:\?|$)/);
+  await expect(page.getByRole('heading', { name: 'Menus', exact: true })).toBeVisible();
+});
+
+test('@compatibilite le sous-menu reste fonctionnel après un retour navigateur', async ({ page }) => {
+  await seConnecter(page, comptes.gestionnaire);
+  await page.goto('/denrees');
+
+  await page.getByRole('link', { name: /^Modifier / }).first().click();
+  await expect(page).toHaveURL(/\/denrees\/[0-9a-f-]+\/modifier$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/denrees$/);
+
+  const sectionIntendance = page.locator('details[data-sidebar-section]').filter({
+    has: page.locator('summary').filter({ hasText: 'Intendance' }),
+  });
+  await sectionIntendance.locator('summary').click();
+
+  await expect(sectionIntendance).toHaveAttribute('open', '');
+  await expect(sectionIntendance.locator('.sidebar-module-panel')).toBeVisible();
+});
+
+test('@mobile un gestionnaire réalise le parcours critique vers les unités', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 851 });
+  await seConnecter(page, comptes.gestionnaire);
+
+  await page.getByRole('button', { name: 'Ouvrir le menu' }).click();
+  await page.getByRole('navigation', { name: 'Navigation principale' })
+    .getByRole('link', { name: 'Unités participantes', exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/groupes$/);
+  await expect(page.getByRole('heading', { name: 'Unités participantes', exact: true })).toBeVisible();
+});
+
+test('@mobile le sélecteur recherché ne réactive pas la liste native après une sélection', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 851 });
+  await seConnecter(page, comptes.gestionnaire);
+  await page.goto('/stocks/mouvement');
+
+  const field = page.locator('.movement-line-food').first();
+  const nativeSelect = field.locator('select[data-line-food]');
+  const trigger = field.locator('.searchable-select__trigger');
+  await trigger.click();
+
+  const firstOption = field.locator('.searchable-select__option').first();
+  await expect(firstOption).toBeVisible();
+  const optionLabel = (await firstOption.textContent()).trim();
+  await field.locator('.searchable-select__search').fill(optionLabel);
+
+  const option = field.getByRole('listbox').getByRole('option', { name: optionLabel, exact: true });
+  const optionValue = await option.getAttribute('data-value');
+  await option.evaluate((element) => {
+    element.addEventListener('click', (event) => {
+      window.searchableSelectClickDefaultPrevented = event.defaultPrevented;
+    });
+  });
+  await option.click();
+
+  await expect(nativeSelect).toHaveValue(optionValue);
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect.poll(() => page.evaluate(() => window.searchableSelectClickDefaultPrevented)).toBe(true);
+});
+
+test('entrée sélectionne l’unique résultat recherché sans valider le formulaire', async ({ page }) => {
+  await seConnecter(page, comptes.gestionnaire);
+  await page.goto('/stocks/mouvement');
+
+  const formulaire = page.locator('#movement-form');
+  await formulaire.evaluate((element) => {
+    window.searchableSelectTriggeredFormValidation = false;
+    element.addEventListener('invalid', () => {
+      window.searchableSelectTriggeredFormValidation = true;
+    }, true);
+  });
+
+  const field = page.locator('.movement-line-food').first();
+  const nativeSelect = field.locator('select[data-line-food]');
+  await field.locator('.searchable-select__trigger').click();
+  const firstOption = field.locator('.searchable-select__option').first();
+  const optionLabel = (await firstOption.textContent()).trim();
+  await field.locator('.searchable-select__search').fill(optionLabel);
+  await expect(field.locator('.searchable-select__option')).toHaveCount(1);
+  const optionValue = await field.locator('.searchable-select__option').getAttribute('data-value');
+
+  await field.locator('.searchable-select__search').press('Enter');
+
+  await expect(nativeSelect).toHaveValue(optionValue);
+  await expect(field.locator('.searchable-select__trigger')).toHaveAttribute('aria-expanded', 'false');
+  expect(await page.evaluate(() => window.searchableSelectTriggeredFormValidation)).toBe(false);
+});

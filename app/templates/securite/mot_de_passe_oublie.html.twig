@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mot de passe oublié | Campement{% endblock %}
+{% block body %}
+<main class="auth-page">
+    <section class="auth-card">
+        <header class="auth-card__header"><h1>Mot de passe oublié</h1><p class="auth-card__intro">Indiquez l’adresse électronique de votre compte.</p></header>
+        {% if envoye %}
+            <p class="flash flash--success" role="status">Si un compte actif correspond à cette adresse, un lien valable une heure vient d’être envoyé.</p>
+        {% else %}
+            <form method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('mot_de_passe_oublie') }}">
+                <div class="form-field"><label for="email">Adresse électronique</label><input id="email" type="email" name="email" required autocomplete="email"></div>
+                <button class="primary-button" type="submit">Envoyer le lien</button>
+            </form>
+        {% endif %}
+        <p class="auth-card__footer"><a href="{{ path('app_connexion') }}">Retour à la connexion</a></p>
+    </section>
+</main>
+{% endblock %}

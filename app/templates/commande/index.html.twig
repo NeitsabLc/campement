@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+{% block title %}Commande | Campement{% endblock %}
+{% block body %}
+<main class="orders-page entity-list-page">
+    <header class="stock-list-heading entity-list-heading"><div><h1>Commande</h1><p>Commande consolidée par denrée pour une période de repas</p></div></header>
+    {% if not sejour %}<section class="empty-state"><h2>Aucun séjour actif</h2></section>
+    {% else %}
+    {% if commandes_calculables is empty %}<section class="stock-list-card"><div class="stocks-empty"><strong>Aucun repas disponible</strong><p>Ajoutez des denrées aux menus pour préparer une commande.</p></div></section>
+    {% else %}<section class="final-order-form-card" id="final-order-period" aria-labelledby="final-order-period-title">
+        <header><div><h2 id="final-order-period-title">Calculer la commande finale</h2><p>Choisissez la période commandée et, si nécessaire, les repas à retirer du stock actuel.</p></div></header>
+        <form method="get" action="{{ path('app_commande') }}"><input type="hidden" name="calculer" value="1"><div class="final-order-fields">
+            <label for="final-order-deduction"><span>Premier repas à déduire du stock <small>(facultatif)</small></span><select id="final-order-deduction" name="repas_deduction"><option value=""{{ selection.repas_deduction == '' ? ' selected' : '' }}>Ne déduire aucun repas antérieur</option>{% for commande in commandes_calculables %}{% set menu = commande.menu %}{% set menuId = menu.id ~ '' %}<option value="{{ menuId }}"{{ selection.repas_deduction == menuId ? ' selected' : '' }}>{{ menu.dateMenu|date('d/m/Y') }} — {{ menu.libelle }}</option>{% endfor %}</select><small>Les besoins seront retirés du stock depuis ce repas jusqu’au repas précédant la commande.</small></label>
+            <label for="final-order-start"><span>Premier repas de la commande</span><select id="final-order-start" name="repas_debut" required>{% for commande in commandes_calculables %}{% set menu = commande.menu %}{% set menuId = menu.id ~ '' %}<option value="{{ menuId }}"{{ selection.repas_debut == menuId ? ' selected' : '' }}>{{ menu.dateMenu|date('d/m/Y') }} — {{ menu.libelle }}</option>{% endfor %}</select></label>
+            <label for="final-order-end"><span>Dernier repas de la commande</span><select id="final-order-end" name="repas_fin" required>{% for commande in commandes_calculables %}{% set menu = commande.menu %}{% set menuId = menu.id ~ '' %}<option value="{{ menuId }}"{{ selection.repas_fin == menuId ? ' selected' : '' }}>{{ menu.dateMenu|date('d/m/Y') }} — {{ menu.libelle }}</option>{% endfor %}</select></label>
+        </div><footer><button class="food-primary" type="submit">Calculer la commande</button></footer></form>
+    </section>{% endif %}
+
+    {% if erreurs_calcul %}<div class="flash flash--error" role="alert">{% for erreur in erreurs_calcul %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+    {% if commande_finale is not null %}<section class="final-order-card">
+        <header><div><h2>Commande finale</h2><p>Du {{ commandes_calculables[index_repas[selection.repas_debut]].menu.dateMenu|date('d/m/Y') }} — {{ commandes_calculables[index_repas[selection.repas_debut]].menu.libelle }} au {{ commandes_calculables[index_repas[selection.repas_fin]].menu.dateMenu|date('d/m/Y') }} — {{ commandes_calculables[index_repas[selection.repas_fin]].menu.libelle }}</p></div>{% if selection.repas_deduction %}<span>Stock déduit à partir du {{ commandes_calculables[index_repas[selection.repas_deduction]].menu.dateMenu|date('d/m/Y') }} — {{ commandes_calculables[index_repas[selection.repas_deduction]].menu.libelle }}</span>{% else %}<span>Stock actuel utilisé sans déduction de repas antérieur</span>{% endif %}</header>
+        {% if commande_finale is empty %}<p class="order-meal-empty">Aucune denrée nécessaire sur cette période.</p>{% else %}<div class="final-order-suppliers">{% for groupe in commande_finale_par_fournisseur %}<section class="final-order-supplier">
+            <header><h3>{{ groupe.nom }}</h3><span>{{ groupe.lignes|length }} denrée{{ groupe.lignes|length > 1 ? 's' : '' }}</span></header>
+            <div class="order-table"><table><thead><tr><th scope="col">Denrée</th><th scope="col">Besoin total</th><th scope="col">Stock prévisionnel</th><th scope="col">À commander</th><th scope="col">Unité</th></tr></thead><tbody>{% for ligne in groupe.lignes %}<tr><th scope="row">{{ ligne.denree.nom }}{% if ligne.references_produit is not empty %}<small class="product-reference">Réf. {{ ligne.references_produit|join(', ') }}</small>{% endif %}{% if groupe.type == 'fournisseur_a_choisir' %}<small>Disponible chez {% for fournisseur in ligne.fournisseurs %}{{ not loop.first ? ', ' : '' }}{{ fournisseur.nom }}{% endfor %}</small>{% endif %}</th><td>{{ ligne.besoin|quantite }}</td><td>{{ ligne.stock_previsionnel|quantite }}</td><td class="order-total"><strong>{{ ligne.quantite_commande|quantite }}</strong></td><td>{{ ligne.unite.nom }} ({{ ligne.unite.symbole }})</td></tr>{% endfor %}</tbody></table></div>
+        </section>{% endfor %}</div>{% endif %}
+    </section>{% endif %}
+    {% endif %}
+</main>
+{% endblock %}

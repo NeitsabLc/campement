@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier mon mot de passe | Campement{% endblock %}
+{% block body %}
+<main class="{{ premiere_connexion ? 'auth-page' : '' }}">
+    <section class="auth-card">
+        <header class="auth-card__header"><h1>Modifier mon mot de passe</h1><p class="auth-card__intro">{{ premiere_connexion ? 'Pour sécuriser votre compte, choisissez votre mot de passe avant de continuer.' : 'Choisissez un nouveau mot de passe.' }}</p></header>
+        {% if erreurs %}<div class="alert" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+        <form method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('modifier_mot_de_passe') }}">
+            {% if not premiere_connexion %}<div class="form-field"><label for="mot_de_passe_actuel">Mot de passe actuel</label><input id="mot_de_passe_actuel" type="password" name="mot_de_passe_actuel" required autocomplete="current-password"></div>{% endif %}
+            <div class="form-field"><label for="mot_de_passe">Nouveau mot de passe</label><input id="mot_de_passe" type="password" name="mot_de_passe" required minlength="12" autocomplete="new-password"></div>
+            <div class="form-field"><label for="confirmation">Confirmer le mot de passe</label><input id="confirmation" type="password" name="confirmation" required minlength="12" autocomplete="new-password"></div>
+            <button class="primary-button" type="submit">Enregistrer mon mot de passe</button>
+        </form>
+    </section>
+</main>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Utilisateurs | Campement{% endblock %}
+
+{% block body %}
+<main class="users-page stock-list-page entity-list-page" data-controller="user-dialog">
+    <header class="users-heading stock-list-heading entity-list-heading">
+        <div><h1>Utilisateurs</h1></div>
+        <div class="users-heading__actions">
+        {% if not est_administrateur and sejours|length > 1 %}
+            <form method="get" class="stay-selector">
+                <label for="sejour">Séjour sélectionné</label>
+                <select id="sejour" name="sejour" onchange="this.form.submit()">
+                    {% for sejour in sejours %}<option value="{{ sejour.id }}"{{ sejour_selectionne and sejour.id == sejour_selectionne.id ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}
+                </select>
+            </form>
+        {% endif %}
+            <a class="food-primary food-add-button" href="{{ path('app_utilisateur_ajouter', sejour_selectionne ? {sejour: sejour_selectionne.id} : {}) }}" aria-label="Ajouter un utilisateur"><span aria-hidden="true">＋</span><span class="food-add-button__label">Ajouter un utilisateur</span></a>
+        </div>
+    </header>
+
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
+
+    <div class="users-layout users-layout--list">
+        {% embed 'components/list_table.html.twig' with {variant: 'users', headings: ['Utilisateur', 'Rôle', 'Séjours', 'Groupe', 'Actions'], card_class: 'entity-list-card'} %}
+            {% block rows %}
+            {% if utilisateurs is empty %}<div class="shared-list-empty" role="row"><span role="cell">Aucun utilisateur.</span></div>{% else %}
+                    {% for utilisateur in utilisateurs|filter(utilisateur => utilisateur.role != constant('App\\Entity\\Utilisateur::ROLE_TECHNIQUE')) %}
+                    <div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_utilisateur_modifier',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_utilisateurs_statut',{id:utilisateur.id,sejour:sejour_selectionne ? sejour_selectionne.id : null}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_'~utilisateur.id) }}"><button type="submit">Supprimer</button></form><article class="shared-list-row user-row clickable-row{{ utilisateur.actif ? '' : ' user-row--inactive' }}" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
+                        <div role="cell"><strong>{{ utilisateur.prenom }} {{ utilisateur.nom }}</strong><span>{{ utilisateur.email }}</span></div>
+                        <span class="role-pill" role="cell">{{ roles[utilisateur.role] ?? utilisateur.role }}</span>
+                        <span class="user-assignment" role="cell">
+                            {% if utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GESTIONNAIRE') %}
+                                {{ utilisateur.sejoursGeres|map(sejour => sejour.nom)|join(', ') }}
+                            {% elseif utilisateur.role == constant('App\\Entity\\Utilisateur::ROLE_GROUPE') and utilisateur.groupe %}
+                                {{ utilisateur.groupe.sejour.nom }}
+                            {% else %}Tous les séjours{% endif %}
+                        </span>
+                        <span class="user-group" role="cell">{{ utilisateur.groupe ? utilisateur.groupe.nom : '—' }}</span>
+                        <div class="user-actions" role="cell">
+                            <a class="edit-group-button" href="{{ path('app_utilisateur_modifier', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}" aria-label="Modifier {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a>
+                            {% if utilisateur.actif %}
+                                <button class="delete-group-button" type="button" aria-label="Désactiver {{ utilisateur.prenom }} {{ utilisateur.nom }}" title="Désactiver"
+                                    data-user-disable
+                                    data-user-name="{{ (utilisateur.prenom ~ ' ' ~ utilisateur.nom)|e('html_attr') }}"
+                                    data-status-url="{{ path('app_utilisateurs_statut', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}"
+                                    data-status-token="{{ csrf_token('statut_utilisateur_' ~ utilisateur.id) }}"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Désactiver</span></button>
+                            {% else %}
+                                <form method="post" action="{{ path('app_utilisateurs_statut', {id: utilisateur.id, sejour: sejour_selectionne ? sejour_selectionne.id : null}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('statut_utilisateur_' ~ utilisateur.id) }}">
+                                    <button class="user-reactivate-button" type="submit">Réactiver</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </article></div>
+                    {% endfor %}
+            {% endif %}{% endblock %}
+        {% endembed %}
+    </div>
+
+    <dialog class="user-dialog" aria-labelledby="user-dialog-title" data-user-dialog{{ erreurs ? ' data-open-on-load' : '' }}>
+        <section class="users-card users-create">
+            <header class="user-dialog__header"><div><h2 id="user-dialog-title" data-user-dialog-title>{{ donnees.utilisateur_id ? 'Modifier l’utilisateur' : 'Ajouter un utilisateur' }}</h2><p data-user-dialog-intro>{{ donnees.utilisateur_id ? 'Modifiez ses informations et son affectation.' : 'Un lien d’invitation lui sera envoyé par e-mail.' }}</p></div><button type="button" aria-label="Fermer" data-user-dialog-close>×</button></header>
+            {% if erreurs %}<div class="flash flash--error" role="alert">{% for erreur in erreurs %}<p>{{ erreur }}</p>{% endfor %}</div>{% endif %}
+            <form method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token('creer_utilisateur') }}">
+                <input type="hidden" name="utilisateur_id" value="{{ donnees.utilisateur_id }}" data-user-id-field>
+                <div class="user-form-grid">
+                    <label>Prénom<input name="prenom" maxlength="100" required value="{{ donnees.prenom }}"></label>
+                    <label>Nom<input name="nom" maxlength="100" required value="{{ donnees.nom }}"></label>
+                </div>
+                <label class="user-field">Adresse électronique<input type="email" name="email" maxlength="180" required autocomplete="email" value="{{ donnees.email }}"></label>
+                <label class="user-field">Rôle
+                    <select name="role" required data-role-selector>
+                        <option value="">Sélectionner</option>
+                        {% for valeur, libelle in roles %}<option value="{{ valeur }}"{{ donnees.role == valeur ? ' selected' : '' }}>{{ libelle }}</option>{% endfor %}
+                    </select>
+                </label>
+                {% if est_administrateur %}
+                    <label class="user-field assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Séjours gérés
+                        <select name="sejours[]" multiple data-controller="searchable-select" data-placeholder="Sélectionner des séjours" data-search-placeholder="Rechercher un séjour…" data-search-label="Rechercher un séjour" data-empty-label="Aucun séjour trouvé" aria-describedby="managed-stays-dialog-help">
+                            {% for sejour in sejours %}<option value="{{ sejour.id }}"{{ sejour.id in donnees.sejours ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}
+                        </select>
+                        <small id="managed-stays-dialog-help" class="users-help">Vous pouvez sélectionner plusieurs séjours.</small>
+                    </label>
+                {% else %}
+                    <div class="assignment-panel" data-role-panel="ROLE_GESTIONNAIRE">Le nouveau gestionnaire sera associé au séjour <strong>{{ sejour_selectionne ? sejour_selectionne.nom : 'indisponible' }}</strong>.</div>
+                {% endif %}
+                <div class="assignment-panel" data-role-panel="ROLE_GROUPE">
+                    <label class="user-field">Séjour
+                        <select name="sejour_groupe" data-group-stay-selector>
+                            <option value="">Sélectionner un séjour</option>
+                            {% for sejour in sejours %}<option value="{{ sejour.id }}"{{ donnees.sejour_groupe == sejour.id or (not donnees.sejour_groupe and sejour_selectionne and sejour_selectionne.id == sejour.id) ? ' selected' : '' }}>{{ sejour.nom }}</option>{% endfor %}
+                        </select>
+                    </label>
+                    <label class="user-field">Groupe
+                        <select name="groupe" data-group-selector data-selected-group="{{ donnees.groupe }}">
+                            <option value="">Sélectionner un groupe</option>
+                            {% for groupe in groupes %}<option value="{{ groupe.id }}" data-stay-id="{{ groupe.sejour.id }}"{{ donnees.groupe == groupe.id ? ' selected' : '' }}>{{ groupe.nom }}</option>{% endfor %}
+                        </select>
+                    </label>
+                </div>
+                <p class="users-help">Un lien valable 24 heures sera envoyé par e-mail pour lui permettre de choisir son mot de passe.</p>
+                <button class="food-primary" type="submit" data-user-submit>{{ donnees.utilisateur_id ? 'Enregistrer les modifications' : 'Créer et envoyer l’invitation' }}</button>
+            </form>
+        </section>
+    </dialog>
+
+    <dialog class="user-status-dialog" aria-labelledby="user-status-dialog-title" data-user-status-dialog>
+        <section>
+            <div class="delete-group-dialog__icon" aria-hidden="true">!</div>
+            <h2 id="user-status-dialog-title">Désactiver cet utilisateur ?</h2>
+            <p>Le compte de <strong data-user-disable-name></strong> ne pourra plus se connecter.</p>
+            <form method="post" data-user-disable-form>
+                <input type="hidden" name="_token" data-user-disable-token>
+                <div class="group-dialog__actions">
+                    <button class="cancel-group-button" type="button" data-user-disable-cancel>Annuler</button>
+                    <button class="confirm-delete-group-button" type="submit">Désactiver l’utilisateur</button>
+                </div>
+            </form>
+        </section>
+    </dialog>
+</main>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+{% block title %}Mouvements de {{ denree.nom }} | Campement{% endblock %}
+{% block body %}
+<main class="food-movements-page entity-list-page">
+    <nav class="food-breadcrumb"><a href="{{ path('app_denrees') }}">Denrées</a><span>/</span><span>{{ denree.nom }}</span></nav>
+    <header class="stock-list-heading entity-list-heading"><div><h1>Mouvements de {{ denree.nom }}</h1><p>Historique des entrées et sorties de stock</p></div></header>
+    <section class="stock-list-card">
+        {% if mouvements is empty %}<div class="stocks-empty"><strong>Aucun mouvement enregistré</strong><p>Cette denrée n’a encore fait l’objet d’aucune entrée ou sortie.</p></div>
+        {% else %}<div class="food-movements-table" role="table" aria-label="Mouvements de stock de {{ denree.nom }}">
+            <div class="food-movements-row food-movements-row--head" role="row"><span role="columnheader">Date</span><span role="columnheader">Type</span><span role="columnheader">Sous-type</span><span role="columnheader">Quantité et conditionnement</span></div>
+            {% for ligne in mouvements %}{% set mouvement = ligne.mouvement %}<article class="food-movements-row{{ mouvement.annule ? ' food-movements-row--cancelled' : '' }}" role="row">
+                <time role="cell" datetime="{{ mouvement.dateMouvement|date('c') }}">{{ mouvement.dateMouvement|date('d/m/Y H:i') }}</time>
+                <span role="cell"><span class="movement-badge movement-badge--{{ mouvement.typeMouvement.code|lower }}">{{ mouvement.typeMouvement.libelle }}</span>{% if mouvement.annule %} <span class="status-pill status-pill--inactive">Annulé</span>{% endif %}</span>
+                <span role="cell" data-label="Sous-type">{{ mouvement.origineMouvement.libelle }}</span>
+                <strong role="cell" data-label="Quantité et conditionnement">{% for saisie in ligne.conditionnements %}{{ saisie.quantite|quantite }} {{ saisie.conditionnement }}{% if saisie.quantite > 1 and not (saisie.conditionnement ends with 's') and not (saisie.conditionnement ends with 'x') and not (saisie.conditionnement ends with 'z') %}s{% endif %}{{ not loop.last ? ' - ' : '' }}{% endfor %}</strong>
+            </article>{% endfor %}
+        </div>{% endif %}
+    </section>
+</main>
+{% endblock %}

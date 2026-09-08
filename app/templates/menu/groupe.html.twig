@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+{% block title %}Menus du jour | Campement{% endblock %}
+{% block body %}
+<main class="group-menu-page">
+    <header class="group-menu-heading"><h1>Menus</h1></header>
+
+    {{ include('menu/_consultation.html.twig') }}
+</main>
+{% endblock %}

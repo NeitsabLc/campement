@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Export | Administratif | Campement{% endblock %}
+
+{% block body %}
+<main class="export-page">
+    <header class="export-heading">
+        <h1>Export</h1>
+    </header>
+    {% if not sejour %}
+        <section class="empty-state"><h2>Aucun séjour actif</h2><p>Activez un séjour pour accéder aux exports administratifs.</p></section>
+    {% else %}
+        <div class="export-grid">
+            <article class="export-card"><div class="export-card__icon" aria-hidden="true">A</div><div><h2>Documents des adultes</h2><p>Pour chaque adulte : fiche sanitaire, copie des vaccins, puis formation.</p><small>{{ compteurs.adultes }} adulte(s)</small></div><a class="button button--primary" href="{{ path('app_export_documents', {public: 'adultes'}) }}">Télécharger le PDF</a></article>
+            <article class="export-card"><div class="export-card__icon" aria-hidden="true">J</div><div><h2>Documents des jeunes</h2><p>Pour chaque jeune : fiche sanitaire, copie des vaccins, puis autorisation de départ en camp.</p><small>{{ compteurs.jeunes }} jeune(s)</small></div><a class="button button--primary" href="{{ path('app_export_documents', {public: 'jeunes'}) }}">Télécharger le PDF</a></article>
+            <article class="export-card"><div class="export-card__icon" aria-hidden="true">≡</div><div><h2>Liste des participants</h2><p>La liste complète des jeunes et des adultes, regroupés par unité.</p><small>{{ compteurs.adultes + compteurs.jeunes }} participant(s)</small></div><a class="button button--primary" href="{{ path('app_export_participants') }}">Télécharger le PDF</a></article>
+        </div>
+    {% endif %}
+</main>
+{% endblock %}

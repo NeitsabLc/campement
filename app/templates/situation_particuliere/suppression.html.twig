@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Supprimer {{ situation.libelle }} | Campement{% endblock %}
+
+{% block body %}
+<main class="confirmation-page"><section class="confirmation-card"><div class="confirmation-icon" aria-hidden="true">!</div><h1>Supprimer cette situation ?</h1><p><strong>{{ situation.libelle }}</strong>, datée du {{ situation.dateSituation|date('d/m/Y') }}, sera définitivement supprimée avec ses tâches.</p>
+    {% if not situation.peutEtreSupprimee %}<div class="flash" role="alert">Cette situation contient au moins une tâche réalisée et ne peut pas être supprimée.</div><a class="food-primary" href="{{ path('app_situation_particuliere_modifier', {id: situation.id}) }}">Retour à la situation</a>
+    {% else %}<form method="post"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_situation_particuliere_' ~ situation.id) }}"><div class="form-actions"><a href="{{ path('app_situation_particuliere_modifier', {id: situation.id}) }}">Annuler</a><button class="danger-button" type="submit">Supprimer définitivement</button></div></form>{% endif %}
+</section></main>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Conditions d’utilisation | Campement{% endblock %}
+{% block body_class %}legal-shell{{ app.user ? ' app-shell' : '' }}{% endblock %}
+
+{% block body %}
+<main class="legal-page">
+    <header class="legal-heading">
+        <a class="legal-brand" href="{{ app.user ? path('app_tableau_de_bord') : path('app_connexion') }}" aria-label="Retour à Campement"><span aria-hidden="true">CA</span><strong>Campement</strong></a>
+        <p>Informations légales</p>
+        <h1>Conditions d’utilisation</h1>
+        <p class="legal-updated">Dernière mise à jour : 9 août 2026</p>
+    </header>
+
+    <article class="legal-content">
+        <p>Campement est un outil de gestion destiné aux équipes qui organisent des camps accompagnés et aux unités participantes. Son utilisation implique le respect des présentes conditions et des règles internes de l’organisation du séjour.</p>
+
+        <h2>1. Accès au service</h2>
+        <p>L’accès est réservé aux personnes autorisées. Chaque compte est personnel : ses identifiants ne doivent pas être partagés. L’utilisateur doit signaler rapidement toute perte d’accès, suspicion d’utilisation frauduleuse ou erreur d’habilitation à l’administrateur de Campement.</p>
+
+        <h2>2. Utilisation autorisée</h2>
+        <p>L’utilisateur s’engage à utiliser Campement uniquement pour préparer, gérer et assurer le suivi des séjours auxquels il est rattaché. Il doit notamment :</p>
+        <ul>
+            <li>ne consulter que les informations nécessaires à sa mission ;</li>
+            <li>saisir des informations exactes, pertinentes et à jour ;</li>
+            <li>ne pas communiquer les données à une personne non autorisée ;</li>
+            <li>ne pas tenter de contourner les droits d’accès ou les protections du service ;</li>
+            <li>signaler toute donnée attribuée à la mauvaise personne ou au mauvais séjour.</li>
+        </ul>
+
+        <h2>3. Données sensibles et documents</h2>
+        <p>Campement peut contenir des informations concernant des mineurs, des contacts d’urgence, des documents sanitaires et des situations particulières. Ces éléments sont confidentiels. Ils ne doivent être consultés, téléchargés ou imprimés que lorsque cela est nécessaire à l’organisation ou à la sécurité du séjour.</p>
+        <p>Les exports et documents téléchargés doivent être conservés dans un emplacement sécurisé, ne pas être transmis par un canal non maîtrisé et être supprimés dès qu’ils ne sont plus nécessaires.</p>
+
+        <h2>4. Responsabilité des utilisateurs</h2>
+        <p>Chaque utilisateur reste responsable des informations qu’il saisit, modifie, exporte ou transmet. Les responsables du séjour déterminent les personnes autorisées et veillent à la mise à jour de leurs accès.</p>
+
+        <h2>5. Disponibilité et évolution</h2>
+        <p>Le service est fourni dans le cadre de l’organisation des camps. Des interruptions peuvent survenir pour maintenance, correction ou raisons de sécurité. Les fonctionnalités et les présentes conditions peuvent évoluer ; la date de mise à jour permet d’identifier la version applicable.</p>
+
+        <h2>6. Suspension d’un accès</h2>
+        <p>Un compte peut être désactivé lorsqu’il n’est plus nécessaire, lorsqu’un risque de sécurité est constaté ou lorsque son utilisation ne respecte pas les présentes conditions.</p>
+
+        <h2>7. Données personnelles</h2>
+        <p>Les traitements de données réalisés au moyen de Campement sont décrits dans la <a href="{{ path('app_politique_confidentialite') }}">politique de confidentialité</a>.</p>
+
+        <h2>8. Contact</h2>
+        <p>Pour toute question sur le service ou pour signaler un incident, écrivez à <a href="mailto:campement@neitsab.net">campement@neitsab.net</a>.</p>
+    </article>
+</main>
+{% endblock %}

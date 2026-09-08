@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Situations particulières | Campement{% endblock %}
+
+{% block body %}
+<main class="situations-page foods-page entity-list-page">
+    <header class="foods-heading entity-list-heading">
+        <div><h1>Situations particulières</h1></div>
+        <a class="food-primary food-add-button" href="{{ path('app_situation_particuliere_creer') }}" aria-label="Nouvelle situation"><span aria-hidden="true">＋</span><span class="food-add-button__label">Nouvelle situation</span></a>
+    </header>
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash" role="alert">{{ message }}</div>{% endfor %}
+    {% set abreviations_taches = {
+            'DECLARATION_ACCIDENT_SGDF': 'Acc',
+            'DECLARATION_EVENEMENT_GRAVE': 'DEG',
+            'APPEL_LIGNE_URGENCE': 'LU',
+            'IP_OU_SIGNALEMENT': 'IP'
+    } %}
+    <section class="foods-card situations-card"><div class="foods-table" role="table">
+        <div class="foods-row situations-row situations-row--head" role="row"><span role="columnheader">Date</span><span role="columnheader">Situation</span><span role="columnheader">Personnes</span><span role="columnheader">Tâches prédéfinies</span><span role="columnheader">Actions</span></div>
+        {% for situation in situations %}<div class="foods-swipe-row" data-controller="swipe-actions" data-swipe-actions-url-value="{{ path('app_situation_particuliere_modifier',{id:situation.id}) }}"><form class="foods-swipe-action" method="post" action="{{ path('app_situation_particuliere_supprimer',{id:situation.id}) }}" data-swipe-actions-target="action"><input type="hidden" name="_token" value="{{ csrf_token('supprimer_situation_particuliere_'~situation.id) }}"><button type="submit">Supprimer</button></form><div class="foods-row situations-row clickable-row" role="row" data-swipe-actions-target="surface" data-action="pointerdown->swipe-actions#start pointermove->swipe-actions#move pointerup->swipe-actions#end pointercancel->swipe-actions#cancel click->swipe-actions#activate">
+                <time role="cell" datetime="{{ situation.dateSituation|date('Y-m-d') }}">{{ situation.dateSituation|date('d/m/Y') }}</time>
+                <span role="cell"><a class="situation-name" href="{{ path('app_situation_particuliere_modifier', {id: situation.id}) }}"><strong>{{ situation.libelle }}</strong></a></span>
+                <span class="situation-people" role="cell">{{ situation.participants|length ?: '—' }}</span>
+                <div class="task-summary" role="cell">{% for type, libelle in types_taches %}{% set tache = situation.taches|filter(t => t.typePredefini == type)|first %}
+                    {% if tache %}{% set couleur = tache.statut == 'REALISE' ? 'done' : (tache.statut == 'NON_REQUIS' ? 'na' : (tache.estEnRetard ? 'late' : 'todo')) %}<span class="task-dot task-dot--{{ couleur }}" title="{{ libelle }} : {{ tache.statut|replace({'_':' '})|lower }}">{{ abreviations_taches[type] }}</span>{% endif %}
+                {% endfor %}</div>
+                <span class="food-actions situation-actions" role="cell"><a class="action-icon-button" href="{{ path('app_situation_particuliere_modifier', {id: situation.id}) }}" aria-label="Modifier {{ situation.libelle }}" title="Modifier"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M4 20h4l11-11-4-4L4 16v4Zm13.5-16.5 3 3a1.4 1.4 0 0 1 0 2L19 10l-5-5 1.5-1.5a1.4 1.4 0 0 1 2 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span class="visually-hidden">Modifier</span></a><a class="action-icon-button action-icon-button--danger" href="{{ path('app_situation_particuliere_supprimer', {id: situation.id}) }}" aria-label="Supprimer {{ situation.libelle }}" title="Supprimer"><svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="visually-hidden">Supprimer</span></a></span>
+        </div></div>{% else %}<div class="foods-empty"><strong>Aucune situation enregistrée</strong><p>Les situations survenues pendant le séjour apparaîtront ici.</p></div>{% endfor %}
+    </div></section>
+</main>
+{% endblock %}
