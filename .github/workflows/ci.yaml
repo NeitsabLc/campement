@@ -19,6 +19,7 @@ env:
   npm_config_fetch_retry_mintimeout: 10000
   npm_config_fetch_retry_maxtimeout: 60000
   npm_config_fetch_timeout: 120000
+  COMPOSER_MAX_PARALLEL_HTTP: 4
 
 jobs:
   titre-pr:
@@ -128,6 +129,12 @@ jobs:
       - name: Recuperer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Restaurer le cache Composer
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/composer
+          key: composer-${{ runner.os }}-${{ hashFiles('app/composer.lock') }}
+
       - name: Preparer la configuration de CI
         run: ./scripts/ci-prepare-env.sh
 
@@ -156,12 +163,24 @@ jobs:
           cache-to: type=gha,mode=max,scope=ci-php-development
 
       - name: Installer les dependances PHP
-        run: >-
-          docker compose run --rm php composer install
-          --no-interaction
-          --prefer-dist
-          --no-progress
-          --no-scripts
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
+        run: |
+          mkdir -p .cache/composer
+          for tentative in 1 2 3; do
+            if docker compose run --rm \
+              --env COMPOSER_AUTH \
+              --env COMPOSER_MAX_PARALLEL_HTTP \
+              --env COMPOSER_CACHE_DIR=/composer-cache \
+              --volume "$GITHUB_WORKSPACE/.cache/composer:/composer-cache" \
+              php composer install --no-interaction --prefer-dist --no-progress --no-scripts; then
+              break
+            fi
+            if [ "$tentative" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((tentative * 5))"
+          done
 
       - name: Demarrer l'application
         run: |
