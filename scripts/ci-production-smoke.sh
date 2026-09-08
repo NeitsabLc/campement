@@ -101,9 +101,9 @@ chmod 0777 "$BACKUP_DIR"
 
 compose config --quiet
 if [ "${USE_RELEASE_IMAGES:-0}" = "1" ]; then
-    compose --profile tools pull php nginx database liquibase backup
+    compose --profile tools --profile backup pull php nginx database liquibase backup
 else
-    compose build php nginx database liquibase backup
+    compose --profile backup build php nginx database liquibase backup
 fi
 
 fichier_identite="$repertoire_temporaire/identity.txt"
@@ -175,13 +175,14 @@ compose exec --no-TTY php php bin/console cache:warmup --env=prod --no-debug
 compose exec --no-TTY php php bin/console dbal:run-sql \
     "SELECT current_database(), current_user, current_schema()"
 
-compose --profile maintenance --profile tools create maintenance backup liquibase
+compose --profile backup --profile maintenance --profile tools create maintenance backup liquibase
 assert_container_hardened php www-data 536870912 1000000000 128
 assert_container_hardened nginx nginx 134217728 500000000 64
 assert_container_hardened database postgres 1073741824 2000000000 256
 assert_container_hardened maintenance www-data 268435456 500000000 64
 test "$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$(compose ps --quiet --all maintenance)")" = "no"
 assert_container_hardened backup postgres 536870912 1000000000 128
+test "$(docker inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$(compose --profile backup ps --quiet --all backup)")" = "no"
 assert_container_hardened liquibase liquibase 536870912 1000000000 128
 
 compose exec --no-TTY database sh -ec '
@@ -233,7 +234,9 @@ fi
 
 compose exec --no-TTY php sh -ec \
     'printf "document de contrôle\n" > var/documents_participants/ci-restauration.txt'
-compose run --rm --env BACKUP_ONCE=1 backup
+backup_output=$(compose --profile backup run --rm backup)
+printf '%s\n' "$backup_output" | grep -q '"event":"backup_started"'
+printf '%s\n' "$backup_output" | grep -q '"event":"backup_succeeded"'
 archive_base=$(find "$BACKUP_DIR" -type f -name 'campement-*.dump.age' -size +0c -print -quit)
 archive_documents=$(find "$BACKUP_DIR" -type f -name 'documents-*.tar.gz.age' -size +0c -print -quit)
 test -n "$archive_base"

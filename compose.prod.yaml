@@ -142,8 +142,10 @@ services:
       - campement
 
   backup:
+    profiles:
+      - backup
     logging: *production-logging
-    restart: unless-stopped
+    restart: "no"
     image: "campement-backup:${APP_IMAGE_TAG:-local}"
     build:
       context: .
