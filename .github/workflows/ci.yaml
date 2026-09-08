@@ -14,10 +14,12 @@ concurrency:
 
 env:
   COMPOSE_PROJECT_NAME: campement-ci-${{ github.run_id }}-${{ github.run_attempt }}
+  PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
   npm_config_fetch_retries: 3
   npm_config_fetch_retry_mintimeout: 10000
   npm_config_fetch_retry_maxtimeout: 60000
   npm_config_fetch_timeout: 120000
+  COMPOSER_MAX_PARALLEL_HTTP: 4
 
 jobs:
   titre-pr:
@@ -37,11 +39,10 @@ jobs:
             exit 1
           fi
 
-  tests:
-    name: Qualite et tests
+  qualite-rapide:
+    name: Qualite rapide
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-
+    timeout-minutes: 10
     steps:
       - name: Recuperer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -105,7 +106,7 @@ jobs:
           docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --quiet
           test -z "$(docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --format json | jq -r '.services[] | select(.build != null) | .image')"
 
-      - name: Installer les dependances navigateur
+      - name: Installer les dependances Node.js
         run: npm ci --no-audit --no-fund
 
       - name: Auditer les dependances npm avec Trivy
@@ -120,15 +121,66 @@ jobs:
             --severity HIGH,CRITICAL --exit-code 1 --no-progress \
             /src/package-lock.json
 
-      - name: Construire l'image PHP
-        run: docker compose build --pull php
+  tests-app:
+    name: Tests applicatifs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restaurer le cache Composer
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/composer
+          key: composer-${{ runner.os }}-${{ hashFiles('app/composer.lock') }}
+
+      - name: Preparer la configuration de CI
+        run: ./scripts/ci-prepare-env.sh
+
+      - name: Installer Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installer les dependances Node.js
+        run: npm ci --no-audit --no-fund
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Construire l'image PHP de CI
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: php-development
+          load: true
+          pull: true
+          tags: ${{ env.COMPOSE_PROJECT_NAME }}-php:latest
+          cache-from: type=gha,scope=ci-php-development
+          cache-to: type=gha,mode=max,scope=ci-php-development
 
       - name: Installer les dependances PHP
-        run: >-
-          docker compose run --rm php composer install
-          --no-interaction
-          --prefer-dist
-          --no-progress
+        env:
+          COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ github.token }}"}}'
+        run: |
+          mkdir -p .cache/composer
+          for tentative in 1 2 3; do
+            if docker compose run --rm \
+              --env COMPOSER_AUTH \
+              --env COMPOSER_MAX_PARALLEL_HTTP \
+              --env COMPOSER_CACHE_DIR=/composer-cache \
+              --volume "$GITHUB_WORKSPACE/.cache/composer:/composer-cache" \
+              php composer install --no-interaction --prefer-dist --no-progress --no-scripts; then
+              break
+            fi
+            if [ "$tentative" -eq 3 ]; then
+              exit 1
+            fi
+            sleep "$((tentative * 5))"
+          done
 
       - name: Demarrer l'application
         run: |
@@ -158,7 +210,11 @@ jobs:
       - name: Compiler les assets
         run: |
           docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug
-          docker compose exec --no-TTY php php bin/console importmap:install
+          for tentative in 1 2 3; do
+            docker compose exec --no-TTY php php bin/console importmap:install && break
+            test "$tentative" -lt 3 || exit 1
+            sleep "$((tentative * 5))"
+          done
           docker compose exec --no-TTY php php bin/console asset-map:compile --env=prod --no-debug
 
       - name: Analyser statiquement le code PHP
@@ -187,46 +243,14 @@ jobs:
       - name: Initialiser les donnees de controle
         run: docker compose --profile tools run --rm liquibase update --context-filter=dev
 
-      - name: Installer Chromium et Firefox
-        run: npx playwright install --with-deps chromium firefox
-
       - name: Attendre que l'application soit disponible
         run: curl --fail --retry 30 --retry-delay 2 --retry-all-errors "${APP_BASE_URL}/login"
 
       - name: Executer les controles d'accessibilite
-        run: npm run test:accessibility
+        run: ./scripts/run-playwright-ci.sh test:accessibility
 
       - name: Executer les tests E2E
-        run: npm run test:e2e
-
-      - name: Preparer les images pour l'analyse de vulnerabilites
-        run: |
-          docker compose -f compose.yaml -f compose.prod.yaml build php nginx database liquibase backup
-          docker save campement-php-production:local --output /tmp/campement-php.tar
-          docker save campement-nginx-production:local --output /tmp/campement-nginx.tar
-          docker save campement-postgres-production:local --output /tmp/campement-postgres.tar
-          docker save campement-liquibase-production:local --output /tmp/campement-liquibase.tar
-          docker save campement-backup:local --output /tmp/campement-backup.tar
-
-      - name: Analyser les vulnerabilites des images d'execution
-        run: |
-          set -euo pipefail
-          mkdir -p .cache/trivy
-          for archive in php nginx postgres liquibase backup; do
-            docker run --rm \
-              --user "$(id -u):$(id -g)" \
-              --volume /tmp:/scan:ro \
-              --volume "$GITHUB_WORKSPACE:/src:ro" \
-              --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
-              ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c \
-              --cache-dir /trivy-cache \
-              image --input "/scan/campement-${archive}.tar" \
-              --scanners vuln \
-              --severity HIGH,CRITICAL \
-              --ignorefile /src/.trivyignore.yaml \
-              --ignore-unfixed \
-              --exit-code 1
-          done
+        run: ./scripts/run-playwright-ci.sh test:e2e
 
       - name: Conserver les resultats Playwright en cas d'echec
         if: failure()
@@ -246,3 +270,108 @@ jobs:
       - name: Arreter les services
         if: always()
         run: docker compose down --volumes --remove-orphans
+
+  images-securite:
+    name: Image ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: php
+            file: docker/php/Dockerfile
+            target: php-production
+            tag: campement-php-production:local
+          - image: nginx
+            file: docker/php/Dockerfile
+            target: nginx-production
+            tag: campement-nginx-production:local
+          - image: postgres
+            file: docker/postgres/Dockerfile
+            target: postgres-runtime
+            tag: campement-postgres-production:local
+          - image: liquibase
+            file: docker/liquibase/Dockerfile
+            target: liquibase-runtime
+            tag: campement-liquibase-production:local
+          - image: backup
+            file: docker/postgres/Dockerfile
+            target: backup-runtime
+            tag: campement-backup:local
+    steps:
+      - name: Recuperer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Definir la version du cache Trivy
+        id: trivy-cache
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restaurer le cache Trivy
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/trivy
+          key: trivy-${{ runner.os }}-${{ steps.trivy-cache.outputs.date }}
+          restore-keys: |
+            trivy-${{ runner.os }}-
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Construire l'image ${{ matrix.image }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          load: true
+          pull: true
+          tags: ${{ matrix.tag }}
+          cache-from: type=gha,scope=ci-runtime-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=ci-runtime-${{ matrix.image }}
+
+      - name: Analyser les vulnerabilites de l'image
+        env:
+          IMAGE_TAG: ${{ matrix.tag }}
+        run: |
+          mkdir -p .cache/trivy
+          docker save "$IMAGE_TAG" --output /tmp/image.tar
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume /tmp:/scan:ro \
+            --volume "$GITHUB_WORKSPACE:/src:ro" \
+            --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
+            ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c \
+            --cache-dir /trivy-cache \
+            image --input /scan/image.tar \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --ignorefile /src/.trivyignore.yaml \
+            --ignore-unfixed \
+            --exit-code 1
+
+  resultat-ci:
+    name: Qualite et tests
+    if: always()
+    needs:
+      - titre-pr
+      - qualite-rapide
+      - tests-app
+      - images-securite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Verifier tous les jobs requis
+        env:
+          TITRE_RESULTAT: ${{ needs.titre-pr.result }}
+          QUALITE_RESULTAT: ${{ needs.qualite-rapide.result }}
+          TESTS_RESULTAT: ${{ needs.tests-app.result }}
+          IMAGES_RESULTAT: ${{ needs.images-securite.result }}
+        run: |
+          for resultat in \
+            "$TITRE_RESULTAT" \
+            "$QUALITE_RESULTAT" \
+            "$TESTS_RESULTAT" \
+            "$IMAGES_RESULTAT"; do
+            test "$resultat" = success || exit 1
+          done
