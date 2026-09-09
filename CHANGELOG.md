@@ -1,5 +1,11 @@
 # Historique des versions
 
+## [1.0.9](https://gitlab.com/neitsablc/campement/compare/v1.0.8...v1.0.9) (2026-09-09)
+
+### Corrections
+
+* **ci:** partager les fichiers temporaires avec DinD ([fc1ea75](https://gitlab.com/neitsablc/campement/commit/fc1ea7539a288fff8435ee22f26911534b3b1ac6))
+
 ## [1.0.8](https://gitlab.com/neitsablc/campement/compare/v1.0.7...v1.0.8) (2026-09-09)
 
 ### Corrections
