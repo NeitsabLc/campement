@@ -40,8 +40,17 @@ PATH="$tools_dir:$PATH"
 export PATH
 
 builder="release-$CI_PIPELINE_ID"
-docker buildx create --name "$builder" --driver docker-container --use >/dev/null
-trap 'docker buildx rm "$builder" >/dev/null 2>&1 || true' EXIT INT TERM
+docker_context="$builder-context"
+cleanup_builder() {
+    docker buildx rm "$builder" >/dev/null 2>&1 || true
+    docker context rm --force "$docker_context" >/dev/null 2>&1 || true
+}
+trap cleanup_builder EXIT INT TERM
+
+# Buildx ne peut pas reutiliser directement les certificats TLS fournis par
+# Docker-in-Docker. Un contexte les persiste avant la creation du builder.
+docker context create "$docker_context" >/dev/null
+docker buildx create --name "$builder" --driver docker-container --use "$docker_context" >/dev/null
 docker buildx inspect --bootstrap >/dev/null
 
 image_parameters() {
