@@ -61,7 +61,12 @@ for commande in docker jq; do
     fi
 done
 
-repertoire_temporaire=$(mktemp -d)
+if [ -n "${CI_PROJECT_DIR:-}" ]; then
+    # /builds est partage avec le service Docker-in-Docker de GitLab.
+    repertoire_temporaire=$(mktemp -d "$CI_PROJECT_DIR/.ci-smoke.XXXXXX")
+else
+    repertoire_temporaire=$(mktemp -d)
+fi
 export BACKUP_AGE_RECIPIENT=age1configuration-temporaire-remplacee-avant-sauvegarde
 
 nettoyer() {
