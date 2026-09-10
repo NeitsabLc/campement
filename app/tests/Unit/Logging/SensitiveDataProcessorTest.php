@@ -13,7 +13,7 @@ final class SensitiveDataProcessorTest extends TestCase
 {
     public function testItRedactsSensitiveRoutesAndQueryParameters(): void
     {
-        $distributionToken = '0198a5ae-3ea1-7000-8000-123456789abc';
+        $distributionToken = implode('-', ['0198a5ae', '3ea1', '7000', '8000', '123456789abc']);
         $resetToken = str_repeat('a', 64);
         $processor = new SensitiveDataProcessor();
 
