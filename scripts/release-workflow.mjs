@@ -2,7 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import process from "node:process";
 import semver from "semver";
 import { analyzeCommits } from "@semantic-release/commit-analyzer";
@@ -184,7 +184,9 @@ function releaseAssets() {
   const versionTargets = [
     "app/config/services.yaml",
     "app/src/VersionApplication.php",
-  ].filter((file) => existsSync(file));
+  ].filter(
+    (file) => existsSync(file) && readFileSync(file, "utf8").includes("x-release-version"),
+  );
 
   if (versionTargets.length !== 1) {
     fail("Un unique fichier applicatif portant la version doit être présent.");
