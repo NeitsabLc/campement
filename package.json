@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "semantic-release": "semantic-release",
+    "release:plan": "node scripts/release-workflow.mjs plan",
+    "release:prepare-mr": "node scripts/release-workflow.mjs prepare-mr",
+    "release:publish": "node scripts/release-workflow.mjs publish",
     "test:accessibility": "playwright test --config=tests/accessibility/playwright.config.js",
     "test:e2e": "playwright test --config=tests/e2e/playwright.config.js",
     "test:browser": "playwright test --config=tests/e2e/playwright.config.js"
@@ -11,14 +13,11 @@
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.62.1",
-    "@semantic-release/changelog": "6.0.3",
     "@semantic-release/commit-analyzer": "13.0.1",
-    "@semantic-release/exec": "7.1.0",
-    "@semantic-release/git": "10.0.1",
-    "@semantic-release/gitlab": "13.3.3",
     "@semantic-release/release-notes-generator": "14.1.1",
     "conventional-changelog-conventionalcommits": "9.3.1",
     "playwright-core": "1.62.1",
+    "semver": "7.8.5",
     "semantic-release": "24.2.9"
   },
   "engines": {

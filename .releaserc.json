@@ -123,36 +123,6 @@
           ]
         }
       }
-    ],
-    [
-      "@semantic-release/changelog",
-      {
-        "changelogTitle": "# Historique des versions"
-      }
-    ],
-    [
-      "@semantic-release/exec",
-      {
-        "prepareCmd": "./scripts/update-version.sh ${nextRelease.version}"
-      }
-    ],
-    [
-      "@semantic-release/git",
-      {
-        "assets": [
-          "CHANGELOG.md",
-          "version.txt",
-          "app/config/services.yaml"
-        ],
-        "message": "chore: preparer la version ${nextRelease.version}\\n\\n${nextRelease.notes}"
-      }
-    ],
-    [
-      "@semantic-release/gitlab",
-      {
-        "successComment": false,
-        "failComment": false
-      }
     ]
   ]
 }

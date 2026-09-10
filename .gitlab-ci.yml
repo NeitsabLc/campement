@@ -4,6 +4,7 @@ workflow:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^chore[(]release[)]: v[0-9]+[.][0-9]+[.][0-9]+( .*)?$/'
 
 stages:
   - validate
@@ -207,7 +208,7 @@ renovate:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $RUN_RENOVATE == "true" && $RENOVATE_GITLAB_TOKEN'
 
-semantic-release:
+prepare-release-mr:
   stage: release
   image:
     name: "$NODE_IMAGE"
@@ -219,12 +220,29 @@ semantic-release:
     - apk add --no-cache git
     - npm ci --cache .npm --prefer-offline --no-audit --no-fund
   script:
-    - npm run semantic-release
+    - npm run release:prepare-mr
   rules:
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $RUN_RELEASE == "true"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "web"'
       when: manual
       allow_failure: true
+
+create-release:
+  stage: release
+  image:
+    name: "$NODE_IMAGE"
+  interruptible: false
+  resource_group: release
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    - apk add --no-cache git
+    - npm ci --cache .npm --prefer-offline --no-audit --no-fund
+  script:
+    - npm run release:publish
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^chore[(]release[)]: v[0-9]+[.][0-9]+[.][0-9]+( .*)?$/'
+
 
 publish-release:
   stage: publish
