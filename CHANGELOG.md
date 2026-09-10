@@ -1,5 +1,17 @@
 # Historique des versions
 
+## [1.0.13](https://gitlab.com/neitsablc/campement/compare/v1.0.12...v1.0.13) (2026-09-10)
+
+### Corrections
+
+* **ci:** cibler le fichier portant la version ([9bbbed2](https://gitlab.com/neitsablc/campement/commit/9bbbed24b1c1cab97bb14751f42e5cef5af54e69))
+* **ci:** faire passer les releases par une merge request ([585d1aa](https://gitlab.com/neitsablc/campement/commit/585d1aa34c4da4eb4e1f76cc77da106cc941dc3a))
+* **ci:** supporter les tests avec Docker-in-Docker ([310312a](https://gitlab.com/neitsablc/campement/commit/310312acbf6d4beb61db122f569fc38d3eefeb88))
+
+### Performances
+
+* **ci:** reduce local runner workload ([2fadb9e](https://gitlab.com/neitsablc/campement/commit/2fadb9e28c53ab86405c4d9393739ebebb7f2f70))
+
 ## [1.0.12](https://gitlab.com/neitsablc/campement/compare/v1.0.11...v1.0.12) (2026-09-10)
 
 ### Corrections
