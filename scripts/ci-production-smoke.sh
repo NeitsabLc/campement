@@ -162,10 +162,12 @@ docker inspect --format '{{json .HostConfig.PortBindings}}' "$nginx_container" \
     | grep -Fq "\"HostIp\":\"$nginx_bind_address\""
 
 curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors \
+    --header 'Host: localhost' \
     --output /dev/null \
     "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login"
 
 entetes_connexion=$(curl --silent --show-error --dump-header - --output /dev/null \
+    --header 'Host: localhost' \
     "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login" | tr -d '\r')
 printf '%s\n' "$entetes_connexion" | grep -Eiq '^Cross-Origin-Opener-Policy:[[:space:]]*same-origin$'
 printf '%s\n' "$entetes_connexion" | grep -Eiq '^Cross-Origin-Resource-Policy:[[:space:]]*same-origin$'
@@ -175,6 +177,7 @@ for route_sensible in \
     /reinitialiser-mot-de-passe/0000000000000000000000000000000000000000000000000000000000000000 \
     /distribution/00000000-0000-0000-0000-000000000000; do
     entetes_sensibles=$(curl --silent --show-error --dump-header - --output /dev/null \
+        --header 'Host: localhost' \
         "http://$http_test_host:${NGINX_HOST_PORT:-8080}${route_sensible}" | tr -d '\r')
     printf '%s\n' "$entetes_sensibles" | grep -Eiq '^Cache-Control:[[:space:]]*no-store$'
     printf '%s\n' "$entetes_sensibles" | grep -Eiq '^Referrer-Policy:[[:space:]]*no-referrer$'
@@ -291,5 +294,6 @@ compose exec --no-TTY database sh -ec '
 '
 
 curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors \
+    --header 'Host: localhost' \
     --output /dev/null \
     "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login"
