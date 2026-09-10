@@ -1,5 +1,11 @@
 # Historique des versions
 
+## [1.0.12](https://gitlab.com/neitsablc/campement/compare/v1.0.11...v1.0.12) (2026-09-10)
+
+### Corrections
+
+* **ci:** aligner Cosign sur la version des serveurs ([7236962](https://gitlab.com/neitsablc/campement/commit/7236962ffac75ab1b67cbf9adc44acf845ef148d))
+
 ## [1.0.11](https://gitlab.com/neitsablc/campement/compare/v1.0.10...v1.0.11) (2026-09-10)
 
 ### Corrections
