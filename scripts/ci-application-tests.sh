@@ -20,12 +20,16 @@ set +a
 
 npm ci --cache .npm --prefer-offline --no-audit --no-fund
 
-docker buildx build . \
+set -- . \
     --file docker/php/Dockerfile \
     --target php-development \
     --load \
     --pull \
     --tag "$COMPOSE_PROJECT_NAME-php:latest"
+if [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
+    set -- "$@" --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/cache/php"
+fi
+docker buildx build "$@"
 
 mkdir -p .cache/composer
 if [ -n "${GITHUB_ADVISORY_TOKEN:-}" ]; then
