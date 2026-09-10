@@ -1,5 +1,11 @@
 # Historique des versions
 
+## [1.0.11](https://gitlab.com/neitsablc/campement/compare/v1.0.10...v1.0.11) (2026-09-10)
+
+### Corrections
+
+* **ci:** utiliser un hôte HTTP autorisé dans les smoke tests ([966de14](https://gitlab.com/neitsablc/campement/commit/966de14e9d66141482d8c1afe14484cfbc36ab79))
+
 ## [1.0.10](https://gitlab.com/neitsablc/campement/compare/v1.0.9...v1.0.10) (2026-09-10)
 
 ### Corrections
