@@ -61,6 +61,19 @@ for commande in docker jq; do
     fi
 done
 
+http_test_host=${SMOKE_HTTP_HOST:-127.0.0.1}
+if [ -z "${SMOKE_HTTP_HOST:-}" ]; then
+    case "${DOCKER_HOST:-}" in
+        tcp://*)
+            docker_service_host=${DOCKER_HOST#tcp://}
+            http_test_host=${docker_service_host%%:*}
+            NGINX_BIND_ADDRESS=0.0.0.0
+            export NGINX_BIND_ADDRESS
+            ;;
+    esac
+fi
+nginx_bind_address=${NGINX_BIND_ADDRESS:-127.0.0.1}
+
 if [ -n "${CI_PROJECT_DIR:-}" ]; then
     # /builds est partage avec le service Docker-in-Docker de GitLab.
     repertoire_temporaire=$(mktemp -d "$CI_PROJECT_DIR/.ci-smoke.XXXXXX")
@@ -146,14 +159,14 @@ test "$(docker inspect --format '{{.State.Health.Status}}' "$nginx_container")" 
 docker inspect --format '{{json .HostConfig.PortBindings}}' "$database_container" \
     | grep -q '"5432/tcp".*"HostIp":"127.0.0.1"'
 docker inspect --format '{{json .HostConfig.PortBindings}}' "$nginx_container" \
-    | grep -q '"HostIp":"127.0.0.1"'
+    | grep -Fq "\"HostIp\":\"$nginx_bind_address\""
 
 curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors \
     --output /dev/null \
-    "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login"
+    "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login"
 
 entetes_connexion=$(curl --silent --show-error --dump-header - --output /dev/null \
-    "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login" | tr -d '\r')
+    "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login" | tr -d '\r')
 printf '%s\n' "$entetes_connexion" | grep -Eiq '^Cross-Origin-Opener-Policy:[[:space:]]*same-origin$'
 printf '%s\n' "$entetes_connexion" | grep -Eiq '^Cross-Origin-Resource-Policy:[[:space:]]*same-origin$'
 printf '%s\n' "$entetes_connexion" | grep -Eiq '^X-Permitted-Cross-Domain-Policies:[[:space:]]*none$'
@@ -162,18 +175,18 @@ for route_sensible in \
     /reinitialiser-mot-de-passe/0000000000000000000000000000000000000000000000000000000000000000 \
     /distribution/00000000-0000-0000-0000-000000000000; do
     entetes_sensibles=$(curl --silent --show-error --dump-header - --output /dev/null \
-        "http://127.0.0.1:${NGINX_HOST_PORT:-8080}${route_sensible}" | tr -d '\r')
+        "http://$http_test_host:${NGINX_HOST_PORT:-8080}${route_sensible}" | tr -d '\r')
     printf '%s\n' "$entetes_sensibles" | grep -Eiq '^Cache-Control:[[:space:]]*no-store$'
     printf '%s\n' "$entetes_sensibles" | grep -Eiq '^Referrer-Policy:[[:space:]]*no-referrer$'
 done
 
 test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
     --header 'Host: attaquant.example' \
-    "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login")" = "400"
+    "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login")" = "400"
 test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
     --header 'Host: attaquant.example' \
     --header 'X-Forwarded-Host: localhost' \
-    "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login")" = "400"
+    "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login")" = "400"
 
 compose exec --no-TTY php php bin/console about --env=prod --no-debug
 compose exec --no-TTY php php bin/console cache:warmup --env=prod --no-debug
@@ -279,4 +292,4 @@ compose exec --no-TTY database sh -ec '
 
 curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors \
     --output /dev/null \
-    "http://127.0.0.1:${NGINX_HOST_PORT:-8080}/login"
+    "http://$http_test_host:${NGINX_HOST_PORT:-8080}/login"
