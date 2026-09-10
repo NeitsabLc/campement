@@ -35,6 +35,8 @@ variables:
   npm_config_fetch_retry_maxtimeout: "60000"
   npm_config_fetch_timeout: "120000"
   COMPOSER_MAX_PARALLEL_HTTP: "4"
+  CACHE_COMPRESSION_FORMAT: "zip"
+  CACHE_COMPRESSION_LEVEL: "fastest"
 
 default:
   tags:
@@ -43,11 +45,14 @@ default:
     name: "$NODE_IMAGE"
   interruptible: true
   cache:
-    key: "$CI_PROJECT_PATH_SLUG"
+    key:
+      files:
+        - package-lock.json
+        - app/composer.lock
+      prefix: "$CI_PROJECT_PATH_SLUG-dependencies"
     paths:
       - .npm/
       - .cache/composer/
-      - .cache/trivy/
 
 .docker-job:
   image:
@@ -66,6 +71,7 @@ default:
 conventional-title:
   stage: validate
   extends: .mr-only
+  cache: []
   script:
     - |
       motif='^(feat|fix|perf|refactor|deps|docs|test|build|ci|chore|style|security|revert)(\([[:alnum:]_.\/-]+\))?!?: .+'
@@ -104,6 +110,11 @@ trivy-filesystem:
   extends:
     - .docker-job
     - .mr-only
+  cache: &trivy_cache
+    key: "$CI_PROJECT_PATH_SLUG-trivy"
+    paths:
+      - .cache/trivy/
+    policy: pull-push
   script:
     - mkdir -p .cache/trivy
     - |
@@ -119,6 +130,7 @@ betterleaks:
   extends:
     - .docker-job
     - .mr-only
+  cache: []
   script:
     - |
       base_sha="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-$CI_MERGE_REQUEST_TARGET_BRANCH_SHA}"
@@ -140,8 +152,15 @@ application-tests:
   extends:
     - .docker-job
     - .mr-only
+  variables:
+    BUILDX_BUILDER: "application-tests-$CI_PIPELINE_ID-$CI_JOB_ID"
+    BUILDX_CONTEXT: "application-tests-context-$CI_PIPELINE_ID-$CI_JOB_ID"
   timeout: 30 minutes
   script:
+    - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - docker context create "$BUILDX_CONTEXT" >/dev/null
+    - docker buildx create --name "$BUILDX_BUILDER" --driver docker-container --use "$BUILDX_CONTEXT" >/dev/null
+    - docker buildx inspect --bootstrap >/dev/null
     - ./scripts/ci-application-tests.sh
   artifacts:
     when: on_failure
@@ -150,12 +169,15 @@ application-tests:
       - test-results/
   after_script:
     - docker compose down --volumes --remove-orphans || true
+    - docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true
+    - docker context rm --force "$BUILDX_CONTEXT" >/dev/null 2>&1 || true
 
 production-smoke:
   stage: test
   extends:
     - .docker-job
     - .mr-only
+  cache: []
   timeout: 30 minutes
   script:
     - ./scripts/ci-prepare-env.sh
@@ -172,8 +194,18 @@ runtime-images:
   extends:
     - .docker-job
     - .mr-only
+  cache:
+    <<: *trivy_cache
+    policy: pull
+  variables:
+    BUILDX_BUILDER: "runtime-images-$CI_PIPELINE_ID-$CI_JOB_ID"
+    BUILDX_CONTEXT: "runtime-images-context-$CI_PIPELINE_ID-$CI_JOB_ID"
   timeout: 90 minutes
   script:
+    - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - docker context create "$BUILDX_CONTEXT" >/dev/null
+    - docker buildx create --name "$BUILDX_BUILDER" --driver docker-container --use "$BUILDX_CONTEXT" >/dev/null
+    - docker buildx inspect --bootstrap >/dev/null
     - mkdir -p .cache/trivy
     - |
       for definition in \
@@ -187,7 +219,8 @@ runtime-images:
         dockerfile=${rest%%|*}
         target=${rest#*|}
         local_tag="campement-$image:$CI_PIPELINE_ID"
-        docker buildx build . --file "$dockerfile" --target "$target" --pull --load --tag "$local_tag"
+        docker buildx build . --file "$dockerfile" --target "$target" --pull --load --tag "$local_tag" \
+          --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/cache/$image"
         archive="$CI_PROJECT_DIR/.cache/trivy/$image.tar"
         docker save "$local_tag" --output "$archive"
         docker run --rm \
@@ -199,6 +232,9 @@ runtime-images:
           --ignore-unfixed --exit-code 1 --no-progress
         rm -f "$archive"
       done
+  after_script:
+    - docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true
+    - docker context rm --force "$BUILDX_CONTEXT" >/dev/null 2>&1 || true
 
 renovate:
   stage: maintenance
@@ -209,6 +245,7 @@ renovate:
     RENOVATE_ENDPOINT: "$CI_API_V4_URL"
     RENOVATE_REPOSITORIES: "$CI_PROJECT_PATH"
     RENOVATE_TOKEN: "$RENOVATE_GITLAB_TOKEN"
+  cache: []
   script:
     - renovate
   rules:
@@ -253,6 +290,7 @@ create-release:
 publish-release:
   stage: publish
   extends: .docker-job
+  cache: []
   interruptible: false
   resource_group: "publication-$CI_COMMIT_REF_SLUG"
   timeout: 120 minutes
