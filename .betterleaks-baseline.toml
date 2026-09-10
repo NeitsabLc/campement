@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+# Le binaire JavaScript compilé de Tesseract contient une suite d'octets qui
+# ressemble à une clé Brave. Le diff Git reste analysé sans cette exception.
+[allowlist]
+description = "Faux positif dans le binaire Tesseract compilé"
+paths = [
+  '''(^|/)app/public/ocr/tesseract-core-simd-lstm\.wasm\.js$''',
+]

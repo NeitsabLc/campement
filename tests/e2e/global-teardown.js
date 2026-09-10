@@ -5,6 +5,8 @@ function echapperSql(valeur) {
 }
 
 export default function nettoyerDonneesE2E() {
+  if (process.env.E2E_SKIP_CLEANUP === '1') return;
+
   const execution = process.env.CAMPEMENT_E2E_RUN_ID;
   if (!execution) {
     throw new Error('Identifiant d’exécution E2E absent : nettoyage impossible.');
