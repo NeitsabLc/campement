@@ -1,5 +1,11 @@
 # Historique des versions
 
+## [1.0.10](https://gitlab.com/neitsablc/campement/compare/v1.0.9...v1.0.10) (2026-09-10)
+
+### Corrections
+
+* **ci:** joindre le service DinD pendant les smoke tests ([3e3d05a](https://gitlab.com/neitsablc/campement/commit/3e3d05a86fa8f887c86d1ad9b902b8fbae9a94be))
+
 ## [1.0.9](https://gitlab.com/neitsablc/campement/compare/v1.0.8...v1.0.9) (2026-09-09)
 
 ### Corrections
