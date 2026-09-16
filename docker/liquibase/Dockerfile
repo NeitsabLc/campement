@@ -3,9 +3,12 @@ ARG LIQUIBASE_IMAGE_DIGEST=sha256:dfe136c26d39088d87d1bd27f833d6ac5b738a180d7c96
 
 FROM liquibase/liquibase:${LIQUIBASE_VERSION}@${LIQUIBASE_IMAGE_DIGEST} AS liquibase-runtime
 
+ARG OS_PACKAGE_REFRESH=manual
+
 USER root
 
-RUN export DEBIAN_FRONTEND=noninteractive \
+RUN test -n "$OS_PACKAGE_REFRESH" \
+    && export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* /liquibase/bin/lpm

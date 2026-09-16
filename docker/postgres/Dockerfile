@@ -4,7 +4,10 @@ ARG AGE_PACKAGE_VERSION=1.3.1-r6
 
 FROM postgres:${POSTGRES_VERSION}@${POSTGRES_IMAGE_DIGEST} AS postgres-runtime
 
-RUN apk upgrade --no-cache \
+ARG OS_PACKAGE_REFRESH=manual
+
+RUN test -n "$OS_PACKAGE_REFRESH" \
+    && apk upgrade --no-cache \
     && rm -f /usr/local/bin/gosu
 
 COPY --chmod=0755 docker/postgres/harden-roles.sh /usr/local/bin/campement-harden-roles

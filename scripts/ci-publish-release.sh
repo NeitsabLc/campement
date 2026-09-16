@@ -9,6 +9,7 @@ set -eu
 : "${CI_PROJECT_PATH:?CI_PROJECT_PATH doit etre renseigne}"
 : "${CI_PROJECT_URL:?CI_PROJECT_URL doit etre renseigne}"
 : "${CI_PIPELINE_ID:?CI_PIPELINE_ID doit etre renseigne}"
+: "${CI_PIPELINE_CREATED_AT:?CI_PIPELINE_CREATED_AT doit etre renseigne}"
 : "${COSIGN_IMAGE:?COSIGN_IMAGE doit etre renseigne}"
 : "${RELEASE_VERSION:?RELEASE_VERSION doit etre renseigne}"
 : "${RELEASE_GIT_SHA:?RELEASE_GIT_SHA doit etre renseigne}"
@@ -65,6 +66,7 @@ image_parameters() {
 }
 
 candidate_tag="sha-$RELEASE_GIT_SHA"
+os_package_refresh=${CI_PIPELINE_CREATED_AT%%T*}
 if [ "${BUILD_CANDIDATE:-1}" = 1 ]; then
     : "${SIGSTORE_ID_TOKEN:?SIGSTORE_ID_TOKEN doit etre fourni par GitLab OIDC}"
     for image in $(release_image_names); do
@@ -76,6 +78,7 @@ if [ "${BUILD_CANDIDATE:-1}" = 1 ]; then
             --file "$dockerfile" \
             --target "$target" \
             --pull \
+            --build-arg "OS_PACKAGE_REFRESH=$os_package_refresh" \
             --push \
             --tag "$repository:$candidate_tag" \
             --label "org.opencontainers.image.source=$CI_PROJECT_URL" \
