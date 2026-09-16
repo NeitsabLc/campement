@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { Buffer } from "node:buffer";
 import { readFile, writeFile } from "node:fs/promises";
 import { existsSync, readFileSync } from "node:fs";
 import process from "node:process";
@@ -68,6 +69,13 @@ function commitsSince(tag) {
     });
 }
 
+function isCiOnlyCommit(commit) {
+  const header = commit.message.split(/\r?\n/, 1)[0].trim();
+  return /^(?:ci(?:\([^)]+\))?|[a-z][a-z0-9-]*\(ci(?:[./_-][^)]+)?\))!?: /i.test(
+    header,
+  );
+}
+
 async function buildReleasePlan() {
   const config = JSON.parse(await readFile(".releaserc.json", "utf8"));
   const tags = git([
@@ -86,7 +94,7 @@ async function buildReleasePlan() {
     fail("Aucun tag sémantique vX.Y.Z valide n’a été trouvé.");
   }
 
-  const commits = commitsSince(lastTag);
+  const commits = commitsSince(lastTag).filter((commit) => !isCiOnlyCommit(commit));
   const releaseType = await analyzeCommits(
     pluginConfiguration(config, "@semantic-release/commit-analyzer"),
     { commits, cwd, logger },
@@ -180,6 +188,30 @@ async function updateReleaseFiles(plan) {
   await writeFile("CHANGELOG.md", updatedChangelog, "utf8");
 }
 
+async function releaseBranchMatches(actions, ref) {
+  if (!ref) {
+    return false;
+  }
+
+  const matches = await Promise.all(
+    actions.map(async (action) => {
+      const query = new URLSearchParams({ ref });
+      const file = await gitlabApi(
+        `/repository/files/${encodeURIComponent(action.file_path)}?${query}`,
+        { allowNotFound: true },
+      );
+      if (!file) {
+        return false;
+      }
+      return (
+        Buffer.from(file.content.replace(/\s/g, ""), "base64").toString("utf8") ===
+        action.content
+      );
+    }),
+  );
+  return matches.every(Boolean);
+}
+
 function releaseAssets() {
   const versionTargets = [
     "app/config/services.yaml",
@@ -216,17 +248,6 @@ async function prepareMergeRequest() {
     })),
   );
 
-  await gitlabApi("/repository/commits", {
-    method: "POST",
-    body: {
-      branch: releaseBranch,
-      start_sha: commitSha,
-      force: true,
-      commit_message: title,
-      actions,
-    },
-  });
-
   const query = new URLSearchParams({
     state: "opened",
     scope: "all",
@@ -250,6 +271,26 @@ async function prepareMergeRequest() {
     squash: true,
     remove_source_branch: true,
   };
+
+  if (
+    mergeRequests.length > 0 &&
+    mergeRequests[0].title === title &&
+    (await releaseBranchMatches(actions, mergeRequests[0].sha))
+  ) {
+    console.log(`MR de release déjà à jour : ${mergeRequests[0].web_url}`);
+    return;
+  }
+
+  await gitlabApi("/repository/commits", {
+    method: "POST",
+    body: {
+      branch: releaseBranch,
+      start_sha: commitSha,
+      force: true,
+      commit_message: title,
+      actions,
+    },
+  });
 
   let mergeRequest;
   if (mergeRequests.length > 0) {
@@ -283,15 +324,18 @@ function changelogSection(version, changelog) {
 
 async function publishRelease() {
   const commitSha = required("CI_COMMIT_SHA");
-  const commitTitle = required("CI_COMMIT_TITLE");
+  const commitMessage = required("CI_COMMIT_MESSAGE");
   const version = (await readFile("version.txt", "utf8")).trim();
   if (!semver.valid(version)) {
     fail("version.txt ne contient pas une version sémantique valide.");
   }
 
   const expectedTitle = `chore(release): v${version}`;
-  if (commitTitle !== expectedTitle && !commitTitle.startsWith(`${expectedTitle} `)) {
-    fail(`Le commit de fusion doit être « ${expectedTitle} ».`);
+  const containsExpectedTitle = commitMessage
+    .split(/\r?\n/)
+    .some((line) => line === expectedTitle || line.startsWith(`${expectedTitle} `));
+  if (!containsExpectedTitle) {
+    fail(`Le message du commit de fusion doit contenir « ${expectedTitle} ».`);
   }
 
   const tag = `v${version}`;

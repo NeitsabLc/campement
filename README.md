@@ -114,3 +114,5 @@ make backup-restore-test
 `make test` recrée une base PostgreSQL isolée, applique les migrations et exécute PHPUnit. Les suites navigateur utilisent Playwright et Axe pour les parcours fonctionnels et l’accessibilité.
 
 GitLab CI/CD exécute la qualité, les tests et un smoke test de la configuration de production sur les merge requests vers `main`. La CI contrôle notamment Docker Compose, Composer, Liquibase, Doctrine, PHPStan, le style, PHPUnit, les assets, l’accessibilité, les parcours E2E, les secrets et les vulnérabilités des images. Les releases publient des images du registre GitLab signées, accompagnées d’un SBOM et d’une provenance.
+
+La préparation d’une release est volontairement manuelle : lancer un pipeline GitLab sur `main`, puis démarrer le job `prepare-release-mr`. Il regroupe les changements applicatifs depuis le dernier tag dans une unique MR et calcule la prochaine version à partir des titres Conventional Commits. Les commits purement CI (`ci:`, `fix(ci):`, etc.) sont ignorés. La fusion de cette MR crée automatiquement le tag, la release, les images signées et le déploiement en recette ; le déploiement en production reste manuel.

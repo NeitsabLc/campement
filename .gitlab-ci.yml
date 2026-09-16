@@ -2,9 +2,9 @@ workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $RUN_RENOVATE == "true"'
     - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^chore[(]release[)]: v[0-9]+[.][0-9]+[.][0-9]+( .*)?$/'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /chore[(]release[)]: v[0-9]+[.][0-9]+[.][0-9]+/'
 
 stages:
   - validate
@@ -208,6 +208,7 @@ runtime-images:
     - docker buildx inspect --bootstrap >/dev/null
     - mkdir -p .cache/trivy
     - |
+      security_refresh=${CI_PIPELINE_CREATED_AT%%T*}
       for definition in \
         "php|docker/php/Dockerfile|php-production" \
         "nginx|docker/php/Dockerfile|nginx-production" \
@@ -220,6 +221,7 @@ runtime-images:
         target=${rest#*|}
         local_tag="campement-$image:$CI_PIPELINE_ID"
         docker buildx build . --file "$dockerfile" --target "$target" --pull --load --tag "$local_tag" \
+          --build-arg "OS_PACKAGE_REFRESH=$security_refresh" \
           --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/cache/$image"
         archive="$CI_PROJECT_DIR/.cache/trivy/$image.tar"
         docker save "$local_tag" --output "$archive"
@@ -265,7 +267,6 @@ prepare-release-mr:
   script:
     - npm run release:prepare-mr
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $RUN_RELEASE == "true"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "web"'
       when: manual
       allow_failure: true
@@ -284,7 +285,7 @@ create-release:
   script:
     - npm run release:publish
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /^chore[(]release[)]: v[0-9]+[.][0-9]+[.][0-9]+( .*)?$/'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_MESSAGE =~ /chore[(]release[)]: v[0-9]+[.][0-9]+[.][0-9]+/'
 
 
 publish-release:
