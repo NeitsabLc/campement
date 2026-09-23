@@ -18,7 +18,7 @@
                     <span class="status-pill {{ sejour.actif ? 'status-pill--active' : '' }}">{{ sejour.actif ? 'Actif' : 'Désactivé' }}</span>
                     <h2><a class="stay-title-link" href="{{ path('app_sejour_modifier', {id: sejour.id}) }}">{{ sejour.nom }}</a></h2>
                     <p>{{ sejour.dateDebut|date('d/m/Y') }} — {{ sejour.dateFin|date('d/m/Y') }}</p>
-                    <div class="module-pills"><span class="module-pill{{ not sejour.moduleIntendanceActif ? ' module-pill--off' : '' }}">Intendance</span><span class="module-pill{{ not sejour.moduleAdministratifActif ? ' module-pill--off' : '' }}">Administratif</span></div>
+                    <div class="module-pills"><span class="module-pill{{ not sejour.moduleIntendanceActif ? ' module-pill--off' : '' }}">Intendance</span><span class="module-pill{{ not sejour.moduleAdministratifActif ? ' module-pill--off' : '' }}">Administratif</span><span class="module-pill{{ not sejour.moduleStagesPratiquesActif ? ' module-pill--off' : '' }}">Stages pratiques</span></div>
                 </div>
                 <div class="management-card__actions">
                     {% if sejour.actif %}<form class="stay-selection-form" method="post" action="{{ path('app_sejour_selectionner', {id: sejour.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('selectionner_sejour_' ~ sejour.id) }}"><input type="hidden" name="retour" value="sejours"><button class="button button--primary" type="submit">{{ sejour_selectionne == sejour ? 'Sélectionné' : 'Sélectionner' }}</button></form>{% endif %}

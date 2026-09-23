@@ -28,6 +28,7 @@ final class FormulaireParticipant
             'contact_urgence_telephone' => trim($request->request->getString('contact_urgence_telephone')),
             'qualifications' => array_values(array_filter($request->request->all('qualifications'), 'is_string')),
             'autre_diplome' => trim($request->request->getString('autre_diplome')),
+            'type_stage_pratique' => $request->request->getString('type_stage_pratique') ?: ($request->request->getBoolean('stagiaire_bafa') ? 'BAFA' : null),
             'stagiaire_bafa' => $request->request->getBoolean('stagiaire_bafa'),
             'date_debut_presence' => $request->request->getString('date_debut_presence'),
             'date_fin_presence' => $request->request->getString('date_fin_presence'),
@@ -53,6 +54,7 @@ final class FormulaireParticipant
             'qualifications' => $participant->getQualifications(),
             'autre_diplome' => $participant->getAutreDiplome() ?? '',
             'stagiaire_bafa' => $participant->isStagiaireBafa(),
+            'type_stage_pratique' => $participant->getTypeStagePratique(),
             'date_debut_presence' => $participant->getDateDebutPresence()->format('Y-m-d'),
             'date_fin_presence' => $participant->getDateFinPresence()->format('Y-m-d'),
         ];
@@ -61,7 +63,7 @@ final class FormulaireParticipant
     /**
      * @param array<string, mixed> $donnees
      *
-     * @return array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>}
+     * @return array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>, typeStagePratique: ?string, modifierStagePratique: bool}
      */
     public function valider(array $donnees, Sejour $sejour): array
     {
@@ -91,6 +93,10 @@ final class FormulaireParticipant
         }
 
         $qualifications = array_values(array_intersect(Participant::QUALIFICATIONS, $donnees['qualifications']));
+        $typeStagePratique = $sejour->isModuleStagesPratiquesActif() && in_array($donnees['type_stage_pratique'], ['BAFA', 'BAFD'], true)
+            ? $donnees['type_stage_pratique']
+            : null;
+        $modifierStagePratique = $sejour->isModuleStagesPratiquesActif();
         if (Participant::TYPE_JEUNE === $donnees['type']) {
             if ('' === $donnees['telephone_parent_1'] || !$this->telephoneValide($donnees['telephone_parent_1'])) {
                 $erreurs[] = 'Le premier numéro de téléphone des parents est invalide.';
@@ -121,12 +127,12 @@ final class FormulaireParticipant
             }
         }
 
-        return compact('erreurs', 'naissance', 'debut', 'fin', 'qualifications');
+        return compact('erreurs', 'naissance', 'debut', 'fin', 'qualifications', 'typeStagePratique', 'modifierStagePratique');
     }
 
     /**
      * @param array<string, mixed>                                                                                                                             $donnees
-     * @param array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>} $validation
+     * @param array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>, typeStagePratique: ?string, modifierStagePratique: bool} $validation
      */
     public function appliquer(Participant $participant, array $donnees, array $validation): void
     {
@@ -148,8 +154,10 @@ final class FormulaireParticipant
             ->setContactUrgenceNomPrenom($donnees['contact_urgence_nom_prenom'])
             ->setContactUrgenceTelephone($donnees['contact_urgence_telephone'])
             ->setQualifications($validation['qualifications'])
-            ->setAutreDiplome($this->nullable($donnees['autre_diplome']))
-            ->setStagiaireBafa($donnees['stagiaire_bafa']);
+            ->setAutreDiplome($this->nullable($donnees['autre_diplome']));
+        if ($validation['modifierStagePratique']) {
+            $participant->setTypeStagePratique($validation['typeStagePratique']);
+        }
     }
 
     /** @param list<string> $erreurs */

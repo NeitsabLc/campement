@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Stages pratiques | Campement{% endblock %}
+
+{% block body %}
+<main class="stages-page foods-page entity-list-page">
+    <header class="foods-heading entity-list-heading"><div><h1>Stages pratiques</h1><p>Suivi des encadrants en pratique BAFA ou BAFD.</p></div></header>
+    {% for message in app.flashes('success') %}<div class="flash flash--success" role="status">{{ message }}</div>{% endfor %}
+    {% for message in app.flashes('error') %}<div class="flash flash--error" role="alert">{{ message }}</div>{% endfor %}
+
+    <section class="stage-add-card">
+        <header><div><h2>Ajouter un stagiaire</h2><p>Sélectionnez un adulte déjà renseigné dans les participants du séjour.</p></div></header>
+        {% if adultesDisponibles is empty %}<p class="stage-empty">Tous les encadrants adultes sont déjà suivis, ou aucun adulte n’est renseigné.</p>{% else %}
+        <form method="post" action="{{ path('app_stage_pratique_ajouter') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('ajouter_stage_pratique') }}">
+            <label>Encadrant<select name="participant_id" required><option value="">Sélectionner un encadrant</option>{% for adulte in adultesDisponibles %}<option value="{{ adulte.id }}">{{ adulte.prenom }} {{ adulte.nom }} — {{ adulte.groupe.nom }}</option>{% endfor %}</select></label>
+            <label>Stage pratique<select name="type_stage_pratique" required><option value="BAFA">BAFA</option><option value="BAFD">BAFD</option></select></label>
+            <button class="food-primary" type="submit">Ajouter au suivi</button>
+        </form>
+        {% endif %}
+    </section>
+
+    <section class="stage-list" aria-label="Stagiaires suivis">
+    {% for stagiaire in stagiaires %}
+        {% set commentaires = commentairesParParticipant[stagiaire.id ~ '']|default({}) %}
+        <article class="stage-card" id="stage-{{ stagiaire.id }}">
+            <header><div><span class="stage-badge">{{ stagiaire.typeStagePratique }}</span><h2>{{ stagiaire.prenom }} {{ stagiaire.nom }}</h2><p>{{ stagiaire.groupe.nom }} · présent du {{ stagiaire.dateDebutPresence|date('d/m/Y') }} au {{ stagiaire.dateFinPresence|date('d/m/Y') }}</p></div>
+                <button class="stage-remove" type="button" data-open-dialog="stage-remove-{{ stagiaire.id }}">Retirer du suivi</button>
+            </header>
+            <form class="stage-followup-form" method="post" action="{{ path('app_stage_pratique_modifier', {id: stagiaire.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('modifier_stage_pratique_' ~ stagiaire.id) }}">
+                <section class="stage-summary-fields"><label>Type de stage<select name="type_stage_pratique"><option value="BAFA"{{ stagiaire.typeStagePratique == 'BAFA' ? ' selected' : '' }}>BAFA</option><option value="BAFD"{{ stagiaire.typeStagePratique == 'BAFD' ? ' selected' : '' }}>BAFD</option></select></label></section>
+                <section class="stage-daily"><h3>Suivi jour par jour</h3><p>Consignez les observations utiles au bilan du stage.</p><div class="stage-days">
+                    {% for jour in joursParParticipant[stagiaire.id ~ ''] %}{% set cle_jour = jour|date('Y-m-d') %}<label><span><strong>Journée du</strong><small>{{ jour|date('d/m/Y') }}</small></span><textarea name="commentaires[{{ cle_jour }}]" rows="2" maxlength="3000" placeholder="Commentaire de la journée…">{{ commentaires[cle_jour]|default('') }}</textarea></label>{% endfor %}
+                </div></section>
+                <section class="stage-opinions"><h3>Avis de fin de stage</h3><div><label>Avis SGDF<textarea name="avis_sgdf" rows="6" maxlength="10000" placeholder="Appréciation et avis du mouvement…">{{ stagiaire.avisStageSgdf }}</textarea></label><label>Avis {{ stagiaire.typeStagePratique }}<textarea name="avis_formation" rows="6" maxlength="10000" placeholder="Avis destiné au dossier {{ stagiaire.typeStagePratique }}…">{{ stagiaire.avisStageFormation }}</textarea></label></div></section>
+                <footer><button class="food-primary" type="submit">Enregistrer le suivi</button></footer>
+            </form>
+        </article>
+        <dialog id="stage-remove-{{ stagiaire.id }}" class="delete-group-dialog" aria-labelledby="stage-remove-title-{{ stagiaire.id }}"><section class="delete-group-dialog__content"><div class="delete-group-dialog__icon" aria-hidden="true">!</div><h2 id="stage-remove-title-{{ stagiaire.id }}">Retirer ce dossier de stage ?</h2><p>Les commentaires quotidiens et les avis saisis pour <strong>{{ stagiaire.prenom }} {{ stagiaire.nom }}</strong> seront supprimés.</p><form method="post" action="{{ path('app_stage_pratique_retirer', {id: stagiaire.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('retirer_stage_pratique_' ~ stagiaire.id) }}"><div class="group-dialog__actions"><button class="cancel-group-button" type="button" data-close-dialog>Annuler</button><button class="confirm-delete-group-button" type="submit">Retirer le dossier</button></div></form></section></dialog>
+    {% else %}<div class="empty-state"><h2>Aucun stagiaire pratique</h2><p>Ajoutez un encadrant adulte pour commencer son suivi BAFA ou BAFD.</p></div>{% endfor %}
+    </section>
+</main>
+{% endblock %}
