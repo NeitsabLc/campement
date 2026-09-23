@@ -8,6 +8,9 @@ use App\Entity\Participant;
 use App\Entity\Sejour;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * @phpstan-type ValidationParticipant array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>, typeStagePratique: ?string, modifierStagePratique: bool}
+ */
 final class FormulaireParticipant
 {
     /** @return array<string, mixed> */
@@ -63,7 +66,7 @@ final class FormulaireParticipant
     /**
      * @param array<string, mixed> $donnees
      *
-     * @return array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>, typeStagePratique: ?string, modifierStagePratique: bool}
+     * @return ValidationParticipant
      */
     public function valider(array $donnees, Sejour $sejour): array
     {
@@ -131,8 +134,8 @@ final class FormulaireParticipant
     }
 
     /**
-     * @param array<string, mixed>                                                                                                                             $donnees
-     * @param array{erreurs: list<string>, naissance: ?\DateTimeImmutable, debut: ?\DateTimeImmutable, fin: ?\DateTimeImmutable, qualifications: list<string>, typeStagePratique: ?string, modifierStagePratique: bool} $validation
+     * @param array<string, mixed>  $donnees
+     * @param ValidationParticipant $validation
      */
     public function appliquer(Participant $participant, array $donnees, array $validation): void
     {
