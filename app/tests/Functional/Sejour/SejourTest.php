@@ -172,6 +172,7 @@ final class SejourTest extends WebTestCase
             'module_intendance' => 'on',
             'module_administratif' => 'on',
             'module_situations_particulieres' => 'on',
+            'module_stages_pratiques' => 'on',
         ]);
         $client->submit($formulaireCreation);
         self::assertResponseRedirects('/sejours');
@@ -194,6 +195,7 @@ final class SejourTest extends WebTestCase
             'module_intendance' => 'on',
             'module_administratif' => false,
             'module_situations_particulieres' => 'on',
+            'module_stages_pratiques' => 'on',
         ]);
         $client->submit($formulaireModification);
         self::assertResponseRedirects('/sejours');
@@ -206,6 +208,7 @@ final class SejourTest extends WebTestCase
         self::assertTrue($sejour->isModuleIntendanceActif());
         self::assertFalse($sejour->isModuleAdministratifActif());
         self::assertTrue($sejour->isModuleSituationsParticulieresActif());
+        self::assertTrue($sejour->isModuleStagesPratiquesActif());
 
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $gestionnaire = $entityManager->find(Utilisateur::class, $gestionnaire->getId());

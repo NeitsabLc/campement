@@ -74,6 +74,15 @@ class Participant
     #[ORM\Column(name: 'stagiaire_bafa')]
     private bool $stagiaireBafa = false;
 
+    #[ORM\Column(name: 'stagiaire_bafd', options: ['default' => false])]
+    private bool $stagiaireBafd = false;
+
+    #[ORM\Column(name: 'avis_stage_sgdf', type: Types::TEXT, nullable: true)]
+    private ?string $avisStageSgdf = null;
+
+    #[ORM\Column(name: 'avis_stage_formation', type: Types::TEXT, nullable: true)]
+    private ?string $avisStageFormation = null;
+
     #[ORM\Column(name: 'date_debut_presence', type: Types::DATE_IMMUTABLE)]
     private \DateTimeImmutable $dateDebutPresence;
 
@@ -90,11 +99,17 @@ class Participant
     #[ORM\OneToMany(mappedBy: 'participant', targetEntity: DocumentParticipant::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $documents;
 
+    /** @var Collection<int, CommentaireStagePratique> */
+    #[ORM\OneToMany(mappedBy: 'participant', targetEntity: CommentaireStagePratique::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['dateCommentaire' => 'ASC'])]
+    private Collection $commentairesStagePratique;
+
     public function __construct()
     {
         $this->id = new UuidV7();
         $this->createdAt = $this->updatedAt = new \DateTimeImmutable();
         $this->documents = new ArrayCollection();
+        $this->commentairesStagePratique = new ArrayCollection();
     }
 
     public function getId(): ?Uuid
@@ -280,8 +295,72 @@ class Participant
     public function setStagiaireBafa(bool $valeur): self
     {
         $this->stagiaireBafa = $valeur;
+        if ($valeur) {
+            $this->stagiaireBafd = false;
+        }
 
         return $this;
+    }
+
+    public function isStagiaireBafd(): bool
+    {
+        return $this->stagiaireBafd;
+    }
+
+    public function setStagiaireBafd(bool $valeur): self
+    {
+        $this->stagiaireBafd = $valeur;
+        if ($valeur) {
+            $this->stagiaireBafa = false;
+        }
+
+        return $this;
+    }
+
+    public function getTypeStagePratique(): ?string
+    {
+        return $this->stagiaireBafa ? 'BAFA' : ($this->stagiaireBafd ? 'BAFD' : null);
+    }
+
+    public function setTypeStagePratique(?string $type): self
+    {
+        if (null !== $type && !in_array($type, ['BAFA', 'BAFD'], true)) {
+            throw new \InvalidArgumentException('Le type de stage pratique est invalide.');
+        }
+        $this->stagiaireBafa = 'BAFA' === $type;
+        $this->stagiaireBafd = 'BAFD' === $type;
+
+        return $this;
+    }
+
+    public function getAvisStageSgdf(): ?string
+    {
+        return $this->avisStageSgdf;
+    }
+
+    public function setAvisStageSgdf(?string $avis): self
+    {
+        $this->avisStageSgdf = $avis;
+
+        return $this;
+    }
+
+    public function getAvisStageFormation(): ?string
+    {
+        return $this->avisStageFormation;
+    }
+
+    public function setAvisStageFormation(?string $avis): self
+    {
+        $this->avisStageFormation = $avis;
+
+        return $this;
+    }
+
+    /** @return Collection<int, CommentaireStagePratique> */
+    public function getCommentairesStagePratique(): Collection
+    {
+        return $this->commentairesStagePratique;
     }
 
     public function getDateDebutPresence(): \DateTimeImmutable

@@ -87,7 +87,8 @@ final class SejourController extends AbstractController
                 $sejour->setNom($nom)
                     ->setModuleIntendanceActif($request->request->has('module_intendance'))
                     ->setModuleAdministratifActif($request->request->has('module_administratif'))
-                    ->setModuleSituationsParticulieresActif($request->request->has('module_situations_particulieres'));
+                    ->setModuleSituationsParticulieresActif($request->request->has('module_situations_particulieres'))
+                    ->setModuleStagesPratiquesActif($request->request->has('module_stages_pratiques'));
                 if (!$creation) {
                     $sejour->setDates($debut, $fin);
                 }

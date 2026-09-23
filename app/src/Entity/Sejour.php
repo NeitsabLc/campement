@@ -44,6 +44,9 @@ class Sejour
     #[ORM\Column(name: 'module_situations_particulieres_actif', options: ['default' => false])]
     private bool $moduleSituationsParticulieresActif = false;
 
+    #[ORM\Column(name: 'module_stages_pratiques_actif', options: ['default' => false])]
+    private bool $moduleStagesPratiquesActif = false;
+
     #[ORM\Column(name: 'distribution_publique_active', options: ['default' => true])]
     private bool $distributionPubliqueActive = true;
 
@@ -185,6 +188,19 @@ class Sejour
     public function setModuleSituationsParticulieresActif(bool $actif): self
     {
         $this->moduleSituationsParticulieresActif = $actif;
+        $this->touch();
+
+        return $this;
+    }
+
+    public function isModuleStagesPratiquesActif(): bool
+    {
+        return $this->moduleStagesPratiquesActif;
+    }
+
+    public function setModuleStagesPratiquesActif(bool $actif): self
+    {
+        $this->moduleStagesPratiquesActif = $actif;
         $this->touch();
 
         return $this;

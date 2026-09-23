@@ -21,6 +21,7 @@ final class ModuleSejourSubscriber
     private const ADMINISTRATIF = ['app_participant', 'app_presence'];
     private const SEJOUR_REQUIS = ['app_groupe'];
     private const SITUATIONS_PARTICULIERES = ['app_situation_particuliere', 'app_situations_particulieres'];
+    private const STAGES_PRATIQUES = ['app_stage_pratique', 'app_stages_pratiques'];
 
     public function __construct(
         private readonly ContexteSejour $contexte,
@@ -37,7 +38,9 @@ final class ModuleSejourSubscriber
             ? 'intendance'
             : ($this->correspondA($route, self::ADMINISTRATIF)
                 ? 'administratif'
-                : ($this->correspondA($route, self::SITUATIONS_PARTICULIERES) ? 'situations_particulieres' : null));
+                : ($this->correspondA($route, self::SITUATIONS_PARTICULIERES)
+                    ? 'situations_particulieres'
+                    : ($this->correspondA($route, self::STAGES_PRATIQUES) ? 'stages_pratiques' : null)));
         if (null === $module && !$this->correspondA($route, self::SEJOUR_REQUIS)) {
             return;
         }
@@ -45,7 +48,8 @@ final class ModuleSejourSubscriber
         if (null === $sejour
             || ('intendance' === $module && !$sejour->isModuleIntendanceActif())
             || ('administratif' === $module && !$sejour->isModuleAdministratifActif())
-            || ('situations_particulieres' === $module && !$sejour->isModuleSituationsParticulieresActif())) {
+            || ('situations_particulieres' === $module && !$sejour->isModuleSituationsParticulieresActif())
+            || ('stages_pratiques' === $module && !$sejour->isModuleStagesPratiquesActif())) {
             $session = $request->getSession();
             if ($session instanceof FlashBagAwareSessionInterface) {
                 $message = null === $sejour
