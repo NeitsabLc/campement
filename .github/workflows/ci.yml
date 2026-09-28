@@ -101,6 +101,7 @@ jobs:
         run: |
           mkdir -p .cache/trivy
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:/src:ro" \
             --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
             "$TRIVY_IMAGE" --cache-dir /trivy-cache filesystem \
@@ -112,12 +113,14 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          docker run --rm --volume "$GITHUB_WORKSPACE:/src" "$BETTERLEAKS_IMAGE" \
+          docker run --rm --user "$(id -u):$(id -g)" \
+            --volume "$GITHUB_WORKSPACE:/src" "$BETTERLEAKS_IMAGE" \
             git /src --log-opts="$BASE_SHA..$HEAD_SHA" \
             --report-path /src/betterleaks.sarif --report-format sarif
           mkdir .betterleaks-worktree
           git archive "$HEAD_SHA" | tar -x -C .betterleaks-worktree
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE/.betterleaks-worktree:/src:ro" \
             "$BETTERLEAKS_IMAGE" dir /src \
             --config /src/.betterleaks-baseline.toml --redact --verbose
@@ -247,6 +250,7 @@ jobs:
           mkdir -p .cache/trivy
           docker save "campement-$IMAGE_NAME:${GITHUB_RUN_ID}" --output ".cache/trivy/$IMAGE_NAME.tar"
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:/src:ro" \
             --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
             "$TRIVY_IMAGE" --cache-dir /trivy-cache image \
