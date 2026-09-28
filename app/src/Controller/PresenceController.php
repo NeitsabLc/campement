@@ -56,6 +56,9 @@ final class PresenceController extends AbstractController
                 $erreurs[] = 'Le commentaire ne peut pas dépasser 500 caractères.';
             }
             if ([] === $erreurs) {
+                if (!$date instanceof \DateTimeImmutable || !$participant instanceof Participant) {
+                    throw new \LogicException('Le participant et la date de présence validés doivent être disponibles.');
+                }
                 $repo = $em->getRepository(PresenceParticipant::class);
                 $presence = $repo->findOneBy(['participant' => $participant, 'datePresence' => $date]);
                 $departPrecedent = $repo->createQueryBuilder('p')->where('p.participant=:participant')->andWhere('p.statut=:depart')->andWhere('p.datePresence<=:date')->setParameter('participant', $participant)->setParameter('depart', PresenceParticipant::DEPART)->setParameter('date', $date)->orderBy('p.datePresence', 'DESC')->setMaxResults(1)->getQuery()->getOneOrNullResult();
@@ -72,6 +75,9 @@ final class PresenceController extends AbstractController
                     $em->persist($presence);
                 }
                 if (PresenceParticipant::DEPART === $statut) {
+                    if (!$presence instanceof PresenceParticipant) {
+                        throw new \LogicException('Un départ doit être associé à une présence persistée.');
+                    }
                     foreach ($repo->createQueryBuilder('p')->where('p.participant=:participant')->andWhere('p.id<>:courant')->andWhere('(p.statut=:depart OR p.datePresence>:date)')->setParameter('participant', $participant)->setParameter('courant', $presence->getId())->setParameter('depart', PresenceParticipant::DEPART)->setParameter('date', $date)->getQuery()->getResult() as $autre) {
                         $em->remove($autre);
                     }

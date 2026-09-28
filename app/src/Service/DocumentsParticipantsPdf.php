@@ -100,6 +100,9 @@ final class DocumentsParticipantsPdf
             for ($numero = 1; $numero <= $pages; ++$numero) {
                 $modele = $pdf->importPage($numero);
                 $taille = $pdf->getTemplateSize($modele);
+                if (!is_array($taille)) {
+                    throw new \RuntimeException('Le format de la page PDF est illisible.');
+                }
                 $pdf->AddPage($taille['orientation'], [$taille['width'], $taille['height']]);
                 $pdf->useTemplate($modele);
             }

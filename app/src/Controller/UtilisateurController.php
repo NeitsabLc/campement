@@ -47,9 +47,9 @@ final class UtilisateurController extends AbstractController
             throw $this->createAccessDeniedException();
         }
         $estAdministrateur = $this->isGranted(Utilisateur::ROLE_ADMIN);
-        $sejoursAccessibles = $estAdministrateur
+        $sejoursAccessibles = array_values($estAdministrateur
             ? $sejours->findBy([], ['dateDebut' => 'DESC'])
-            : $connecte->getSejoursGeres()->toArray();
+            : $connecte->getSejoursGeres()->toArray());
         $sejourSelectionne = $estAdministrateur ? null : $perimetre->selectionnerSejour($request, $sejoursAccessibles);
         $rolesAccessibles = $estAdministrateur
             ? self::ROLES
@@ -161,6 +161,9 @@ final class UtilisateurController extends AbstractController
             }
 
             if ([] === $erreurs) {
+                if (!is_string($donnees['role'])) {
+                    throw new \LogicException('Le rôle validé doit être une chaîne.');
+                }
                 $creation = !$utilisateurModifie instanceof Utilisateur;
                 $utilisateur = $utilisateurModifie ?? new Utilisateur();
                 foreach ($utilisateur->getSejoursGeres()->toArray() as $ancienSejour) {

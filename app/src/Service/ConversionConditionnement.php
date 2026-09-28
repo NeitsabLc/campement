@@ -30,7 +30,7 @@ final class ConversionConditionnement
         }
         $resultat = array_values($resultat);
         $collator = new \Collator('fr_FR');
-        usort($resultat, static fn (Unite $a, Unite $b): int => $collator->compare($a->getNom(), $b->getNom()));
+        usort($resultat, static fn (Unite $a, Unite $b): int => (int) $collator->compare($a->getNom(), $b->getNom()));
 
         return $resultat;
     }
@@ -59,11 +59,11 @@ final class ConversionConditionnement
         }
 
         $collator = new \Collator('fr_FR');
-        foreach ($resultats as &$conditionnements) {
-            $conditionnements = array_values($conditionnements);
-            usort($conditionnements, static fn (Unite $a, Unite $b): int => $collator->compare($a->getNom(), $b->getNom()));
+        foreach ($resultats as $denreeId => $conditionnementsParId) {
+            $conditionnements = array_values($conditionnementsParId);
+            usort($conditionnements, static fn (Unite $a, Unite $b): int => (int) $collator->compare($a->getNom(), $b->getNom()));
+            $resultats[$denreeId] = $conditionnements;
         }
-        unset($conditionnements);
 
         return $resultats;
     }

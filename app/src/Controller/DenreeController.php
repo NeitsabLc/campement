@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Denree;
 use App\Entity\ReferenceFournisseur;
 use App\Entity\ReferenceFournisseurConditionnement;
+use App\Entity\Unite;
 use App\Entity\Utilisateur;
 use App\Repository\DenreeRepository;
 use App\Repository\FournisseurRepository;
@@ -275,6 +276,9 @@ final class DenreeController extends AbstractController
                         $niveauId = (string) ($niveau['id'] ?? '');
                         $dernier = $ordre === count($niveaux) - 1;
                         $typeConditionnement = $unites->find((string) $niveau['conditionnement']);
+                        if (!$typeConditionnement instanceof Unite) {
+                            throw new \LogicException('Le conditionnement validé doit être disponible.');
+                        }
                         $typeContenu = $dernier ? null : $unites->find((string) $niveaux[$ordre + 1]['conditionnement']);
                         $libelleContenu = $typeContenu?->getNom();
                         $quantite = $dernier ? '1' : str_replace(',', '.', (string) $niveau['quantite']);

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Denree;
 use App\Entity\Menu;
+use App\Entity\MenuDenree;
 use App\Entity\Recette;
 use App\Entity\Sejour;
 use App\Entity\SejourTypeRepas;
+use App\Entity\Unite;
 use Symfony\Component\HttpFoundation\Request;
 
 final class PresentationMenu
@@ -85,8 +88,8 @@ final class PresentationMenu
     }
 
     /**
-     * @param list<object>                $denrees
-     * @param array<string, list<object>> $conditionnements
+     * @param list<Denree>               $denrees
+     * @param array<string, list<Unite>> $conditionnements
      *
      * @return array<string, array<string, mixed>>
      */
@@ -174,12 +177,13 @@ final class PresentationMenu
     /** @return list<\DateTimeImmutable> */
     public function jours(Sejour $sejour): array
     {
-        return iterator_to_array(new \DatePeriod($sejour->getDateDebut(), new \DateInterval('P1D'), $sejour->getDateFin()->modify('+1 day')));
+        return iterator_to_array(new \DatePeriod($sejour->getDateDebut(), new \DateInterval('P1D'), $sejour->getDateFin()->modify('+1 day')), false);
     }
 
     /** @return array<string, array<string, mixed>> */
     public function composition(?Menu $menu, bool $avecCategories): array
     {
+        /** @var array<string, array{recettes?: array<string, array{id: string, nom: string, instance: string, lignes: list<MenuDenree>}>, supplementaires?: list<MenuDenree>}> $composition */
         $composition = [];
         if (null === $menu) {
             return $composition;

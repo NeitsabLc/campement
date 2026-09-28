@@ -140,6 +140,9 @@ final class SortieConsommationController extends AbstractController
                         ->setDateMouvement($this->dateMouvementNavigateur($request, $menu));
                     $entityManager->persist($mouvement);
                     $sorties = [];
+                    if (null === $selection['vue']) {
+                        throw new \LogicException('La sélection validée doit contenir une vue de commande.');
+                    }
                     foreach ($selection['vue']['lignes'] as $ligne) {
                         $quantite = (float) $quantites[$ligne['cle']];
                         if ($quantite <= 0) {
@@ -318,6 +321,9 @@ final class SortieConsommationController extends AbstractController
             return null;
         }
         foreach ($items as $item) {
+            if (!method_exists($item, 'getId')) {
+                continue;
+            }
             if ((string) $item->getId() === $id) {
                 return $item;
             }
