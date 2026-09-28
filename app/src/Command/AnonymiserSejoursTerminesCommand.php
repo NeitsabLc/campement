@@ -7,12 +7,14 @@ namespace App\Command;
 use App\Entity\Sejour;
 use App\Repository\SejourRepository;
 use App\Service\AnonymisationSejour;
+use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
 
@@ -23,6 +25,7 @@ final class AnonymiserSejoursTerminesCommand extends Command
         private readonly SejourRepository $sejours,
         private readonly AnonymisationSejour $anonymisation,
         private readonly MailerInterface $mailer,
+        private readonly LoggerInterface $logger,
         private readonly string $mailerFromEmail,
         private readonly string $mailerFromName,
     ) {
@@ -52,9 +55,20 @@ final class AnonymiserSejoursTerminesCommand extends Command
 
         $limite = new \DateTimeImmutable('today -2 days');
         foreach ($this->sejours->findAAnonymiser($limite) as $sejour) {
-            $this->prevenir($sejour);
+            $nom = $sejour->getNom();
             $this->anonymisation->anonymiser($sejour);
-            $output->writeln(sprintf('<info>%s anonymisé.</info>', $sejour->getNom()));
+            try {
+                $this->prevenir($sejour);
+            } catch (TransportExceptionInterface $exception) {
+                $this->logger->warning('Notification d’anonymisation non envoyée.', [
+                    'sejour_id' => (string) $sejour->getId(),
+                    'exception' => $exception,
+                ]);
+                $output->writeln(sprintf('<warning>%s anonymisé, mais la notification n’a pas pu être envoyée.</warning>', $nom));
+
+                continue;
+            }
+            $output->writeln(sprintf('<info>%s anonymisé.</info>', $nom));
         }
 
         return Command::SUCCESS;
