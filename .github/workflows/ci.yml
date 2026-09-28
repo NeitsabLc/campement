@@ -184,7 +184,11 @@ jobs:
           COMPOSE_PROJECT_NAME: campement-smoke-${{ github.run_id }}-${{ github.run_attempt }}
           NGINX_HOST_PORT: 18082
           POSTGRES_HOST_PORT: 15436
-        run: ./scripts/ci-production-smoke.sh
+        run: |
+          set -a
+          . ./.ci.env
+          set +a
+          ./scripts/ci-production-smoke.sh
 
   runtime-images:
     name: Image ${{ matrix.image }}

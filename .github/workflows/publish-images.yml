@@ -231,6 +231,9 @@ jobs:
           POSTGRES_HOST_PORT: 15437
           USE_RELEASE_IMAGES: "1"
         run: |
+          set -a
+          . ./.ci.env
+          set +a
           export SMOKE_BACKUP_IMAGE="$CAMP_RELEASE_BACKUP_IMAGE"
           export SMOKE_POSTGRES_IMAGE="$CAMP_RELEASE_POSTGRES_IMAGE"
           ./scripts/ci-production-smoke.sh
