@@ -87,6 +87,11 @@ docker compose --profile tools run --rm \
 docker compose exec --no-TTY php php bin/phpunit
 docker compose --profile tools run --rm liquibase update --context-filter=dev
 
+# Les commandes Symfony précédentes s'exécutent en root dans l'image de
+# développement et peuvent créer les journaux de production avec des droits
+# incompatibles avec les workers PHP-FPM (www-data).
+docker compose exec --no-TTY php chown -R www-data:www-data var/cache var/log
+
 docker run --rm --network host "$PLAYWRIGHT_IMAGE" \
     curl --fail --retry 30 --retry-delay 2 --retry-all-errors "$APP_BASE_URL/login"
 ./scripts/run-playwright-ci.sh test:accessibility
