@@ -116,6 +116,7 @@ jobs:
           docker run --rm --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:/src" "$BETTERLEAKS_IMAGE" \
             git /src --log-opts="$BASE_SHA..$HEAD_SHA" \
+            --config /src/.betterleaks-baseline.toml --redact \
             --report-path /src/betterleaks.sarif --report-format sarif
           mkdir .betterleaks-worktree
           git archive "$HEAD_SHA" | tar -x -C .betterleaks-worktree
