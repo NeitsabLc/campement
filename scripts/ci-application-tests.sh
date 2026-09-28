@@ -70,6 +70,12 @@ else
     docker compose up --detach database php
 fi
 
+for tentative in 1 2 3; do
+    docker compose exec --no-TTY php php bin/console importmap:install && break
+    [ "$tentative" -lt 3 ] || exit 1
+    sleep "$((tentative * 5))"
+done
+
 if [ "$mode" != browser ]; then
     docker compose exec --no-TTY php composer validate --strict --no-check-publish
     docker compose exec --no-TTY php composer audit --locked --no-interaction
@@ -94,11 +100,6 @@ fi
 
 if [ "$mode" != quality ]; then
     docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug
-    for tentative in 1 2 3; do
-        docker compose exec --no-TTY php php bin/console importmap:install && break
-        [ "$tentative" -lt 3 ] || exit 1
-        sleep "$((tentative * 5))"
-    done
     docker compose exec --no-TTY php php bin/console asset-map:compile --env=prod --no-debug
     docker compose --profile tools run --rm liquibase update --context-filter=dev
 
