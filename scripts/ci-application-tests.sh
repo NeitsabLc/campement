@@ -18,7 +18,10 @@ cleanup() {
                     $exception = $entry["context"]["exception"] ?? null;
                     while (is_array($exception)) {
                         if (isset($exception["class"])) {
-                            $classes[$exception["class"]] = true;
+                            $origine = isset($exception["file"])
+                                ? basename($exception["file"])
+                                : "origine inconnue";
+                            $classes[$exception["class"]." (".$origine.")"] = true;
                         }
                         $exception = $exception["previous"] ?? null;
                     }
