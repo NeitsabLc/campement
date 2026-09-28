@@ -50,7 +50,13 @@ function pluginConfiguration(config, pluginName) {
 function commitsSince(tag) {
   const output = execFileSync(
     "git",
-    ["log", `${tag}..HEAD`, "--format=%H%x1f%B%x1f%an%x1f%ae%x1f%aI%x1e"],
+    [
+      "log",
+      `${tag}..HEAD`,
+      "--not",
+      "--tags",
+      "--format=%H%x1f%B%x1f%an%x1f%ae%x1f%aI%x1e",
+    ],
     { cwd, encoding: "utf8" },
   );
 
