@@ -7,6 +7,27 @@ cleanup() {
     if [ "$status" -ne 0 ]; then
         docker compose ps || true
         docker compose logs --no-color --tail=200 database php nginx || true
+        docker compose exec --no-TTY php php -r '
+            $classes = [];
+            foreach (glob("var/log/prod-*.log") as $logFile) {
+                foreach (file($logFile, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+                    $entry = json_decode($line, true);
+                    if (!is_array($entry) || ($entry["level"] ?? 0) < 400) {
+                        continue;
+                    }
+                    $exception = $entry["context"]["exception"] ?? null;
+                    while (is_array($exception)) {
+                        if (isset($exception["class"])) {
+                            $classes[$exception["class"]] = true;
+                        }
+                        $exception = $exception["previous"] ?? null;
+                    }
+                }
+            }
+            foreach (array_keys($classes) as $class) {
+                echo "Classe exception applicative : $class", PHP_EOL;
+            }
+        ' || true
     fi
     docker compose down --volumes --remove-orphans || true
     exit "$status"
