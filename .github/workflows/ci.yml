@@ -156,6 +156,42 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Restaurer le cache Composer
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/composer
+          key: composer-${{ runner.os }}-${{ hashFiles('app/composer.lock') }}
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Construire l'image PHP de CI
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: php-development
+          pull: true
+          load: true
+          tags: ${{ env.COMPOSE_PROJECT_NAME }}-php:latest
+          cache-from: type=gha,scope=ci-php-development-quality
+          cache-to: type=gha,mode=max,scope=ci-php-development-quality
+
+      - name: Exécuter les contrôles applicatifs
+        env:
+          CI_APPLICATION_MODE: quality
+          CI_PHP_IMAGE_READY: true
+          GITHUB_ADVISORY_TOKEN: ${{ github.token }}
+        run: ./scripts/ci-application-tests.sh
+
+  browser-tests:
+    name: Tests navigateur
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Installer Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -171,9 +207,22 @@ jobs:
       - name: Configurer Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Exécuter les contrôles applicatifs
+      - name: Construire l'image PHP de CI
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: php-development
+          pull: true
+          load: true
+          tags: ${{ env.COMPOSE_PROJECT_NAME }}-php:latest
+          cache-from: type=gha,scope=ci-php-development-browser
+          cache-to: type=gha,mode=max,scope=ci-php-development-browser
+
+      - name: Exécuter les contrôles navigateur
         env:
-          GITHUB_ADVISORY_TOKEN: ${{ github.token }}
+          CI_APPLICATION_MODE: browser
+          CI_PHP_IMAGE_READY: true
         run: ./scripts/ci-application-tests.sh
 
       - name: Conserver les résultats Playwright en cas d'échec
@@ -282,6 +331,7 @@ jobs:
       - security-files
       - database-schema
       - application-tests
+      - browser-tests
       - production-smoke
       - runtime-images
     runs-on: ubuntu-24.04

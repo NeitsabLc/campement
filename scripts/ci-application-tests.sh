@@ -18,22 +18,31 @@ set -a
 . "$CI_PROJECT_DIR/.ci.env"
 set +a
 
-npm ci --cache .npm --prefer-offline --no-audit --no-fund
+mode=${CI_APPLICATION_MODE:-all}
+case "$mode" in
+    all|quality|browser) ;;
+    *)
+        echo "Mode CI inconnu : $mode" >&2
+        exit 1
+        ;;
+esac
 
-set -- . \
-    --file docker/php/Dockerfile \
-    --target php-development \
-    --load \
-    --pull \
-    --tag "$COMPOSE_PROJECT_NAME-php:latest"
-if [ "${GITHUB_ACTIONS:-}" = true ]; then
-    set -- "$@" \
-        --cache-from "type=gha,scope=ci-php-development" \
-        --cache-to "type=gha,mode=max,scope=ci-php-development"
-elif [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
-    set -- "$@" --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/cache/php"
+if [ "$mode" != quality ]; then
+    npm ci --prefer-offline --no-audit --no-fund
 fi
-docker buildx build "$@"
+
+if [ "${CI_PHP_IMAGE_READY:-}" != true ]; then
+    set -- . \
+        --file docker/php/Dockerfile \
+        --target php-development \
+        --load \
+        --pull \
+        --tag "$COMPOSE_PROJECT_NAME-php:latest"
+    if [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
+        set -- "$@" --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/cache/php"
+    fi
+    docker buildx build "$@"
+fi
 
 mkdir -p .cache/composer
 if [ -n "${GITHUB_ADVISORY_TOKEN:-}" ]; then
@@ -55,49 +64,57 @@ for tentative in 1 2 3; do
     sleep "$((tentative * 5))"
 done
 
-docker compose up --detach database php nginx
-published_port="$(docker compose port nginx 8080)"
-app_port="${published_port##*:}"
-APP_BASE_URL="http://127.0.0.1:$app_port"
-export APP_BASE_URL
+if [ "$mode" = browser ]; then
+    docker compose up --detach database php nginx
+else
+    docker compose up --detach database php
+fi
 
-docker compose exec --no-TTY php composer validate --strict --no-check-publish
-docker compose exec --no-TTY php composer audit --locked --no-interaction
-docker compose exec --no-TTY -e GITHUB_TOKEN php php bin/console importmap:audit
-docker compose exec --no-TTY php php bin/console doctrine:schema:validate --skip-sync
+if [ "$mode" != browser ]; then
+    docker compose exec --no-TTY php composer validate --strict --no-check-publish
+    docker compose exec --no-TTY php composer audit --locked --no-interaction
+    docker compose exec --no-TTY -e GITHUB_TOKEN php php bin/console importmap:audit
+    docker compose exec --no-TTY php php bin/console doctrine:schema:validate --skip-sync
 
-docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug
-for tentative in 1 2 3; do
-    docker compose exec --no-TTY php php bin/console importmap:install && break
-    [ "$tentative" -lt 3 ] || exit 1
-    sleep "$((tentative * 5))"
-done
-docker compose exec --no-TTY php php bin/console asset-map:compile --env=prod --no-debug
+    docker compose exec --no-TTY php php bin/console cache:warmup --env=dev
+    docker compose exec --no-TTY php vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+    docker compose exec --no-TTY php composer lint:php
 
-docker compose exec --no-TTY php php bin/console cache:warmup --env=dev
-docker compose exec --no-TTY php vendor/bin/phpstan analyse --no-progress --memory-limit=512M
-docker compose exec --no-TTY php composer lint:php
+    base_test="$(docker compose exec --no-TTY database printenv POSTGRES_DB)_test"
+    docker compose exec --no-TTY database sh -c \
+        'dropdb --username="$POSTGRES_USER" --force --if-exists "$1"' sh "$base_test"
+    docker compose exec --no-TTY database sh -c \
+        'createdb --username="$POSTGRES_USER" --owner="$POSTGRES_USER" "$1"' sh "$base_test"
+    docker compose --profile tools run --rm \
+        -e "LIQUIBASE_COMMAND_URL=jdbc:postgresql://database:5432/$base_test" \
+        liquibase update --context-filter=dev
 
-base_test="$(docker compose exec --no-TTY database printenv POSTGRES_DB)_test"
-docker compose exec --no-TTY database sh -c \
-    'dropdb --username="$POSTGRES_USER" --force --if-exists "$1"' sh "$base_test"
-docker compose exec --no-TTY database sh -c \
-    'createdb --username="$POSTGRES_USER" --owner="$POSTGRES_USER" "$1"' sh "$base_test"
-docker compose --profile tools run --rm \
-    -e "LIQUIBASE_COMMAND_URL=jdbc:postgresql://database:5432/$base_test" \
-    liquibase update --context-filter=dev
+    docker compose exec --no-TTY php php bin/phpunit
+fi
 
-docker compose exec --no-TTY php php bin/phpunit
-docker compose --profile tools run --rm liquibase update --context-filter=dev
+if [ "$mode" != quality ]; then
+    docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug
+    for tentative in 1 2 3; do
+        docker compose exec --no-TTY php php bin/console importmap:install && break
+        [ "$tentative" -lt 3 ] || exit 1
+        sleep "$((tentative * 5))"
+    done
+    docker compose exec --no-TTY php php bin/console asset-map:compile --env=prod --no-debug
+    docker compose --profile tools run --rm liquibase update --context-filter=dev
 
-# Les commandes Symfony précédentes s'exécutent en root dans l'image de
-# développement et peuvent créer les journaux de production avec des droits
-# incompatibles avec les workers PHP-FPM (www-data).
-docker compose exec --no-TTY php chown -R www-data:www-data var/cache var/log
+    # Les commandes Symfony précédentes s'exécutent en root dans l'image de
+    # développement et peuvent créer les journaux de production avec des droits
+    # incompatibles avec les workers PHP-FPM (www-data).
+    docker compose exec --no-TTY php chown -R www-data:www-data var/cache var/log
 
-docker run --rm --network host "$PLAYWRIGHT_IMAGE" \
-    curl --fail --retry 30 --retry-delay 2 --retry-all-errors "$APP_BASE_URL/login"
-./scripts/run-playwright-ci.sh test:accessibility
-E2E_SKIP_CLEANUP=1
-export E2E_SKIP_CLEANUP
-./scripts/run-playwright-ci.sh test:e2e
+    published_port="$(docker compose port nginx 8080)"
+    app_port="${published_port##*:}"
+    APP_BASE_URL="http://127.0.0.1:$app_port"
+    export APP_BASE_URL
+    docker run --rm --network host "$PLAYWRIGHT_IMAGE" \
+        curl --fail --retry 30 --retry-delay 2 --retry-all-errors "$APP_BASE_URL/login"
+    ./scripts/run-playwright-ci.sh test:accessibility
+    E2E_SKIP_CLEANUP=1
+    export E2E_SKIP_CLEANUP
+    ./scripts/run-playwright-ci.sh test:e2e
+fi
