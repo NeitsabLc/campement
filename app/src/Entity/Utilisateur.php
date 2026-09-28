@@ -324,6 +324,20 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /** @return array<string, mixed> */
+    public function __serialize(): array
+    {
+        $prefixe = "\0".self::class."\0";
+
+        return [
+            $prefixe.'id' => $this->id,
+            $prefixe.'email' => $this->email,
+            $prefixe.'motDePasse' => hash('crc32c', $this->motDePasse),
+            $prefixe.'roles' => $this->roles,
+            $prefixe.'actif' => $this->actif,
+        ];
+    }
+
     public function eraseCredentials(): void
     {
     }

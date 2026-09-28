@@ -79,4 +79,28 @@ final class UtilisateurTest extends TestCase
         $utilisateur->setActif(true);
         self::assertNull($utilisateur->getDesactiveAt());
     }
+
+    public function testLaSessionNeSerialisePasLesRelationsDoctrine(): void
+    {
+        $motDePasse = 'mot-de-passe-hache';
+        $utilisateur = (new Utilisateur())
+            ->setEmail('admin@example.test')
+            ->setPassword($motDePasse)
+            ->setRole(Utilisateur::ROLE_ADMIN);
+        $utilisateur->addSejourGere(new Sejour(
+            'Séjour de test',
+            new \DateTimeImmutable('2026-07-01'),
+            new \DateTimeImmutable('2026-07-15'),
+        ));
+
+        $session = serialize($utilisateur);
+
+        self::assertStringNotContainsString(Sejour::class, $session);
+
+        $restaure = unserialize($session, ['allowed_classes' => true]);
+        self::assertInstanceOf(Utilisateur::class, $restaure);
+        self::assertSame('admin@example.test', $restaure->getUserIdentifier());
+        self::assertSame([Utilisateur::ROLE_ADMIN], $restaure->getRoles());
+        self::assertSame(hash('crc32c', $motDePasse), $restaure->getPassword());
+    }
 }
