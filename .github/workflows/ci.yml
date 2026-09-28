@@ -252,7 +252,7 @@ jobs:
           rm -f ".cache/trivy/$IMAGE_NAME.tar"
 
   ci-result:
-    name: Qualité et tests
+    name: Qualite et tests
     if: always()
     needs:
       - conventional-title
