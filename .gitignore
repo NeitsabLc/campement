@@ -26,8 +26,16 @@ compose-production-*.patch
 *.log
 *.tmp
 node_modules/
+/.npm/
+/.cache/
+/.betterleaks-worktree/
 playwright-report/
 test-results/
+/.ci.env
+/.ci-tools/
+/.release.env
+/betterleaks.sarif
+/deploy.env
 
 # Local database imports
 database/import/

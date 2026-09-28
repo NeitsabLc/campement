@@ -8,7 +8,7 @@
 - Mettre régulièrement la branche à jour depuis `main` et résoudre les conflits avant la revue.
 - Ouvrir une pull request vers `main`, faire valider la CI et obtenir une revue avant fusion.
 - Supprimer la branche après sa fusion.
-- Ne pas créer manuellement de tag de version : Release Please gère les versions et les tags `vX.Y.Z`.
+- Ne pas créer manuellement de tag de version : la PR de release prépare la version et sa fusion crée le tag `vX.Y.Z`.
 
 ## Gestion des commits
 
@@ -18,7 +18,7 @@ Les messages et les titres de pull request suivent Conventional Commits :
 <type>(<portée optionnelle>): <description>
 ```
 
-Types autorisés : `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`, `chore`, `style`, `security` et `revert`.
+Types autorisés : `feat`, `fix`, `perf`, `refactor`, `deps`, `docs`, `test`, `build`, `ci`, `chore`, `style`, `security` et `revert`.
 
 - écrire une description courte, précise et à l’impératif ;
 - créer des commits atomiques : un changement logique par commit ;

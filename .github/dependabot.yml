@@ -7,8 +7,8 @@ updates:
       interval: weekly
     target-branch: main
     commit-message:
-      prefix: "fix"
-      include: "scope"
+      prefix: deps
+      include: scope
     groups:
       symfony:
         patterns:
@@ -23,8 +23,8 @@ updates:
       interval: weekly
     target-branch: main
     commit-message:
-      prefix: "fix"
-      include: "scope"
+      prefix: deps
+      include: scope
     groups:
       tests-navigateur:
         patterns:
@@ -41,8 +41,8 @@ updates:
       interval: weekly
     target-branch: main
     commit-message:
-      prefix: "fix"
-      include: "scope"
+      prefix: deps
+      include: scope
     groups:
       actions-github:
         patterns:
@@ -57,8 +57,8 @@ updates:
       interval: weekly
     target-branch: main
     commit-message:
-      prefix: "fix"
-      include: "scope"
+      prefix: deps
+      include: scope
 
   - package-ecosystem: docker
     directory: /docker/postgres
@@ -66,8 +66,8 @@ updates:
       interval: weekly
     target-branch: main
     commit-message:
-      prefix: "fix"
-      include: "scope"
+      prefix: deps
+      include: scope
 
   - package-ecosystem: docker
     directory: /docker/liquibase
@@ -75,5 +75,5 @@ updates:
       interval: weekly
     target-branch: main
     commit-message:
-      prefix: "fix"
-      include: "scope"
+      prefix: deps
+      include: scope

@@ -1,0 +1,54 @@
+name: Promouvoir en production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version validée en recette, sans le préfixe v
+        required: true
+        type: string
+      confirmation:
+        description: Saisir production-VERSION
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campement-production
+  cancel-in-progress: false
+
+jobs:
+  request-production:
+    name: Demander le déploiement en production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: production
+    steps:
+      - name: Valider la demande
+        env:
+          VERSION: ${{ inputs.version }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          printf '%s\n' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || {
+            echo 'La version doit respecter MAJEUR.MINEUR.CORRECTIF.' >&2
+            exit 1
+          }
+          test "$CONFIRMATION" = "production-$VERSION" || {
+            echo "La confirmation attendue est production-$VERSION." >&2
+            exit 1
+          }
+
+      - name: Déclencher le workflow de déploiement
+        env:
+          GH_TOKEN: ${{ secrets.HOMELAB_DEPLOY_DISPATCH_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          gh workflow run deploy-campement-production.yml \
+            --repo NeitsabLc/homelab-deploy \
+            --ref main \
+            --field "version=$VERSION" \
+            --field "confirmation=$CONFIRMATION"

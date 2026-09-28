@@ -5,7 +5,10 @@ ARG NGINX_IMAGE_DIGEST=sha256:dc5069ad14f19660b141b21236140b91656bf89bbc3e2417c7
 
 FROM php:${PHP_VERSION}-fpm@${PHP_IMAGE_DIGEST} AS php-base
 
-RUN apt-get update \
+ARG OS_PACKAGE_REFRESH=manual
+
+RUN test -n "$OS_PACKAGE_REFRESH" \
+    && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         libfreetype6-dev \
@@ -103,7 +106,10 @@ CMD ["php-fpm"]
 
 FROM nginx:${NGINX_VERSION}@${NGINX_IMAGE_DIGEST} AS nginx-production
 
-RUN apk upgrade --no-cache
+ARG OS_PACKAGE_REFRESH=manual
+
+RUN test -n "$OS_PACKAGE_REFRESH" \
+    && apk upgrade --no-cache
 
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=app-builder /var/www/app/public /var/www/app/public
