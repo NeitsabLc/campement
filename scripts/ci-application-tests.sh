@@ -7,30 +7,6 @@ cleanup() {
     if [ "$status" -ne 0 ]; then
         docker compose ps || true
         docker compose logs --no-color --tail=200 database php nginx || true
-        docker compose exec --no-TTY php php -r '
-            $classes = [];
-            foreach (glob("var/log/prod-*.log") as $logFile) {
-                foreach (file($logFile, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
-                    $entry = json_decode($line, true);
-                    if (!is_array($entry) || ($entry["level"] ?? 0) < 400) {
-                        continue;
-                    }
-                    $exception = $entry["context"]["exception"] ?? null;
-                    while (is_array($exception)) {
-                        if (isset($exception["class"])) {
-                            $origine = isset($exception["file"])
-                                ? basename($exception["file"])
-                                : "origine inconnue";
-                            $classes[$exception["class"]." (".$origine.")"] = true;
-                        }
-                        $exception = $exception["previous"] ?? null;
-                    }
-                }
-            }
-            foreach (array_keys($classes) as $class) {
-                echo "Classe exception applicative : $class", PHP_EOL;
-            }
-        ' || true
     fi
     docker compose down --volumes --remove-orphans || true
     exit "$status"
@@ -110,6 +86,11 @@ docker compose --profile tools run --rm \
 
 docker compose exec --no-TTY php php bin/phpunit
 docker compose --profile tools run --rm liquibase update --context-filter=dev
+
+# Les commandes Symfony précédentes s'exécutent en root dans l'image de
+# développement et peuvent créer les journaux de production avec des droits
+# incompatibles avec les workers PHP-FPM (www-data).
+docker compose exec --no-TTY php chown -R www-data:www-data var/cache var/log
 
 docker run --rm --network host "$PLAYWRIGHT_IMAGE" \
     curl --fail --retry 30 --retry-delay 2 --retry-all-errors "$APP_BASE_URL/login"
