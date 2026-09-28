@@ -11,7 +11,7 @@
         "ext-mbstring": "*",
         "ext-zip": "*",
         "doctrine/doctrine-bundle": "^3.3",
-        "doctrine/orm": "^3.6.8",
+        "doctrine/orm": "^3.7.2",
         "dompdf/dompdf": "^3.1",
         "easycorp/easyadmin-bundle": "^5.6.0",
         "endroid/qr-code": "^6.0",
