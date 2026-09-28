@@ -75,7 +75,7 @@ fi
 nginx_bind_address=${NGINX_BIND_ADDRESS:-127.0.0.1}
 
 if [ -n "${CI_PROJECT_DIR:-}" ]; then
-    # /builds est partage avec le service Docker-in-Docker de GitLab.
+    # Conserver les fichiers temporaires dans l'espace de travail de la CI.
     repertoire_temporaire=$(mktemp -d "$CI_PROJECT_DIR/.ci-smoke.XXXXXX")
 else
     repertoire_temporaire=$(mktemp -d)

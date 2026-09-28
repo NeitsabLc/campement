@@ -2,7 +2,7 @@
   "branches": [
     "main"
   ],
-  "repositoryUrl": "https://gitlab.com/neitsablc/campement.git",
+  "repositoryUrl": "https://github.com/NeitsabLc/campement.git",
   "tagFormat": "v${version}",
   "plugins": [
     [

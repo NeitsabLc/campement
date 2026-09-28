@@ -1,0 +1,273 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_PROJECT_DIR: ${{ github.workspace }}
+  COMPOSE_PROJECT_NAME: campement-ci-${{ github.run_id }}-${{ github.run_attempt }}
+  PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+  BETTERLEAKS_IMAGE: ghcr.io/betterleaks/betterleaks:v1.7.2@sha256:1eb5e0920b47afe43f76671bc678c9fd4fd40c2d0c9b88a16f28021fd12d2347
+  npm_config_fetch_retries: 3
+  npm_config_fetch_retry_mintimeout: 10000
+  npm_config_fetch_retry_maxtimeout: 60000
+  npm_config_fetch_timeout: 120000
+  COMPOSER_MAX_PARALLEL_HTTP: 4
+
+jobs:
+  conventional-title:
+    name: Convention du titre de PR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Valider le titre Conventional Commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        shell: bash
+        run: |
+          motif='^(feat|fix|perf|refactor|deps|docs|test|build|ci|chore|style|security|revert)(\([[:alnum:]_.\/-]+\))?!?: .+'
+          printf '%s\n' "$PR_TITLE" | grep -Eq "$motif" || {
+            echo 'Le titre de la PR doit suivre Conventional Commits.' >&2
+            exit 1
+          }
+
+  quick-quality:
+    name: Qualité rapide
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Installer Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Valider la version et les configurations Compose
+        shell: bash
+        run: |
+          version=$(tr -d '\r\n' <version.txt)
+          printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
+          grep -Fqx "    app.version: '$version' # x-release-version" app/config/services.yaml
+          ./scripts/ci-prepare-env.sh
+          set -a
+          . ./.ci.env
+          set +a
+          docker compose config --quiet
+          POSTGRES_HEALTHCHECK_USER=campement_admin \
+            docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+          digest="sha256:$(printf '0%.0s' {1..64})"
+          export CAMP_RELEASE_PHP_IMAGE="ghcr.io/neitsablc/campement-app-php@$digest"
+          export CAMP_RELEASE_NGINX_IMAGE="ghcr.io/neitsablc/campement-app-nginx@$digest"
+          export CAMP_RELEASE_POSTGRES_IMAGE="ghcr.io/neitsablc/campement-app-postgres@$digest"
+          export CAMP_RELEASE_LIQUIBASE_IMAGE="ghcr.io/neitsablc/campement-app-liquibase@$digest"
+          export CAMP_RELEASE_BACKUP_IMAGE="ghcr.io/neitsablc/campement-app-backup@$digest"
+          docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --quiet
+          test -z "$(docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --format json | jq -r '.services[] | select(.build != null) | .image')"
+
+      - name: Installer les dépendances Node.js
+        run: npm ci --cache .npm --prefer-offline --no-audit --no-fund
+
+  security-files:
+    name: Secrets et dépendances
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer tout l'historique
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Restaurer le cache Trivy
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/trivy
+          key: trivy-${{ runner.os }}-${{ hashFiles('package-lock.json', 'app/composer.lock') }}
+          restore-keys: trivy-${{ runner.os }}-
+
+      - name: Analyser les fichiers avec Trivy
+        run: |
+          mkdir -p .cache/trivy
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/src:ro" \
+            --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
+            "$TRIVY_IMAGE" --cache-dir /trivy-cache filesystem \
+            --scanners secret,vuln --include-dev-deps \
+            --severity HIGH,CRITICAL --exit-code 1 --no-progress /src
+
+      - name: Analyser l'historique de la PR avec Betterleaks
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          docker run --rm --volume "$GITHUB_WORKSPACE:/src" "$BETTERLEAKS_IMAGE" \
+            git /src --log-opts="$BASE_SHA..$HEAD_SHA" \
+            --report-path /src/betterleaks.sarif --report-format sarif
+          mkdir .betterleaks-worktree
+          git archive "$HEAD_SHA" | tar -x -C .betterleaks-worktree
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE/.betterleaks-worktree:/src:ro" \
+            "$BETTERLEAKS_IMAGE" dir /src \
+            --config /src/.betterleaks-baseline.toml --redact --verbose
+
+      - name: Conserver le rapport Betterleaks
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: betterleaks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: betterleaks.sarif
+          if-no-files-found: ignore
+          retention-days: 7
+
+  application-tests:
+    name: Tests applicatifs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Installer Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Restaurer le cache Composer
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/composer
+          key: composer-${{ runner.os }}-${{ hashFiles('app/composer.lock') }}
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Exécuter les contrôles applicatifs
+        env:
+          GITHUB_ADVISORY_TOKEN: ${{ github.token }}
+        run: ./scripts/ci-application-tests.sh
+
+      - name: Conserver les résultats Playwright en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  production-smoke:
+    name: Configuration de production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Préparer la configuration isolée
+        run: ./scripts/ci-prepare-env.sh
+
+      - name: Tester la superposition Compose de production
+        env:
+          COMPOSE_PROJECT_NAME: campement-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          NGINX_HOST_PORT: 18082
+          POSTGRES_HOST_PORT: 15436
+        run: ./scripts/ci-production-smoke.sh
+
+  runtime-images:
+    name: Image ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: php
+            file: docker/php/Dockerfile
+            target: php-production
+          - image: nginx
+            file: docker/php/Dockerfile
+            target: nginx-production
+          - image: postgres
+            file: docker/postgres/Dockerfile
+            target: postgres-runtime
+          - image: liquibase
+            file: docker/liquibase/Dockerfile
+            target: liquibase-runtime
+          - image: backup
+            file: docker/postgres/Dockerfile
+            target: backup-runtime
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restaurer le cache Trivy
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/trivy
+          key: trivy-image-${{ runner.os }}-${{ matrix.image }}-${{ hashFiles(matrix.file) }}
+          restore-keys: trivy-image-${{ runner.os }}-${{ matrix.image }}-
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Construire l'image
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.file }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          security_refresh=$(date -u +%Y-%m-%d)
+          docker buildx build . --file "$DOCKERFILE" --target "$TARGET" --pull --load \
+            --tag "campement-$IMAGE_NAME:${GITHUB_RUN_ID}" \
+            --build-arg "OS_PACKAGE_REFRESH=$security_refresh" \
+            --cache-from "type=gha,scope=ci-runtime-$IMAGE_NAME" \
+            --cache-to "type=gha,mode=max,scope=ci-runtime-$IMAGE_NAME"
+
+      - name: Analyser les vulnérabilités de l'image
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+        run: |
+          mkdir -p .cache/trivy
+          docker save "campement-$IMAGE_NAME:${GITHUB_RUN_ID}" --output ".cache/trivy/$IMAGE_NAME.tar"
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/src:ro" \
+            --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
+            "$TRIVY_IMAGE" --cache-dir /trivy-cache image \
+            --input "/trivy-cache/$IMAGE_NAME.tar" --scanners vuln \
+            --severity HIGH,CRITICAL --ignorefile /src/.trivyignore.yaml \
+            --ignore-unfixed --exit-code 1 --no-progress
+          rm -f ".cache/trivy/$IMAGE_NAME.tar"
+
+  ci-result:
+    name: Qualité et tests
+    if: always()
+    needs:
+      - conventional-title
+      - quick-quality
+      - security-files
+      - application-tests
+      - production-smoke
+      - runtime-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Vérifier tous les jobs requis
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            test "$result" = success || exit 1
+          done

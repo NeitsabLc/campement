@@ -14,9 +14,9 @@ for commande in docker cosign; do
     }
 done
 
-depot=neitsablc/campement
-identite="^https://gitlab[.]com/${depot}//[.]gitlab-ci[.]yml@refs/tags/v[0-9]+[.][0-9]+[.][0-9]+$"
-emetteur=https://gitlab.com
+depot=NeitsabLc/campement
+identite="^https://github[.]com/${depot}/[.]github/workflows/publish-images[.]yml@refs/tags/v[0-9]+[.][0-9]+[.][0-9]+$"
+emetteur=https://token.actions.githubusercontent.com
 
 printf '%s\n' "$CAMP_RELEASE_GIT_SHA" | grep -Eq '^[0-9a-f]{40}$' || {
     echo "SHA Git de livraison invalide." >&2
@@ -27,7 +27,7 @@ for image in $(release_image_names); do
     variable=$(printf '%s' "$image" | tr '[:lower:]' '[:upper:]')
     variable="CAMP_RELEASE_${variable}_IMAGE"
     eval "reference=\${${variable}:-}"
-    prefixe="registry.gitlab.com/neitsablc/campement/${image}@sha256:"
+    prefixe="ghcr.io/neitsablc/campement-app-${image}@sha256:"
     case "$reference" in
         "$prefixe"*) ;;
         *) echo "Reference inattendue pour $image : $reference" >&2; exit 1 ;;
@@ -41,8 +41,8 @@ for image in $(release_image_names); do
     cosign verify "$reference" \
         --certificate-identity-regexp "$identite" \
         --certificate-oidc-issuer "$emetteur" \
-        -a "gitlab_project_path=$depot" \
-        -a "gitlab_commit_sha=$CAMP_RELEASE_GIT_SHA" >/dev/null
+        --certificate-github-workflow-repository "$depot" \
+        --certificate-github-workflow-sha "$CAMP_RELEASE_GIT_SHA" >/dev/null
  done
 
-echo "Les cinq images et leurs signatures Sigstore GitLab sont valides."
+echo "Les cinq images et leurs signatures Sigstore GitHub sont valides."

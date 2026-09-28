@@ -1,0 +1,309 @@
+name: Publier et déployer une version
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Version existante à retester et repromouvoir, sans préfixe v
+        required: true
+        type: string
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.event.release.tag_name || inputs.release_version }}
+  cancel-in-progress: false
+
+jobs:
+  validate-release:
+    name: Valider la version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      git_sha: ${{ steps.release.outputs.git_sha }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Définir la version demandée
+        env:
+          MANUAL_VERSION: ${{ inputs.release_version }}
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            version=$MANUAL_VERSION
+          else
+            version=${GITHUB_REF_NAME#v}
+          fi
+          printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || {
+            echo 'La version doit respecter MAJEUR.MINEUR.CORRECTIF.' >&2
+            exit 1
+          }
+          {
+            echo "RELEASE_VERSION=$version"
+            echo "RELEASE_TAG=v$version"
+          } >> "$GITHUB_ENV"
+
+      - name: Récupérer l'historique Git
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.release_version) || github.ref }}
+
+      - name: Vérifier la release, le tag et leur appartenance à main
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          release=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}")
+          test "$(jq -r '.draft' <<<"$release")" = false
+          test "$(jq -r '.prerelease' <<<"$release")" = false
+          test "$(jq -r '.published_at != null' <<<"$release")" = true
+          test "$(jq -r '.tag_name' <<<"$release")" = "$RELEASE_TAG"
+
+          tag_object=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${RELEASE_TAG}")
+          tag_type=$(jq -r '.object.type' <<<"$tag_object")
+          tag_target=$(jq -r '.object.sha' <<<"$tag_object")
+          if [ "$tag_type" = tag ]; then
+            annotated_tag=$(gh api "repos/${GITHUB_REPOSITORY}/git/tags/${tag_target}")
+            test "$(jq -r '.object.type' <<<"$annotated_tag")" = commit
+            git_sha=$(jq -r '.object.sha' <<<"$annotated_tag")
+          elif [ "$tag_type" = commit ]; then
+            git_sha=$tag_target
+          else
+            echo "Type de tag Git inattendu : $tag_type" >&2
+            exit 1
+          fi
+
+          test "$git_sha" = "$(git rev-parse HEAD)"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "$git_sha" origin/main
+          test "$(tr -d '\r\n' <version.txt)" = "$RELEASE_VERSION"
+
+          {
+            echo "git_sha=$git_sha"
+            echo "version=$RELEASE_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
+  build-candidates:
+    name: Construire ${{ matrix.image }}
+    if: github.event_name == 'release'
+    needs: validate-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: php
+            file: docker/php/Dockerfile
+            target: php-production
+          - image: nginx
+            file: docker/php/Dockerfile
+            target: nginx-production
+          - image: postgres
+            file: docker/postgres/Dockerfile
+            target: postgres-runtime
+          - image: liquibase
+            file: docker/liquibase/Dockerfile
+            target: liquibase-runtime
+          - image: backup
+            file: docker/postgres/Dockerfile
+            target: backup-runtime
+    steps:
+      - name: Récupérer le commit de version
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.git_sha }}
+
+      - name: Définir la référence immuable
+        env:
+          RELEASE_GIT_SHA: ${{ needs.validate-release.outputs.git_sha }}
+        shell: bash
+        run: |
+          owner=${GITHUB_REPOSITORY_OWNER,,}
+          echo "REGISTRY_IMAGE=ghcr.io/$owner/campement-app-${{ matrix.image }}" >> "$GITHUB_ENV"
+          echo "CANDIDATE_TAG=sha-$RELEASE_GIT_SHA" >> "$GITHUB_ENV"
+
+      - name: Se connecter à GHCR
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          . ./scripts/registry-helpers.sh
+          registry_login_with_retry ghcr.io "$GITHUB_ACTOR" "$GHCR_TOKEN"
+
+      - name: Installer Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Configurer Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Construire et publier avec SBOM et provenance
+        id: build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ env.REGISTRY_IMAGE }}:${{ env.CANDIDATE_TAG }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.validate-release.outputs.git_sha }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=publish-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=publish-${{ matrix.image }}
+
+      - name: Signer le candidat avec Sigstore
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          printf '%s\n' "$IMAGE_DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$'
+          cosign sign --yes "${REGISTRY_IMAGE}@${IMAGE_DIGEST}"
+
+  test-candidates:
+    name: Tester les images candidates
+    if: >-
+      always() &&
+      needs.validate-release.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' || needs.build-candidates.result == 'success')
+    needs:
+      - validate-release
+      - build-candidates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Récupérer le commit de version
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.git_sha }}
+
+      - name: Se connecter à GHCR
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          . ./scripts/registry-helpers.sh
+          registry_login_with_retry ghcr.io "$GITHUB_ACTOR" "$GHCR_TOKEN"
+
+      - name: Installer Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Résoudre les cinq digests candidats
+        env:
+          RELEASE_GIT_SHA: ${{ needs.validate-release.outputs.git_sha }}
+        shell: bash
+        run: |
+          . ./scripts/registry-helpers.sh
+          owner=${GITHUB_REPOSITORY_OWNER,,}
+          for image in $(release_image_names); do
+            repository="ghcr.io/$owner/campement-app-$image"
+            candidate="$repository:sha-$RELEASE_GIT_SHA"
+            digest=$(registry_resolve_digest_with_retry "$candidate")
+            variable="CAMP_RELEASE_${image^^}_IMAGE"
+            echo "$variable=$repository@$digest" >> "$GITHUB_ENV"
+          done
+          echo "CAMP_RELEASE_GIT_SHA=$RELEASE_GIT_SHA" >> "$GITHUB_ENV"
+
+      - name: Vérifier les signatures Sigstore
+        run: ./scripts/verify-release-images.sh
+
+      - name: Préparer la configuration isolée
+        run: ./scripts/ci-prepare-env.sh
+
+      - name: Tester exactement les images candidates
+        env:
+          CI_PROJECT_DIR: ${{ github.workspace }}
+          COMPOSE_PROJECT_NAME: campement-release-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          NGINX_HOST_PORT: 18083
+          POSTGRES_HOST_PORT: 15437
+          USE_RELEASE_IMAGES: "1"
+        run: |
+          export SMOKE_BACKUP_IMAGE="$CAMP_RELEASE_BACKUP_IMAGE"
+          export SMOKE_POSTGRES_IMAGE="$CAMP_RELEASE_POSTGRES_IMAGE"
+          ./scripts/ci-production-smoke.sh
+
+  promote-version:
+    name: Promouvoir ${{ matrix.image }}
+    needs:
+      - validate-release
+      - test-candidates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        image:
+          - php
+          - nginx
+          - postgres
+          - liquibase
+          - backup
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.git_sha }}
+
+      - name: Se connecter à GHCR
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+        run: |
+          . ./scripts/registry-helpers.sh
+          registry_login_with_retry ghcr.io "$GITHUB_ACTOR" "$GHCR_TOKEN"
+
+      - name: Promouvoir exactement le digest candidat
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          RELEASE_GIT_SHA: ${{ needs.validate-release.outputs.git_sha }}
+          RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
+        shell: bash
+        run: |
+          . ./scripts/registry-helpers.sh
+          owner=${GITHUB_REPOSITORY_OWNER,,}
+          repository="ghcr.io/$owner/campement-app-$IMAGE_NAME"
+          candidate="$repository:sha-$RELEASE_GIT_SHA"
+          digest=$(registry_resolve_digest_with_retry "$candidate")
+          current=$(docker buildx imagetools inspect "$repository:$RELEASE_VERSION" 2>/dev/null \
+            | awk '$1 == "Digest:" { print $2; exit }') || current=
+          if [ "$current" != "$digest" ]; then
+            docker buildx imagetools create --prefer-index=false \
+              --tag "$repository:$RELEASE_VERSION" "$repository@$digest"
+          fi
+          test "$(registry_resolve_digest_with_retry "$repository:$RELEASE_VERSION")" = "$digest"
+
+  deploy-staging:
+    name: Déclencher le déploiement en recette
+    needs:
+      - validate-release
+      - test-candidates
+      - promote-version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Prévenir le dépôt de déploiement
+        env:
+          GH_TOKEN: ${{ secrets.HOMELAB_DEPLOY_DISPATCH_TOKEN }}
+          RELEASE_GIT_SHA: ${{ needs.validate-release.outputs.git_sha }}
+        shell: bash
+        run: |
+          printf '%s\n' "$RELEASE_GIT_SHA" | grep -Eq '^[0-9a-f]{40}$'
+          jq -n --arg git_sha "$RELEASE_GIT_SHA" \
+            '{event_type:"campement-candidate-ready",client_payload:{application:"campement",git_sha:$git_sha}}' \
+            | gh api --method POST repos/NeitsabLc/homelab-deploy/dispatches --input -

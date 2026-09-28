@@ -129,7 +129,7 @@ async function buildReleasePlan() {
       lastRelease,
       nextRelease,
       options: { repositoryUrl: config.repositoryUrl },
-      branch: { name: process.env.CI_DEFAULT_BRANCH ?? "main" },
+      branch: { name: process.env.GITHUB_DEFAULT_BRANCH ?? "main" },
       cwd,
       logger,
     },
@@ -138,14 +138,16 @@ async function buildReleasePlan() {
   return { commits, lastRelease, nextRelease };
 }
 
-async function gitlabApi(path, { method = "GET", body, allowNotFound = false } = {}) {
-  const apiRoot = required("CI_API_V4_URL");
-  const projectId = required("CI_PROJECT_ID");
-  const token = required("GITLAB_TOKEN");
-  const response = await fetch(`${apiRoot}/projects/${encodeURIComponent(projectId)}${path}`, {
+async function githubApi(path, { method = "GET", body, allowNotFound = false } = {}) {
+  const repository = required("GITHUB_REPOSITORY");
+  const token = required("GITHUB_TOKEN");
+  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
     method,
     headers: {
-      "PRIVATE-TOKEN": token,
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "campement-release-workflow",
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -158,7 +160,7 @@ async function gitlabApi(path, { method = "GET", body, allowNotFound = false } =
   const responseText = await response.text();
   if (!response.ok) {
     fail(
-      `GitLab API ${method} ${path}: HTTP ${response.status} ${responseText.slice(0, 500)}`,
+      `GitHub API ${method} ${path}: HTTP ${response.status} ${responseText.slice(0, 500)}`,
     );
   }
 
@@ -196,16 +198,16 @@ async function releaseBranchMatches(actions, ref) {
   const matches = await Promise.all(
     actions.map(async (action) => {
       const query = new URLSearchParams({ ref });
-      const file = await gitlabApi(
-        `/repository/files/${encodeURIComponent(action.file_path)}?${query}`,
+      const encodedPath = action.file_path.split("/").map(encodeURIComponent).join("/");
+      const file = await githubApi(
+        `/contents/${encodedPath}?${query}`,
         { allowNotFound: true },
       );
       if (!file) {
         return false;
       }
       return (
-        Buffer.from(file.content.replace(/\s/g, ""), "base64").toString("utf8") ===
-        action.content
+        Buffer.from(file.content.replace(/\s/g, ""), "base64").toString("utf8") === action.content
       );
     }),
   );
@@ -228,8 +230,9 @@ function releaseAssets() {
 }
 
 async function prepareMergeRequest() {
-  const defaultBranch = required("CI_DEFAULT_BRANCH");
-  const commitSha = required("CI_COMMIT_SHA");
+  const defaultBranch = required("GITHUB_DEFAULT_BRANCH");
+  const commitSha = required("GITHUB_SHA");
+  const repositoryOwner = required("GITHUB_REPOSITORY_OWNER");
   const plan = await buildReleasePlan();
 
   if (!plan) {
@@ -250,66 +253,69 @@ async function prepareMergeRequest() {
 
   const query = new URLSearchParams({
     state: "opened",
-    scope: "all",
-    source_branch: releaseBranch,
-    target_branch: defaultBranch,
+    head: `${repositoryOwner}:${releaseBranch}`,
+    base: defaultBranch,
     per_page: "1",
   });
-  const mergeRequests = await gitlabApi(`/merge_requests?${query}`);
+  const pullRequests = await githubApi(`/pulls?${query}`);
   const description = [
     `## Préparation de la version v${version}`,
     "",
-    "Cette MR est générée automatiquement à partir des commits conventionnels fusionnés depuis le dernier tag.",
+    "Cette PR est générée automatiquement à partir des commits conventionnels fusionnés depuis le dernier tag.",
     "",
     plan.nextRelease.notes.trim(),
     "",
-    "Après validation de la CI et fusion, GitLab créera le tag, la release, les images signées et le déploiement en recette.",
+    "Après validation de la CI et fusion, GitHub créera le tag, la release, les images signées et le déploiement en recette.",
   ].join("\n");
-  const mergeRequestBody = {
+  const pullRequestBody = {
     title,
-    description,
-    squash: true,
-    remove_source_branch: true,
+    body: description,
   };
 
   if (
-    mergeRequests.length > 0 &&
-    mergeRequests[0].title === title &&
-    (await releaseBranchMatches(actions, mergeRequests[0].sha))
+    pullRequests.length > 0 &&
+    pullRequests[0].title === title &&
+    (await releaseBranchMatches(actions, pullRequests[0].head.sha))
   ) {
-    console.log(`MR de release déjà à jour : ${mergeRequests[0].web_url}`);
+    console.log(`PR de release déjà à jour : ${pullRequests[0].html_url}`);
     return;
   }
 
-  await gitlabApi("/repository/commits", {
-    method: "POST",
-    body: {
-      branch: releaseBranch,
-      start_sha: commitSha,
-      force: true,
-      commit_message: title,
-      actions,
-    },
-  });
+  execFileSync("git", ["config", "user.name", "github-actions[bot]"], { cwd });
+  execFileSync("git", ["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"], { cwd });
+  execFileSync("git", ["switch", "--force-create", releaseBranch, commitSha], { cwd });
+  execFileSync("git", ["add", "--", ...releaseAssets()], { cwd });
+  execFileSync("git", ["commit", "--message", title], { cwd, stdio: "inherit" });
 
-  let mergeRequest;
-  if (mergeRequests.length > 0) {
-    mergeRequest = await gitlabApi(`/merge_requests/${mergeRequests[0].iid}`, {
-      method: "PUT",
-      body: mergeRequestBody,
+  const remoteRef = await githubApi(
+    `/git/ref/heads/${encodeURIComponent(releaseBranch)}`,
+    { allowNotFound: true },
+  );
+  const pushArguments = ["push"];
+  if (remoteRef) {
+    pushArguments.push(`--force-with-lease=refs/heads/${releaseBranch}:${remoteRef.object.sha}`);
+  }
+  pushArguments.push("origin", `HEAD:refs/heads/${releaseBranch}`);
+  execFileSync("git", pushArguments, { cwd, stdio: "inherit" });
+
+  let pullRequest;
+  if (pullRequests.length > 0) {
+    pullRequest = await githubApi(`/pulls/${pullRequests[0].number}`, {
+      method: "PATCH",
+      body: pullRequestBody,
     });
   } else {
-    mergeRequest = await gitlabApi("/merge_requests", {
+    pullRequest = await githubApi("/pulls", {
       method: "POST",
       body: {
-        source_branch: releaseBranch,
-        target_branch: defaultBranch,
-        ...mergeRequestBody,
+        head: releaseBranch,
+        base: defaultBranch,
+        ...pullRequestBody,
       },
     });
   }
 
-  console.log(`MR de release prête : ${mergeRequest.web_url}`);
+  console.log(`PR de release prête : ${pullRequest.html_url}`);
 }
 
 function changelogSection(version, changelog) {
@@ -323,8 +329,8 @@ function changelogSection(version, changelog) {
 }
 
 async function publishRelease() {
-  const commitSha = required("CI_COMMIT_SHA");
-  const commitMessage = required("CI_COMMIT_MESSAGE");
+  const commitSha = required("GITHUB_SHA");
+  const commitMessage = required("GITHUB_COMMIT_MESSAGE");
   const version = (await readFile("version.txt", "utf8")).trim();
   if (!semver.valid(version)) {
     fail("version.txt ne contient pas une version sémantique valide.");
@@ -341,33 +347,40 @@ async function publishRelease() {
   const tag = `v${version}`;
   const description = changelogSection(version, await readFile("CHANGELOG.md", "utf8"));
   const encodedTag = encodeURIComponent(tag);
-  const existingRelease = await gitlabApi(`/releases/${encodedTag}`, {
+  const existingRelease = await githubApi(`/releases/tags/${encodedTag}`, {
     allowNotFound: true,
   });
 
   if (existingRelease) {
-    if (existingRelease.commit?.id !== commitSha) {
+    const tagReference = await githubApi(`/git/ref/tags/${encodedTag}`);
+    let tagCommitSha = tagReference.object.sha;
+    if (tagReference.object.type === "tag") {
+      const annotatedTag = await githubApi(`/git/tags/${tagCommitSha}`);
+      tagCommitSha = annotatedTag.object.sha;
+    }
+    if (tagCommitSha !== commitSha) {
       fail(`La release ${tag} existe déjà sur un autre commit.`);
     }
-    await gitlabApi(`/releases/${encodedTag}`, {
-      method: "PUT",
-      body: { name: tag, description },
+    await githubApi(`/releases/${existingRelease.id}`, {
+      method: "PATCH",
+      body: { name: tag, body: description, draft: false, prerelease: false },
     });
     console.log(`Release ${tag} déjà présente et vérifiée.`);
     return;
   }
 
-  const release = await gitlabApi("/releases", {
+  const release = await githubApi("/releases", {
     method: "POST",
     body: {
       name: tag,
       tag_name: tag,
-      tag_message: `Release ${tag}`,
-      ref: commitSha,
-      description,
+      target_commitish: commitSha,
+      body: description,
+      draft: false,
+      prerelease: false,
     },
   });
-  console.log(`Release créée : ${release._links?.self ?? tag}`);
+  console.log(`Release créée : ${release.html_url ?? tag}`);
 }
 
 if (command === "plan") {
