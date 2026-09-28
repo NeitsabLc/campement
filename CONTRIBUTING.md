@@ -6,7 +6,7 @@
 - Toute branche de travail part de `main`, reste courte et ne traite qu’un sujet.
 - Utiliser un nom explicite : `feature/description`, `fix/description`, `refactor/description`, `test/description`, `docs/description` ou `chore/description`.
 - Mettre régulièrement la branche à jour depuis `main` et résoudre les conflits avant la revue.
-- Ouvrir une pull request vers `main`, faire valider la CI et obtenir une revue avant fusion.
+- Ouvrir une pull request vers `main`, attendre la validation complète de la CI et relire le diff final avant fusion. Le dépôt étant maintenu par une seule personne, aucune approbation tierce n’est obligatoire ; cette règle devra être réévaluée si un second mainteneur est désigné.
 - Supprimer la branche après sa fusion.
 - Ne pas créer manuellement de tag de version : la PR de release prépare la version et sa fusion crée le tag `vX.Y.Z`.
 
