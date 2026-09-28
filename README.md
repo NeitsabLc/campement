@@ -4,7 +4,7 @@
 [![Symfony 8.1](https://img.shields.io/badge/Symfony-8.1-000000?logo=symfony&logoColor=white)](https://symfony.com/)
 [![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
-[![CI](https://gitlab.com/neitsablc/campement/badges/main/pipeline.svg)](https://gitlab.com/neitsablc/campement/-/pipelines)
+[![CI](https://github.com/NeitsabLc/campement/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NeitsabLc/campement/actions/workflows/ci.yml)
 [![Licence Apache 2.0](https://img.shields.io/badge/Licence-Apache%202.0-D22128?logo=apache&logoColor=white)](LICENSE)
 
 ## Description
@@ -39,7 +39,7 @@ PHP, Composer, PostgreSQL, Liquibase et Nginx sont fournis par les conteneurs.
 ### Installation
 
 ```bash
-git clone https://gitlab.com/neitsablc/campement.git
+git clone https://github.com/NeitsabLc/campement.git
 cd campement
 cp .env.example .env
 cp app/.env.example app/.env
@@ -78,8 +78,8 @@ La procédure générale consiste à :
 
 1. préparer un serveur Linux avec Docker Compose, un nom de domaine, TLS et un espace persistant pour PostgreSQL, les documents et les sauvegardes ;
 2. récupérer une version publiée et copier `.env.release.example` vers `.env.release` ;
-3. injecter les secrets hors de Git et renseigner les images du registre GitLab par digest ;
-4. s’authentifier auprès du registre GitLab si les images sont privées, puis valider et vérifier les images ;
+3. injecter les secrets hors de Git et renseigner les images GHCR par digest ;
+4. s’authentifier auprès de GHCR si les images sont privées, puis valider et vérifier les images ;
 5. sauvegarder la base et les documents avant toute migration ;
 6. contrôler puis appliquer les changesets Liquibase ;
 7. démarrer les services et vérifier leur état, les journaux et le parcours de connexion ;
@@ -113,6 +113,8 @@ make backup-restore-test
 
 `make test` recrée une base PostgreSQL isolée, applique les migrations et exécute PHPUnit. Les suites navigateur utilisent Playwright et Axe pour les parcours fonctionnels et l’accessibilité.
 
-GitLab CI/CD exécute la qualité, les tests et un smoke test de la configuration de production sur les merge requests vers `main`. La CI contrôle notamment Docker Compose, Composer, Liquibase, Doctrine, PHPStan, le style, PHPUnit, les assets, l’accessibilité, les parcours E2E, les secrets et les vulnérabilités des images. Les releases publient des images du registre GitLab signées, accompagnées d’un SBOM et d’une provenance.
+GitHub Actions exécute la qualité, les tests et un smoke test de la configuration de production sur les pull requests vers `main`. La CI contrôle notamment Docker Compose, Composer, Liquibase, Doctrine, PHPStan, le style, PHPUnit, les assets, l’accessibilité, les parcours E2E, les secrets et les vulnérabilités des images. Les releases publient dans GHCR des images signées, accompagnées d’un SBOM et d’une provenance.
 
-La préparation d’une release est volontairement manuelle : lancer un pipeline GitLab sur `main`, puis démarrer le job `prepare-release-mr`. Il regroupe les changements applicatifs depuis le dernier tag dans une unique MR et calcule la prochaine version à partir des titres Conventional Commits. Les commits purement CI (`ci:`, `fix(ci):`, etc.) sont ignorés. La fusion de cette MR crée automatiquement le tag, la release, les images signées et le déploiement en recette ; le déploiement en production reste manuel.
+La préparation d’une release est volontairement manuelle : lancer le workflow **Préparer ou publier une version** sur `main`. Il regroupe les changements applicatifs depuis le dernier tag dans une unique PR et calcule la prochaine version à partir des titres Conventional Commits. Les commits purement CI (`ci:`, `fix(ci):`, etc.) sont ignorés. La fusion de cette PR crée automatiquement le tag, la GitHub Release, les images signées et le déploiement en recette. Le workflow **Promouvoir en production** reste manuel et exige une confirmation explicite.
+
+La configuration initiale du dépôt, des secrets et des protections de branche est décrite dans [GITHUB_SETUP.md](GITHUB_SETUP.md).

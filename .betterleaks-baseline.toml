@@ -2,9 +2,11 @@
 useDefault = true
 
 # Le binaire JavaScript compilé de Tesseract contient une suite d'octets qui
-# ressemble à une clé Brave. Le diff Git reste analysé sans cette exception.
+# ressemble à une clé Brave. Le test du processeur de logs fabrique quant à lui
+# de faux jetons pour vérifier leur masquage.
 [allowlist]
-description = "Faux positif dans le binaire Tesseract compilé"
+description = "Faux positifs connus dans un binaire et un test de masquage"
 paths = [
   '''(^|/)app/public/ocr/tesseract-core-simd-lstm\.wasm\.js$''',
+  '''(^|/)app/tests/Unit/Logging/SensitiveDataProcessorTest\.php$''',
 ]
