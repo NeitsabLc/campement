@@ -20,6 +20,7 @@ déploiement résout leurs digests avec un jeton de lecture anonyme.
 ## Protection de `main`
 
 - exiger une pull request avant fusion ;
+- conserver zéro approbation obligatoire tant que le dépôt repose sur un mainteneur unique ; le mainteneur doit relire le diff final après le dernier changement et avant la fusion ;
 - exiger le contrôle **Qualité et tests** ;
 - interdire les poussées forcées et la suppression de la branche ;
 - activer le squash et utiliser le titre de la PR comme message du commit ;
