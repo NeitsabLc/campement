@@ -235,7 +235,7 @@ final class MouvementStockController extends AbstractController
             $detailsParLigne[(string) $detail->getMouvementStockLigne()->getId()][] = $detail;
         }
 
-        $valeurs = null !== $ligneExistante && !$request->isMethod('POST') ? [
+        $valeurs = null !== $ligneExistante && null !== $mouvementExistant && !$request->isMethod('POST') ? [
             'type' => $mouvementExistant->getTypeMouvement()->getCode(),
             'origine' => (string) $mouvementExistant->getOrigineMouvement()->getId(),
             'groupe' => (string) ($mouvementExistant->getGroupe()?->getId() ?? ''),

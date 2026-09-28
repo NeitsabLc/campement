@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Denree;
+use App\Entity\Fournisseur;
+use App\Entity\Groupe;
 use App\Entity\MouvementStock;
 use App\Entity\MouvementStockLigne;
 use App\Entity\MouvementStockLigneConditionnement;
+use App\Entity\OrigineMouvement;
+use App\Entity\ReferenceFournisseur;
+use App\Entity\ReferenceFournisseurConditionnement;
 use App\Entity\Sejour;
+use App\Entity\Unite;
 use App\Entity\Utilisateur;
 use App\Repository\MouvementStockLigneConditionnementRepository;
 use App\Repository\MouvementStockLigneRepository;
@@ -34,13 +40,13 @@ final class EnregistrementMouvementStockMultiple
     }
 
     /**
-     * @param list<object>                $denrees
-     * @param list<object>                $origines
-     * @param list<object>                $groupes
-     * @param list<object>                $fournisseurs
-     * @param array<string, list<object>> $referencesParDenree
-     * @param array<string, list<object>> $conditionnementsParReference
-     * @param array<string, list<object>> $conditionnementsSortieParDenree
+     * @param list<Denree>                                             $denrees
+     * @param list<OrigineMouvement>                                   $origines
+     * @param list<Groupe>                                             $groupes
+     * @param list<Fournisseur>                                        $fournisseurs
+     * @param array<string, list<ReferenceFournisseur>>                $referencesParDenree
+     * @param array<string, list<ReferenceFournisseurConditionnement>> $conditionnementsParReference
+     * @param array<string, list<Unite>>                               $conditionnementsSortieParDenree
      *
      * @return array{erreurs: list<string>, nombre: int}
      */
@@ -214,13 +220,13 @@ final class EnregistrementMouvementStockMultiple
     }
 
     /**
-     * @param array<string, mixed>        $valeurs
-     * @param list<object>                $denrees
-     * @param list<object>                $origines
-     * @param list<object>                $groupes
-     * @param array<string, list<object>> $referencesParDenree
-     * @param array<string, list<object>> $conditionnementsParReference
-     * @param array<string, list<object>> $conditionnementsSortieParDenree
+     * @param array<string, mixed>                                     $valeurs
+     * @param list<Denree>                                             $denrees
+     * @param list<OrigineMouvement>                                   $origines
+     * @param list<Groupe>                                             $groupes
+     * @param array<string, list<ReferenceFournisseur>>                $referencesParDenree
+     * @param array<string, list<ReferenceFournisseurConditionnement>> $conditionnementsParReference
+     * @param array<string, list<Unite>>                               $conditionnementsSortieParDenree
      *
      * @return array{erreurs: list<string>, denree: Denree|null}
      */
@@ -394,6 +400,9 @@ final class EnregistrementMouvementStockMultiple
             return null;
         }
         foreach ($entites as $entite) {
+            if (!method_exists($entite, 'getId')) {
+                continue;
+            }
             if ((string) $entite->getId() === $id) {
                 return $entite;
             }

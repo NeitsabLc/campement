@@ -72,7 +72,8 @@ final class MenuRepository extends ServiceEntityRepository
      */
     public function findStatutsPourSejour(Sejour $sejour): array
     {
-        return $this->createQueryBuilder('menu')
+        /** @var list<array{specialCode: ?string, dateMenu: ?\DateTimeImmutable, repasId: ?string, nombreDenrees: string|int}> $statuts */
+        $statuts = $this->createQueryBuilder('menu')
             ->select('menu.specialCode AS specialCode', 'menu.dateMenu AS dateMenu')
             ->addSelect('IDENTITY(menu.sejourTypeRepas) AS repasId', 'COUNT(menuDenree.id) AS nombreDenrees')
             ->leftJoin('menu.sejourTypeRepas', 'repas')
@@ -84,6 +85,8 @@ final class MenuRepository extends ServiceEntityRepository
             ->groupBy('menu.id', 'menu.specialCode', 'menu.dateMenu', 'menu.sejourTypeRepas')
             ->getQuery()
             ->getArrayResult();
+
+        return $statuts;
     }
 
     public function findSpecial(Sejour $sejour, string $code): ?Menu

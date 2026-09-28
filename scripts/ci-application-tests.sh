@@ -26,7 +26,11 @@ set -- . \
     --load \
     --pull \
     --tag "$COMPOSE_PROJECT_NAME-php:latest"
-if [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
+if [ "${GITHUB_ACTIONS:-}" = true ]; then
+    set -- "$@" \
+        --cache-from "type=gha,scope=ci-php-development" \
+        --cache-to "type=gha,mode=max,scope=ci-php-development"
+elif [ -n "${CI_REGISTRY_IMAGE:-}" ]; then
     set -- "$@" --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/cache/php"
 fi
 docker buildx build "$@"
@@ -60,7 +64,6 @@ export APP_BASE_URL
 docker compose exec --no-TTY php composer validate --strict --no-check-publish
 docker compose exec --no-TTY php composer audit --locked --no-interaction
 docker compose exec --no-TTY -e GITHUB_TOKEN php php bin/console importmap:audit
-docker compose --profile tools run --rm liquibase validate
 docker compose exec --no-TTY php php bin/console doctrine:schema:validate --skip-sync
 
 docker compose exec --no-TTY php php bin/console cache:clear --env=prod --no-debug

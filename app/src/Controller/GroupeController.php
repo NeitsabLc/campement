@@ -204,6 +204,9 @@ final class GroupeController extends AbstractController
             }
 
             if ([] === $erreurs) {
+                if (!$dateDebutPresence instanceof \DateTimeImmutable || !$dateFinPresence instanceof \DateTimeImmutable) {
+                    throw new \LogicException('Les dates de présence validées doivent être disponibles.');
+                }
                 $creation = null === $groupe;
                 $groupe ??= (new Groupe())->setSejour($sejour);
                 $groupe

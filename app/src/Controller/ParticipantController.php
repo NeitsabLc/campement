@@ -88,7 +88,13 @@ final class ParticipantController extends AbstractController
             if (!$groupe instanceof Groupe) {
                 $erreurs[] = 'Sélectionnez une unité du séjour actif.';
             }
-            $validation = $sejour ? $formulaire->valider($donnees, $sejour) : ['erreurs' => []];
+            $validation = $sejour ? $formulaire->valider($donnees, $sejour) : [
+                'erreurs' => [],
+                'naissance' => null,
+                'debut' => null,
+                'fin' => null,
+                'qualifications' => [],
+            ];
             $erreurs = [...$erreurs, ...$validation['erreurs']];
 
             if ([] === $erreurs && $groupe) {

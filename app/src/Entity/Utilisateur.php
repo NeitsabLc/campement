@@ -142,6 +142,10 @@ class Utilisateur implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUserIdentifier(): string
     {
+        if ('' === $this->email) {
+            throw new \LogicException('Un utilisateur persisté doit posséder une adresse email.');
+        }
+
         return $this->email;
     }
 

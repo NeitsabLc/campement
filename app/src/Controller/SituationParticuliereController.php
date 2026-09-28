@@ -100,7 +100,7 @@ final class SituationParticuliereController extends AbstractController
             'libelle' => $situation->getLibelle(),
             'date' => $situation->getDateSituation()->format('Y-m-d'),
             'informations' => $situation->getInformationsComplementaires(),
-            'participants' => array_map(static fn (Participant $participant): string => (string) $participant->getId(), $situation->getParticipants()->toArray()),
+            'participants' => array_values(array_map(static fn (Participant $participant): string => (string) $participant->getId(), $situation->getParticipants()->toArray())),
         ];
         $erreurs = [];
         if ($request->isMethod('POST')) {

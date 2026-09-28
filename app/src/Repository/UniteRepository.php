@@ -25,7 +25,7 @@ final class UniteRepository extends ServiceEntityRepository
             ->getResult();
 
         $collator = new \Collator('fr_FR');
-        usort($unites, static fn (Unite $a, Unite $b): int => $collator->compare($a->getNom(), $b->getNom()));
+        usort($unites, static fn (Unite $a, Unite $b): int => (int) $collator->compare($a->getNom(), $b->getNom()));
 
         return $unites;
     }

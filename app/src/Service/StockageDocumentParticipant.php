@@ -76,6 +76,9 @@ final class StockageDocumentParticipant
 
         $fichiers = [];
         foreach (new \FilesystemIterator($this->repertoireDocuments, \FilesystemIterator::SKIP_DOTS) as $fichier) {
+            if (!$fichier instanceof \SplFileInfo) {
+                continue;
+            }
             if (!$fichier->isFile()) {
                 continue;
             }

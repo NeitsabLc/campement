@@ -49,12 +49,6 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Installer Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-          cache: npm
-
       - name: Valider la version et les configurations Compose
         shell: bash
         run: |
@@ -76,9 +70,6 @@ jobs:
           export CAMP_RELEASE_BACKUP_IMAGE="ghcr.io/neitsablc/campement-app-backup@$digest"
           docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --quiet
           test -z "$(docker compose -f compose.yaml -f compose.prod.yaml -f compose.release.yaml config --format json | jq -r '.services[] | select(.build != null) | .image')"
-
-      - name: Installer les dépendances Node.js
-        run: npm ci --cache .npm --prefer-offline --no-audit --no-fund
 
   security-files:
     name: Secrets et dépendances
@@ -134,6 +125,28 @@ jobs:
           path: betterleaks.sarif
           if-no-files-found: ignore
           retention-days: 7
+
+  database-schema:
+    name: Validation Liquibase
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Préparer la configuration isolée
+        run: ./scripts/ci-prepare-env.sh
+
+      - name: Valider les changelogs Liquibase
+        run: |
+          set -a
+          . ./.ci.env
+          set +a
+          docker compose --profile tools run --rm liquibase validate
+
+      - name: Arrêter les services
+        if: always()
+        run: docker compose down --volumes --remove-orphans
 
   application-tests:
     name: Tests applicatifs
@@ -267,6 +280,7 @@ jobs:
       - conventional-title
       - quick-quality
       - security-files
+      - database-schema
       - application-tests
       - production-smoke
       - runtime-images

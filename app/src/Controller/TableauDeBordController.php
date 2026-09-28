@@ -102,6 +102,9 @@ final class TableauDeBordController extends AbstractController
                     }
                     $cle = Participant::TYPE_JEUNE === $participant->getType() ? 'jeunes' : 'adultes';
                     $groupeId = (string) $participant->getGroupe()->getId();
+                    if (!isset($parGroupe[$groupeId])) {
+                        throw new \LogicException('Le participant doit appartenir à un groupe chargé.');
+                    }
                     ++$totaux[$cle];
                     ++$totaux['presents'];
                     ++$parGroupe[$groupeId][$cle];

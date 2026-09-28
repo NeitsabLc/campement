@@ -81,6 +81,9 @@ final class CalculStockDynamique
             }
 
             $cle = 'ENTREE' === $mouvement->getTypeMouvement()->getCode() ? 'entrees' : 'sorties';
+            if (!isset($stocks[$denreeId])) {
+                throw new \LogicException('Une ligne de stock référence une denrée non chargée.');
+            }
             $stocks[$denreeId][$cle] += $quantiteInventaire;
         }
 
