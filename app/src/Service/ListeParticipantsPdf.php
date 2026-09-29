@@ -7,9 +7,6 @@ namespace App\Service;
 use App\Entity\Groupe;
 use App\Entity\Participant;
 use App\Entity\Sejour;
-use Dompdf\Dompdf;
-use Dompdf\Options;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class ListeParticipantsPdf
 {
@@ -22,7 +19,7 @@ final class ListeParticipantsPdf
         'adulte' => ['#332567', '#d9d5e6'],
     ];
 
-    public function __construct(#[Autowire('%kernel.project_dir%')] private readonly string $projectDir)
+    public function __construct(private readonly GenerateurPdfHtml $generateurPdf)
     {
     }
 
@@ -37,19 +34,10 @@ final class ListeParticipantsPdf
             $parGroupe[(string) $participant->getGroupe()->getId()][$participant->getType()][] = $participant;
         }
 
-        $options = new Options();
-        $options->setTempDir(sys_get_temp_dir());
-        $options->setFontDir(sys_get_temp_dir());
-        $options->setFontCache(sys_get_temp_dir());
-        $options->setChroot($this->projectDir);
-        $options->setIsRemoteEnabled(false);
-        $options->setDefaultFont('DejaVu Sans');
-        $dompdf = new Dompdf($options);
-        $dompdf->setPaper('a4', 'portrait');
-        $dompdf->loadHtml($this->html($sejour, $groupes, $parGroupe), 'UTF-8');
-        $dompdf->render();
-
-        return $dompdf->output();
+        return $this->generateurPdf->generer(
+            $this->html($sejour, $groupes, $parGroupe),
+            'DejaVu Sans',
+        );
     }
 
     /**
