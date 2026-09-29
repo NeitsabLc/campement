@@ -9,8 +9,6 @@ use App\Entity\Menu;
 use App\Entity\MenuDenree;
 use App\Entity\MenuDenreeQuantite;
 use App\Entity\Unite;
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class ListeCoursesPdf
@@ -27,7 +25,8 @@ final class ListeCoursesPdf
 
     public function __construct(
         #[Autowire('%kernel.project_dir%')]
-        private string $projectDir,
+        private readonly string $projectDir,
+        private readonly GenerateurPdfHtml $generateurPdf,
         private readonly AffichageQuantite $affichageQuantite,
     ) {
     }
@@ -56,20 +55,7 @@ final class ListeCoursesPdf
             self::COULEURS['adulte'],
         );
 
-        $options = new Options();
-        $repertoireTemporaire = sys_get_temp_dir();
-        $options->setTempDir($repertoireTemporaire);
-        $options->setFontDir($repertoireTemporaire);
-        $options->setFontCache($repertoireTemporaire);
-        $options->setChroot($this->projectDir);
-        $options->setIsRemoteEnabled(false);
-        $options->setDefaultFont('Caveat Brush');
-        $dompdf = new Dompdf($options);
-        $dompdf->setPaper('a4', 'landscape');
-        $dompdf->loadHtml($this->html($fiches), 'UTF-8');
-        $dompdf->render();
-
-        return $dompdf->output();
+        return $this->generateurPdf->generer($this->html($fiches), 'Caveat Brush', 'landscape');
     }
 
     /**
