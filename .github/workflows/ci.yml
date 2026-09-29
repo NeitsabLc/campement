@@ -75,6 +75,9 @@ jobs:
     name: Secrets et dépendances
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Récupérer tout l'historique
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -90,14 +93,24 @@ jobs:
 
       - name: Analyser les fichiers avec Trivy
         run: |
-          mkdir -p .cache/trivy
+          mkdir -p .cache/trivy .sarif
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:/src:ro" \
             --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
+            --volume "$GITHUB_WORKSPACE/.sarif:/reports" \
             "$TRIVY_IMAGE" --cache-dir /trivy-cache filesystem \
             --scanners secret,vuln --include-dev-deps \
-            --severity HIGH,CRITICAL --exit-code 1 --no-progress /src
+            --severity HIGH,CRITICAL --format sarif \
+            --output /reports/trivy-filesystem.sarif \
+            --exit-code 1 --no-progress /src
+
+      - name: Publier le rapport Trivy dans GitHub Security
+        if: ${{ always() && hashFiles('.sarif/trivy-filesystem.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          sarif_file: .sarif/trivy-filesystem.sarif
+          category: trivy-filesystem
 
       - name: Analyser l'historique de la PR avec Betterleaks
         env:
@@ -116,6 +129,13 @@ jobs:
             --volume "$GITHUB_WORKSPACE/.betterleaks-worktree:/src:ro" \
             "$BETTERLEAKS_IMAGE" dir /src \
             --config /src/.betterleaks-baseline.toml --redact --verbose
+
+      - name: Publier le rapport Betterleaks dans GitHub Security
+        if: ${{ always() && hashFiles('betterleaks.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          sarif_file: betterleaks.sarif
+          category: betterleaks
 
       - name: Conserver le rapport Betterleaks
         if: always()
@@ -260,6 +280,9 @@ jobs:
     name: Image ${{ matrix.image }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    permissions:
+      contents: read
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -310,17 +333,27 @@ jobs:
         env:
           IMAGE_NAME: ${{ matrix.image }}
         run: |
-          mkdir -p .cache/trivy
+          mkdir -p .cache/trivy .sarif
           docker save "campement-$IMAGE_NAME:${GITHUB_RUN_ID}" --output ".cache/trivy/$IMAGE_NAME.tar"
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:/src:ro" \
             --volume "$GITHUB_WORKSPACE/.cache/trivy:/trivy-cache" \
+            --volume "$GITHUB_WORKSPACE/.sarif:/reports" \
             "$TRIVY_IMAGE" --cache-dir /trivy-cache image \
             --input "/trivy-cache/$IMAGE_NAME.tar" --scanners vuln \
             --severity HIGH,CRITICAL --ignorefile /src/.trivyignore.yaml \
-            --ignore-unfixed --exit-code 1 --no-progress
+            --ignore-unfixed --format sarif \
+            --output "/reports/trivy-image-$IMAGE_NAME.sarif" \
+            --exit-code 1 --no-progress
           rm -f ".cache/trivy/$IMAGE_NAME.tar"
+
+      - name: Publier le rapport Trivy dans GitHub Security
+        if: ${{ always() && hashFiles(format('.sarif/trivy-image-{0}.sarif', matrix.image)) != '' }}
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          sarif_file: .sarif/trivy-image-${{ matrix.image }}.sarif
+          category: trivy-image-${{ matrix.image }}
 
   ci-result:
     name: Qualite et tests
