@@ -17,7 +17,6 @@ env:
   COMPOSE_PROJECT_NAME: campement-ci-${{ github.run_id }}-${{ github.run_attempt }}
   PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
   TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
-  BETTERLEAKS_IMAGE: ghcr.io/betterleaks/betterleaks:v1.7.2@sha256:1eb5e0920b47afe43f76671bc678c9fd4fd40c2d0c9b88a16f28021fd12d2347
   npm_config_fetch_retries: 3
   npm_config_fetch_retry_mintimeout: 10000
   npm_config_fetch_retry_maxtimeout: 60000
@@ -26,20 +25,7 @@ env:
 
 jobs:
   conventional-title:
-    name: Convention du titre de PR
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    steps:
-      - name: Valider le titre Conventional Commits
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        shell: bash
-        run: |
-          motif='^(feat|fix|perf|refactor|deps|docs|test|build|ci|chore|style|security|revert)(\([[:alnum:]_.\/-]+\))?!?: .+'
-          printf '%s\n' "$PR_TITLE" | grep -Eq "$motif" || {
-            echo 'Le titre de la PR doit suivre Conventional Commits.' >&2
-            exit 1
-          }
+    uses: NeitsabLc/ci-workflows/.github/workflows/reusable-conventional-title.yml@ccef864a5962e578a1df1214f4cbea51d48eecd7
 
   quick-quality:
     name: Qualité rapide
@@ -112,39 +98,13 @@ jobs:
           sarif_file: .sarif/trivy-filesystem.sarif
           category: trivy-filesystem
 
-      - name: Analyser l'historique de la PR avec Betterleaks
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          docker run --rm --user "$(id -u):$(id -g)" \
-            --volume "$GITHUB_WORKSPACE:/src" "$BETTERLEAKS_IMAGE" \
-            git /src --log-opts="$BASE_SHA..$HEAD_SHA" \
-            --config /src/.betterleaks-baseline.toml --redact \
-            --report-path /src/betterleaks.sarif --report-format sarif
-          mkdir .betterleaks-worktree
-          git archive "$HEAD_SHA" | tar -x -C .betterleaks-worktree
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            --volume "$GITHUB_WORKSPACE/.betterleaks-worktree:/src:ro" \
-            "$BETTERLEAKS_IMAGE" dir /src \
-            --config /src/.betterleaks-baseline.toml --redact --verbose
-
-      - name: Publier le rapport Betterleaks dans GitHub Security
-        if: ${{ always() && hashFiles('betterleaks.sarif') != '' }}
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
-        with:
-          sarif_file: betterleaks.sarif
-          category: betterleaks
-
-      - name: Conserver le rapport Betterleaks
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: betterleaks-${{ github.run_id }}-${{ github.run_attempt }}
-          path: betterleaks.sarif
-          if-no-files-found: ignore
-          retention-days: 7
+  betterleaks:
+    uses: NeitsabLc/ci-workflows/.github/workflows/reusable-betterleaks.yml@ccef864a5962e578a1df1214f4cbea51d48eecd7
+    with:
+      baseline: .betterleaks-baseline.toml
+    permissions:
+      contents: read
+      security-events: write
 
   database-schema:
     name: Validation Liquibase
@@ -362,6 +322,7 @@ jobs:
       - conventional-title
       - quick-quality
       - security-files
+      - betterleaks
       - database-schema
       - application-tests
       - browser-tests
