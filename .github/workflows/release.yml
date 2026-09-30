@@ -10,63 +10,23 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-main
+  group: release-please-main
   cancel-in-progress: false
 
 jobs:
-  prepare-release-pr:
-    name: Préparer la PR de version
-    if: github.event_name == 'workflow_dispatch'
+  release-please:
+    name: Piloter la prochaine version
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
     steps:
-      - name: Récupérer tout l'historique
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Créer, actualiser ou publier la release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          fetch-depth: 0
-          ref: main
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-
-      - name: Installer Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Installer les dépendances
-        run: npm ci --cache .npm --prefer-offline --no-audit --no-fund
-
-      - name: Créer ou actualiser la PR de version
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          GITHUB_DEFAULT_BRANCH: main
-        run: npm run release:prepare-mr
-
-  create-release:
-    name: Créer le tag et la release
-    if: >-
-      github.event_name == 'push' &&
-      contains(github.event.head_commit.message, 'chore(release): v')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - name: Récupérer tout l'historique
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-
-      - name: Installer Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Installer les dépendances
-        run: npm ci --cache .npm --prefer-offline --no-audit --no-fund
-
-      - name: Publier la release GitHub
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-          GITHUB_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        run: npm run release:publish
+          target-branch: main
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

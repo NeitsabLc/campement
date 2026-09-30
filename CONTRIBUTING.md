@@ -8,7 +8,7 @@
 - Mettre régulièrement la branche à jour depuis `main` et résoudre les conflits avant la revue.
 - Ouvrir une pull request vers `main`, attendre la validation complète de la CI et relire le diff final avant fusion. Le dépôt étant maintenu par une seule personne, aucune approbation tierce n’est obligatoire ; cette règle devra être réévaluée si un second mainteneur est désigné.
 - Supprimer la branche après sa fusion.
-- Ne pas créer manuellement de tag de version : la PR de release prépare la version et sa fusion crée le tag `vX.Y.Z`.
+- Ne pas créer manuellement de tag de version : la PR Release Please prépare la version et sa fusion crée le tag `vX.Y.Z`.
 
 ## Gestion des commits
 

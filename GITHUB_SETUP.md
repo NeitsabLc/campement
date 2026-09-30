@@ -9,7 +9,7 @@ Créer ces secrets dans **Settings > Secrets and variables > Actions** :
 
 | Secret | Usage | Accès minimal conseillé |
 |---|---|---|
-| `RELEASE_PLEASE_TOKEN` | créer ou actualiser `release/next`, ouvrir la PR, puis créer le tag et la GitHub Release | jeton fin de l'utilisateur `NeitsabLc`, limité à `campement`, avec Contents et Pull requests en lecture/écriture |
+| `RELEASE_PLEASE_TOKEN` | créer ou actualiser la PR Release Please, puis créer le tag et la GitHub Release | jeton fin de l'utilisateur `NeitsabLc`, limité à `campement`, avec Contents, Issues et Pull requests en lecture/écriture |
 | `HOMELAB_DEPLOY_DISPATCH_TOKEN` | déclencher la recette et le workflow de production de `homelab-deploy` | jeton fin limité à `homelab-deploy`, avec Contents et Actions en lecture/écriture |
 
 Le jeton de release doit appartenir au propriétaire du dépôt : le déploiement de
@@ -27,17 +27,17 @@ déploiement résout leurs digests avec un jeton de lecture anonyme.
 - autoriser GitHub Actions à créer des pull requests dans les réglages Actions.
 
 Les titres suivent Conventional Commits. `feat` produit une version mineure ;
-`fix`, `perf`, `refactor`, `security` et `deps` une version corrective ; un
-breaking change produit une version majeure. Les changements purement CI ne
-déclenchent pas de version.
+un breaking change produit une version majeure ; les autres changements
+significatifs visibles dans le changelog produisent une version corrective. Les
+types purement techniques masqués par la configuration n’ouvrent pas de version.
 
 ## Cycle de release
 
-1. Lancer manuellement **Préparer ou publier une version** depuis `main`.
-2. Le workflow crée ou actualise la PR `release/next` avec la version et le
-   changelog calculés depuis le dernier tag.
+1. Chaque fusion dans `main` lance **Préparer ou publier une version**.
+2. Release Please crée ou actualise une PR avec la version et le changelog
+   calculés depuis la dernière version.
 3. Fusionner cette PR après validation de la CI.
-4. Le commit de fusion crée la GitHub Release et le tag `vX.Y.Z`.
+4. Release Please crée la GitHub Release et le tag `vX.Y.Z`.
 5. **Publier et déployer une version** construit les cinq images, ajoute SBOM et
    provenance, les signe avec Sigstore, teste leurs digests exacts, les promeut
    dans GHCR et déclenche la recette de `NeitsabLc/homelab-deploy`.
