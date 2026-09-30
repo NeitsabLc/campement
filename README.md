@@ -21,7 +21,7 @@ L’application repose sur Symfony, PostgreSQL, Liquibase, Nginx et Docker Compo
 - gestion des situations particulières et des tâches associées ;
 - création des menus, recettes et variantes alimentaires ;
 - gestion des fournisseurs, denrées, conditionnements et mouvements de stock ;
-- préparation des distributions selon les régimes, allergies et repas particuliers ;
+- préparation des distributions par groupe et repas, avec un lien public protégé par jeton ;
 - calcul des commandes et génération de listes de courses ;
 - exports PDF, archives et envoi d’e-mails ;
 - anonymisation et application des durées de conservation.
@@ -95,7 +95,7 @@ make release-up
 make release-ps
 ```
 
-Le proxy inverse, les certificats, les secrets, les sauvegardes et la supervision relèvent de la configuration du serveur et ne doivent pas être stockés dans le dépôt.
+Le dépôt fournit les commandes de sauvegarde et de maintenance, mais leur fréquence, le stockage hors site, le proxy inverse, les certificats, les secrets et la supervision relèvent de la configuration du serveur. Le DAT, le DIN et le DEX sont conservés hors du dépôt dans `../Documentation`.
 
 ## Tests et CI
 

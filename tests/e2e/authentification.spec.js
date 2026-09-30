@@ -53,7 +53,7 @@ test('les informations légales sont centrées à côté de la navigation', asyn
     });
     expect(ecartDeCentrage).toBeLessThan(2);
     if ('/politique-confidentialite' === chemin) {
-      await expect(page.locator('.legal-content')).toContainText('seuls les deux fichiers de journalisation les plus récents sont conservés');
+      await expect(page.locator('.legal-content')).toContainText('deux générations sont conservées pour chacun des flux applicatif et de dépréciation');
       await expect(page.locator('.legal-content')).not.toContainText('fichiers rotés');
     }
   }
