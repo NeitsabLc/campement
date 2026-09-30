@@ -1,5 +1,19 @@
 # Historique des versions
 
+## [1.0.15](https://github.com/NeitsabLc/campement/compare/v1.0.14...v1.0.15) (2026-09-30)
+
+### Corrections
+
+* préserver les mouvements lors de la suppression des comptes ([#53](https://github.com/NeitsabLc/campement/issues/53)) ([079b979](https://github.com/NeitsabLc/campement/commit/079b97962fc7e6b5dc40b73840f364015944170b))
+
+### Refactorisation
+
+* mutualiser le rendu des PDF ([#51](https://github.com/NeitsabLc/campement/issues/51)) ([dddc6ec](https://github.com/NeitsabLc/campement/commit/dddc6ec0d5f26dd52499bc7432092b005da58166))
+
+### Documentation
+
+* formaliser la revue par le mainteneur unique ([#49](https://github.com/NeitsabLc/campement/issues/49)) ([24abd84](https://github.com/NeitsabLc/campement/commit/24abd84a855d73936e89a474f00e0e66e7e18837))
+
 ## [1.0.14](https://github.com/NeitsabLc/campement/compare/v1.0.13...v1.0.14) (2026-09-28)
 
 ### Corrections
