@@ -115,6 +115,6 @@ make backup-restore-test
 
 GitHub Actions exécute la qualité, les tests et un smoke test de la configuration de production sur les pull requests vers `main`. La CI contrôle notamment Docker Compose, Composer, Liquibase, Doctrine, PHPStan, le style, PHPUnit, les assets, l’accessibilité, les parcours E2E, les secrets et les vulnérabilités des images. Les releases publient dans GHCR des images signées, accompagnées d’un SBOM et d’une provenance.
 
-La préparation d’une release est volontairement manuelle : lancer le workflow **Préparer ou publier une version** sur `main`. Il regroupe les changements applicatifs depuis le dernier tag dans une unique PR et calcule la prochaine version à partir des titres Conventional Commits. Les commits purement CI (`ci:`, `fix(ci):`, etc.) sont ignorés. La fusion de cette PR crée automatiquement le tag, la GitHub Release, les images signées et le déploiement en recette. Le workflow **Promouvoir en production** reste manuel et exige une confirmation explicite.
+Après chaque fusion dans `main`, Release Please crée ou actualise une unique PR de version et calcule la prochaine version à partir des titres Conventional Commits. La fusion de cette PR met à jour le changelog et la version de l’application, puis crée automatiquement le tag, la GitHub Release, les images signées et le déploiement en recette. Le workflow **Promouvoir en production** reste manuel et exige une confirmation explicite.
 
 La configuration initiale du dépôt, des secrets et des protections de branche est décrite dans [GITHUB_SETUP.md](GITHUB_SETUP.md).

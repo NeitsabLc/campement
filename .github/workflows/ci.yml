@@ -40,7 +40,7 @@ jobs:
         run: |
           version=$(tr -d '\r\n' <version.txt)
           printf '%s\n' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
-          grep -Fqx "    app.version: '$version' # x-release-version" app/config/services.yaml
+          grep -Fqx "    app.version: '$version' # x-release-please-version" app/config/services.yaml
           ./scripts/ci-prepare-env.sh
           set -a
           . ./.ci.env
