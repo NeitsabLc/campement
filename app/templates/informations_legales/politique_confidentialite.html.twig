@@ -9,7 +9,7 @@
         <a class="legal-brand" href="{{ app.user ? path('app_tableau_de_bord') : path('app_connexion') }}" aria-label="Retour à Campement"><span aria-hidden="true">CA</span><strong>Campement</strong></a>
         <p>Vos données</p>
         <h1>Politique de confidentialité</h1>
-        <p class="legal-updated">Dernière mise à jour : 20 août 2026</p>
+        <p class="legal-updated">Dernière mise à jour : 30 septembre 2026</p>
     </header>
 
     <article class="legal-content">
@@ -43,17 +43,18 @@
 
         <h2>5. Durées de conservation</h2>
         <ul>
-            <li><strong>Dossiers des participants, présences et documents associés :</strong> suppression automatique à partir de 48 heures après la fin du séjour.</li>
-            <li><strong>Situations particulières :</strong> suppression automatique 14 jours après la fin du séjour. Les liens avec les participants sont supprimés dès l’anonymisation à 48 heures.</li>
+            <li><strong>Dossiers des participants, présences et documents associés :</strong> anonymisation lors du premier cycle de maintenance exécuté à partir du deuxième jour civil suivant la date de fin du séjour.</li>
+            <li><strong>Situations particulières :</strong> suppression lors du premier cycle de maintenance exécuté à partir du quatorzième jour suivant la fin du séjour. Les liens avec les participants sont supprimés lors de leur anonymisation.</li>
             <li><strong>Jetons de réinitialisation de mot de passe :</strong> durée de validité limitée puis suppression lors de leur utilisation ou de leur remplacement.</li>
-            <li><strong>Comptes utilisateurs :</strong> suppression automatique un mois après leur désactivation, sauf réactivation pendant ce délai. Cette suppression n’efface pas le libellé nominatif déjà enregistré dans l’historique des mouvements de stock.</li>
+            <li><strong>Comptes utilisateurs :</strong> suppression lors du premier cycle de maintenance exécuté un mois après leur désactivation, sauf réactivation pendant ce délai. Avant la suppression, les mouvements et annulations de stock sont rattachés à un compte technique non connectable. Le libellé nominatif déjà inscrit dans l’historique d’audit reste conservé.</li>
             <li><strong>Unités et données d’intendance :</strong> conservation sans échéance automatique afin de préserver l’historique opérationnel des séjours ; ces données peuvent être supprimées lorsqu’elles ne sont plus nécessaires.</li>
-            <li><strong>Historique des mouvements de stock :</strong> le nom, l’adresse e-mail, le motif et les états avant et après l’opération sont conservés sans échéance automatique afin d’assurer la traçabilité des modifications et annulations. Le lien technique vers le compte est supprimé avec celui-ci, mais le libellé nominatif reste conservé.</li>
-            <li><strong>Sauvegardes :</strong> rotation automatique après 7 jours.</li>
-            <li><strong>Journaux applicatifs Symfony :</strong> seuls les deux fichiers de journalisation les plus récents sont conservés. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
+            <li><strong>Historique des mouvements de stock :</strong> le nom, l’adresse e-mail, le motif et les états avant et après l’opération sont conservés sans échéance automatique afin d’assurer la traçabilité des modifications et annulations. Après suppression du compte, l’historique conserve son libellé nominatif tandis que les mouvements sont rattachés au compte technique.</li>
+            <li><strong>Sauvegardes :</strong> chaque exécution crée une sauvegarde chiffrée de la base et des documents, puis supprime les archives âgées de plus de 7 jours. La fréquence d’exécution est configurée sur le serveur et non dans l’application.</li>
+            <li><strong>Journaux applicatifs Symfony :</strong> deux générations sont conservées pour chacun des flux applicatif et de dépréciation. Elles sont stockées dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
             <li><strong>Journaux des conteneurs :</strong> Docker conserve au maximum cinq fichiers de 10 Mo par service.</li>
             <li><strong>Journaux Nginx :</strong> aucune rotation automatique n’est configurée. Ils sont stockés dans la mémoire temporaire du conteneur et disparaissent à son redémarrage.</li>
         </ul>
+        <p>Les opérations automatiques décrites ci-dessus dépendent de l’exécution régulière des tâches de maintenance et de sauvegarde configurées par l’exploitant du serveur.</p>
         <p>Les fichiers exportés ou imprimés par les utilisateurs sortent du stockage de Campement : leur destinataire doit les supprimer dès qu’ils ne sont plus nécessaires.</p>
 
         <h2>6. Sécurité</h2>
