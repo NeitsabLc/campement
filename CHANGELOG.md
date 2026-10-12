@@ -1,5 +1,12 @@
 # Historique des versions
 
+## [1.0.16](https://github.com/NeitsabLc/campement/compare/v1.0.15...v1.0.16) (2026-10-12)
+
+
+### Dépendances
+
+* **deps:** bump twig/extra-bundle from 3.24.0 to 3.29.0 in /app ([#58](https://github.com/NeitsabLc/campement/issues/58)) ([eb914aa](https://github.com/NeitsabLc/campement/commit/eb914aab0535865d497ab11292a7fd20f493d243))
+
 ## [1.0.15](https://github.com/NeitsabLc/campement/compare/v1.0.14...v1.0.15) (2026-09-30)
 
 ### Corrections
