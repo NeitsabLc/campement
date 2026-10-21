@@ -6,8 +6,8 @@ services:
       dockerfile: docker/php/Dockerfile
       target: php-development
       args:
-        PHP_VERSION: "${PHP_VERSION}"
-        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7}"
+        PHP_VERSION: "${PHP_VERSION:-8.4.27}"
+        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:64aff665308e23ba8804a6c43f75837e9bcdcc31735fc0f74af8899fe5304b07}"
     working_dir: /var/www/app
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB}?serverVersion=18&charset=utf8"

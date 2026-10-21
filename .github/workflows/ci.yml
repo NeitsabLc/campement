@@ -35,6 +35,9 @@ jobs:
       - name: Récupérer le code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Vérifier le refus des versions PHP vulnérables
+        run: python3 tests/infrastructure/test_php_security.py
+
       - name: Valider la version et les configurations Compose
         shell: bash
         run: |

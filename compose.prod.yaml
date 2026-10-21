@@ -11,8 +11,8 @@ services:
     build:
       target: php-production
       args:
-        PHP_VERSION: "${PHP_VERSION}"
-        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7}"
+        PHP_VERSION: "${PHP_VERSION:-8.4.27}"
+        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:64aff665308e23ba8804a6c43f75837e9bcdcc31735fc0f74af8899fe5304b07}"
     read_only: true
     user: www-data
     init: true
@@ -57,8 +57,8 @@ services:
       dockerfile: docker/php/Dockerfile
       target: nginx-production
       args:
-        PHP_VERSION: "${PHP_VERSION}"
-        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7}"
+        PHP_VERSION: "${PHP_VERSION:-8.4.27}"
+        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:64aff665308e23ba8804a6c43f75837e9bcdcc31735fc0f74af8899fe5304b07}"
         NGINX_VERSION: "${NGINX_VERSION}"
         NGINX_IMAGE_DIGEST: "${NGINX_IMAGE_DIGEST:-sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5}"
     read_only: true
@@ -102,8 +102,8 @@ services:
       dockerfile: docker/php/Dockerfile
       target: php-production
       args:
-        PHP_VERSION: "${PHP_VERSION}"
-        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7}"
+        PHP_VERSION: "${PHP_VERSION:-8.4.27}"
+        PHP_IMAGE_DIGEST: "${PHP_IMAGE_DIGEST:-sha256:64aff665308e23ba8804a6c43f75837e9bcdcc31735fc0f74af8899fe5304b07}"
     working_dir: /var/www/app
     entrypoint: ["campement-maintenance"]
     read_only: true
