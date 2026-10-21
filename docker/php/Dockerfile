@@ -1,9 +1,13 @@
-ARG PHP_VERSION=8.4
-ARG PHP_IMAGE_DIGEST=sha256:9467f10bf42897dec0abb73ee20c747ebd45463ec9d6fcc4044cb83eba6dade7
+ARG PHP_VERSION=8.4.27
+# À renseigner uniquement après vérification de l’image officielle linux/amd64.
+ARG PHP_IMAGE_DIGEST=sha256:64aff665308e23ba8804a6c43f75837e9bcdcc31735fc0f74af8899fe5304b07
 ARG NGINX_VERSION=1.30.6-alpine
 ARG NGINX_IMAGE_DIGEST=sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5
 
 FROM php:${PHP_VERSION}-fpm@${PHP_IMAGE_DIGEST} AS php-base
+
+COPY --chmod=0755 docker/php/verify-php-security.sh /usr/local/bin/verify-php-security
+RUN verify-php-security
 
 ARG OS_PACKAGE_REFRESH=manual
 
