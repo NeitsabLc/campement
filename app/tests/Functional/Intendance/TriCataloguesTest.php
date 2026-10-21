@@ -116,7 +116,7 @@ final class TriCataloguesTest extends WebTestCase
                 [$prefixe.'Beta', $prefixe.'Alpha', $prefixe.'Zeta'],
                 $this->nomsAffiches($crawler, $prefixe),
             );
-            self::assertSelectorExists('.foods-row--head .foods-sort-link[aria-label^="Trier les stocks"]');
+            self::assertSelectorExists('.foods-row--head .foods-sort-link[aria-label^="Stock : trier du"]');
             self::assertSelectorExists('.foods-row--head [data-sort-state="ascending"]');
 
             $crawler = $client->request('GET', '/denrees?tri=stock&ordre=desc');

@@ -41,7 +41,7 @@ test('une présence peut être créée, modifiée puis supprimée en repassant l
   const participant = 'Camille Fixture';
   const date = '2026-07-10';
   await page.goto(`/administratif/registre-presence?date=${date}`);
-  const modifier = () => page.locator(`a.presence-daily-row[aria-label="Modifier la présence de ${participant}"]`);
+  const modifier = () => page.locator('a.presence-daily-row').filter({ hasText: participant });
 
   await modifier().click();
   await page.locator('input[name="statut"][value="absent"]').check();

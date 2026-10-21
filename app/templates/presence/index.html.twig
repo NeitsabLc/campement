@@ -15,7 +15,7 @@
      {% for personne in personnes %}
       {% set cellule=jour[personne.id~''] %}{% set exception=cellule.exception %}
       {% set modificationUrl=path('app_presence_modifier',{participantId:personne.id,date:dateSelection|date('Y-m-d')}) %}
-      {% if cellule.modifiable %}<a class="presence-daily-row clickable-row" href="{{ modificationUrl }}" aria-label="Modifier la présence de {{ personne.prenom }} {{ personne.nom }}">
+      {% if cellule.modifiable %}<a class="presence-daily-row clickable-row" href="{{ modificationUrl }}" title="Modifier la présence de {{ personne.prenom }} {{ personne.nom }}">
        <div><strong>{{ personne.prenom }} {{ personne.nom }}</strong><small>{{ personne.type|title }}</small></div>
        <span class="presence-status is-{{ cellule.statut }}">{{ cellule.statut=='present'?'Présent':(cellule.statut=='absent'?'Absent ce jour':(cellule.statut=='departed'?'A quitté le séjour':'Non prévu')) }}</span>
        <span>{{ exception and exception.commentaire ? exception.commentaire : '' }}</span>
