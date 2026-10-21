@@ -1,5 +1,21 @@
 # Historique des versions
 
+## [1.0.16](https://github.com/NeitsabLc/campement/compare/v1.0.15...v1.0.16) (2026-10-21)
+
+
+### Corrections
+
+* **deps:** corriger les mises à jour Symfony et les contrôles Dependabot ([#68](https://github.com/NeitsabLc/campement/issues/68)) ([99a45a7](https://github.com/NeitsabLc/campement/commit/99a45a7c4afa1d71827542cab746616088be909a))
+* **security:** préparer les images PHP 8.4.27 ([#71](https://github.com/NeitsabLc/campement/issues/71)) ([b42abeb](https://github.com/NeitsabLc/campement/commit/b42abeb13cf902f2d61668770942f9af84a06bb3))
+
+
+### Dépendances
+
+* **deps:** bump easycorp/easyadmin-bundle from 5.6.1 to 5.7.0 in /app ([#60](https://github.com/NeitsabLc/campement/issues/60)) ([a1e4c22](https://github.com/NeitsabLc/campement/commit/a1e4c22db81b4ba8341ae5b41e85062df3bed83e))
+* **deps:** bump github/codeql-action/upload-sarif ([#70](https://github.com/NeitsabLc/campement/issues/70)) ([03cd9c5](https://github.com/NeitsabLc/campement/commit/03cd9c59180ce5b570f0b7e70ff62f2f8e6a41dc))
+* **deps:** bump the symfony group across 1 directory with 4 updates ([#69](https://github.com/NeitsabLc/campement/issues/69)) ([fc1aaf9](https://github.com/NeitsabLc/campement/commit/fc1aaf9c223db7ef6149df8b52bee8e6e547d120))
+* **deps:** bump twig/extra-bundle from 3.24.0 to 3.29.0 in /app ([#58](https://github.com/NeitsabLc/campement/issues/58)) ([eb914aa](https://github.com/NeitsabLc/campement/commit/eb914aab0535865d497ab11292a7fd20f493d243))
+
 ## [1.0.15](https://github.com/NeitsabLc/campement/compare/v1.0.14...v1.0.15) (2026-09-30)
 
 ### Corrections
