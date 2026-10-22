@@ -1,22 +1,78 @@
-# Livraison et exploitation — Campement
+# Infra — Campement
 
-## Développement et livraison partagés
+> Fonctionnement général de la CI, des versions, des images et de la livraison.
+> Dépôt public : machines, adresses, domaines, accès et état déployé sont dans la documentation
+> d'exploitation privée (projet Infra Homelab), jamais ici.
 
-- GitHub Actions contrôle qualité, tests, migrations et images ; consulter les workflows présents sur la branche de travail.
-- Conventional Commits et Release Please pilotent les versions ; ne pas fabriquer de tag de release manuellement.
-- Les images de livraison sont publiées dans GHCR, signées et consommées par digest.
-- La production exige une sauvegarde restaurable avant migration et une promotion explicitement autorisée.
-- Ne pas appliquer les données de développement sur une recette persistante ou en production.
-- La présence d’une release ne prouve pas son déploiement : vérifier les manifestes et l’état réel.
+## 01 Cycle complet
 
-## Informations propres à l’installation
+```text
+branche ──PR──▶ CI ──squash──▶ main ──▶ PR Release Please ──fusion──▶ tag vX.Y.Z + GitHub Release
+                                                                           │
+                     ┌─────────────────────────────────────────────────────┘
+                     ▼
+     Publier et déployer une version : 5 images ▶ SBOM + provenance ▶ signature ▶ test par digest ▶ promotion GHCR
+                     │
+                     ▼ automatique
+               RECETTE (dépôt de déploiement privé)
+                     │
+                     ▼ manuel : « Promouvoir en production » + confirmation production-VERSION
+               PRODUCTION
+```
 
-Les machines, domaines, accès, digests actifs, sauvegardes et procédures distantes sont décrits
-dans la documentation d’exploitation privée, hors de ce dépôt, de même que les dossiers DAT/DIN/DEX.
-Ces informations ne doivent pas être recopiées dans ce dépôt public.
+## 02 Intégration continue (`ci.yml`, sur chaque PR vers `main`)
 
-## Secrets
+| Job | Contrôle |
+|---|---|
+| Titre conventionnel | Titre de PR au format Conventional Commits (workflow réutilisable) |
+| Qualité rapide | Refus des versions PHP vulnérables, validation des versions et des configurations Compose |
+| Secrets et dépendances | Trivy (vulnérabilités, secrets, configuration) publié dans GitHub Security ; Betterleaks |
+| Validation Liquibase | Changelogs validés sur une base isolée |
+| Tests applicatifs | Style, PHPStan, mapping Doctrine, PHPUnit |
+| Tests navigateur | Playwright et Axe ; résultats conservés en cas d'échec |
+| Configuration de production | Smoke test d'une installation de production jetable, sauvegarde et restauration |
+| Image (matrice) | Analyse de sécurité de chaque image d'exécution |
+| Qualite et tests | Job de synthèse exigé par la protection de `main` |
 
-Valeurs locales dans les fichiers d’environnement ignorés et répertoires de secrets prévus par les procédures.
-La CI utilise ses secrets GitHub ; les clés privées de déchiffrement restent séparées des serveurs et archives.
-Documenter uniquement les noms de variables et emplacements, jamais leurs valeurs.
+- Actions épinglées par SHA complet ; permissions en lecture par défaut.
+- Dependabot chaque semaine : Composer, npm, GitHub Actions, images Docker.
+
+## 03 Versions (Release Please)
+
+- Chaque fusion dans `main` lance **Préparer ou publier une version** (`release.yml`).
+- Release Please ouvre ou actualise une PR de version (numéro calculé depuis les commits ; met à jour `CHANGELOG.md`, `version.txt` et la version dans `app/config/services.yaml`).
+- La fusion de cette PR crée le tag `vX.Y.Z` et la GitHub Release. Ne jamais créer de tag à la main.
+- `feat` → mineure, `fix` → corrective, `!` → majeure ; sections du changelog dans `release-please-config.json`.
+
+## 04 Images
+
+| Image | Rôle |
+|---|---|
+| `campement-app-php` | Application Symfony (PHP-FPM) et commandes de maintenance |
+| `campement-app-nginx` | Serveur web et assets compilés |
+| `campement-app-postgres` | PostgreSQL 18 et rôles limités |
+| `campement-app-liquibase` | Migrations du schéma |
+| `campement-app-backup` | Sauvegardes chiffrées |
+
+- Publiées dans GHCR, avec SBOM et provenance, signées sans clé (Cosign + OIDC GitHub).
+- Toujours consommées **par digest**, jamais par tag ; vérification : `make release-verify`.
+- Une version existante peut être retestée et repromue en relançant le workflow à la main (sans reconstruction).
+
+## 05 Livraison
+
+| Environnement | Déclenchement | Garde-fous |
+|---|---|---|
+| Recette | **Automatique** après la publication des images d'une release | Manifeste immuable (digests), migrations, contrôle HTTPS |
+| Production | **Manuel** : workflow **Promouvoir en production**, version + saisie `production-VERSION` | Environnement GitHub protégé, sauvegarde restaurable avant migration, vérification des signatures |
+
+- Le déploiement est exécuté par le dépôt de déploiement privé, sur un runner auto-hébergé ; ce dépôt ne fait que le déclencher.
+- Une release publiée ne prouve pas son déploiement : vérifier le manifeste et l'état réel.
+- Jamais de données de développement (`database/changelog/dev/`) en recette ou en production.
+
+## 06 Secrets
+
+- Valeurs locales dans les fichiers d'environnement ignorés par Git ; modèles : `.env.example`, `app/.env.example`.
+- CI : `RELEASE_PLEASE_TOKEN` (PR de version, tag, release) et `HOMELAB_DEPLOY_DISPATCH_TOKEN` (déclenchement du déploiement) ;
+  détail et droits minimaux dans `GITHUB_SETUP.md`. Les paquets GHCR `campement-app-*` sont publics.
+- Sauvegardes chiffrées avec une clé publique ; la clé privée reste hors des serveurs et des archives.
+- Ne documenter que des noms de variables, jamais de valeurs.

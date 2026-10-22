@@ -1,68 +1,90 @@
-# Campement
+# AGENTS.md — Campement
 
-Gestion des camps accompagnés : séjours, unités, participants, dossiers et intendance.
+> Consignes pour les agents IA (Claude Code, Codex…) qui travaillent sur ce dépôt.
+> Les suivre garantit un code homogène, sûr et conforme au design system.
 
-## Stack
+## 01 Objectif
 
-- PHP 8.4, Symfony 8.1, Doctrine et PostgreSQL 18 ; vérifier les versions exactes dans les manifestes.
-- Twig, Symfony UX/AssetMapper et Docker Compose ; npm pour Playwright/Axe.
-- Liquibase est l’unique source de vérité du schéma ; PHPUnit pour PHP.
+Gérer les camps accompagnés des Scouts et Guides de France : séjours, unités, participants, dossiers
+(documents, qualifications, stages pratiques) et intendance (menus, denrées, commandes, stocks).
+Public : gestionnaires de séjour et responsables d'unité. Règles détaillées : [metier.md](docs/context/metier.md).
 
-## Commandes depuis la racine
+## 02 Avant de commencer
 
-- Inventaire des commandes : `make help`.
-- Installation locale : préparer `.env` et `app/.env` depuis les modèles, puis `make install`.
-- Démarrer et inspecter : `make up`, `make ps` ; dépendances PHP : `make composer-install`.
-- Schéma : `make db-validate` ; SQL prévu sans application : `make db-sql` ; état : `make db-status`.
-- Mapping, style et analyse : `make doctrine-validate`, `make style`, `make analyse-statique`.
-- Tests PHP : `make test` ; cette cible recrée la base de tests dédiée.
-- Tests navigateur : `npm ci`, puis `make test-accessibility` ou `make test-e2e`.
-- Conteneurs et livraison : `make prod-config` ; smoke test selon `GITHUB_SETUP.md`.
-- Vérification du diff : `git diff --check`.
+- [ ] Lire `git status --short` ; préserver les modifications locales existantes.
+- [ ] Lire `docs/context/etat.md` (reprise, fichier local non versionné).
+- [ ] Lire les documents utiles à la tâche :
 
-## Architecture et conventions
+| Besoin | Document |
+|---|---|
+| Stack, commandes, structure, données, performance | [architecture.md](docs/context/architecture.md) |
+| CI, versions, images, recette et production | [infra.md](docs/context/infra.md) |
+| Interface : couleurs, typo, icônes, messages | [design-system.md](docs/context/design-system.md) |
+| Règles fonctionnelles | [metier.md](docs/context/metier.md) |
+| Choix durables | [decisions.md](docs/context/decisions.md) |
 
-- `app/src/Controller/` : orchestration HTTP ; placer les règles métier dans `app/src/Service/` et les entités.
-- `app/templates/` et `app/assets/` : interface ; `app/tests/` et `tests/` : tests PHP/navigateur.
-- `database/changelog/` : schéma ; `docker/`, `scripts/` et les fichiers Compose : exécution.
-- Suivre `CONTRIBUTING.md` et `GITHUB_SETUP.md` pour branches, PR, releases et contrôles.
-- Conserver les textes d’interface et les descriptions de commits en français, avec les préfixes Conventional Commits.
+- [ ] Utiliser le design system pour tout écran ou composant.
+- [ ] Créer une branche dédiée depuis `main` à jour : `feature/…`, `fix/…`, `refactor/…`, `test/…`, `docs/…`, `chore/…`.
 
-## Pièges connus
+## 03 Règles générales
 
-- Ne jamais modifier un changeset Liquibase déjà appliqué ; ajouter un nouveau fichier et le référencer dans le master.
-- Ne jamais appliquer `doctrine:schema:update --force` ni générer une seconde chaîne de migrations Doctrine.
-- La validation Doctrine utilise `--skip-sync` ; les defaults/index Liquibase peuvent produire des écarts diagnostiques volontaires.
-- `make test` recrée la base de tests ; les tests navigateur peuvent appliquer des données de développement.
-- Vérifier le projet Compose et la base visée avant ces tests ; utiliser seulement une installation locale jetable.
-- `make reset`, suppressions de volumes, purges et restaurations nécessitent un accord explicite.
-- Toute lecture et écriture métier doit respecter le séjour courant et les habilitations côté serveur.
-- `ContexteSejour` et `PerimetreUtilisateur` centralisent ces contrôles.
-- Les données de développement restent dans `database/changelog/dev/`.
+- [ ] Fichiers `.env` réels : lecture possible en local uniquement, jamais sur un serveur ; ne jamais recopier une valeur.
+- [ ] Réutiliser les composants, services et gabarits existants avant d'en créer.
+- [ ] Garder le code modulaire et scalable : une responsabilité par classe, service ou gabarit.
+- [ ] Ne pas créer de fichier non nécessaire (pas de doc ou script jetable dans le dépôt).
+- [ ] Dépôt public : aucun détail d'infrastructure (IP, machines, domaines privés, chemins locaux).
+- [ ] Répondre en français ; ne pas pousser ni fusionner sans accord explicite.
+
+## 04 Guidelines de développement
+
+- [ ] Composants fonctionnels : contrôleurs fins, règles métier dans `app/src/Service/` et les entités.
+- [ ] Nommage simple et compréhensible, en français comme le code existant (`ContexteSejour`, `FormulaireParticipant`).
+- [ ] Composants petits : extraire un service, un composant Twig ou un contrôleur Stimulus dès qu'un bloc grossit.
+- [ ] Accessibilité WCAG 2.2 AA / RGAA : libellés, contrastes, navigation clavier, focus visible, rôles ARIA.
+- [ ] Textes d'interface en français.
+- [ ] Toute lecture ou écriture métier respecte le séjour courant et les habilitations côté serveur.
+
+## 05 Sécurité
+
+- [ ] Ne jamais exposer de clé, mot de passe ou jeton (code, logs, tests, docs, Git).
+- [ ] Toute configuration sensible passe par une variable d'environnement, documentée dans `.env.example`.
+- [ ] Valider toutes les entrées utilisateur côté serveur (Validator, jeton CSRF, contrôle d'accès).
+- [ ] Gérer les erreurs : message clair à l'utilisateur, aucune trace technique exposée, journal sans donnée personnelle.
+- [ ] Données de développement uniquement dans `database/changelog/dev/`, jamais en recette ou en production.
+
+## 06 Commandes utiles
+
+```bash
+make help                 # inventaire complet
+make install              # première installation (après copie des .env.example)
+make up / make ps         # démarrer / état
+make db-status            # migrations en attente
+make test                 # tests PHP (recrée la base de tests)
+make test-accessibility   # Axe ; make test-e2e pour les parcours
+make style analyse-statique doctrine-validate
+```
+
+## 07 Pièges connus
+
+- Ne jamais modifier un changeset Liquibase appliqué ; ne jamais lancer `doctrine:schema:update --force`.
+- `make test` recrée la base de tests ; vérifier la base visée avant les tests navigateur.
+- `make reset`, suppressions de volumes, purges et restaurations : accord explicite obligatoire.
+- `ContexteSejour` et `PerimetreUtilisateur` centralisent le périmètre ; ne pas les contourner.
 - Les documents participants font partie du périmètre de sauvegarde, avec la base.
 
-## Collaboration et sécurité
+## 08 Après le développement
 
-- Répondre en français ; respecter les conventions du dépôt et les composants existants.
-- Préserver les modifications locales et les données ; lire `git status --short` avant toute modification.
-- Utiliser une branche ciblée et les Conventional Commits ; ne pas pousser ni fusionner sans demande explicite.
-- Ne jamais écrire de secret dans les consignes, la documentation, les tests ou Git.
-- Les secrets sont injectés hors Git ; consulter les modèles `.env.example` et les procédures, sans ouvrir les valeurs privées.
-- Exécuter les contrôles adaptés au changement et indiquer leurs résultats et limites.
-- Demander un accord explicite avant une action destructive, une restauration ou un changement de production.
+- [ ] Tests : `make test`, plus `make test-accessibility` / `make test-e2e` si l'interface change.
+- [ ] Qualité : `make style analyse-statique doctrine-validate` et `git diff --check`.
+- [ ] Sécurité : `make composer ARGS="audit"`, `npm audit --audit-level=high`, `gitleaks git --log-opts="origin/main..HEAD"` ;
+      la CI ajoute Trivy et Betterleaks.
+- [ ] Commits Conventional Commits, description en français : `feat(menus): ajouter la variante sans lactose`.
+- [ ] Avant toute PR : `git fetch origin && git rebase origin/main`, puis relancer les tests.
+      Une branche déjà poussée ne se repousse qu'avec accord (`--force-with-lease`).
+- [ ] Mettre à jour `etat.md` et la doc concernée ; indiquer contrôles réalisés et limites.
 
-## Mémoire à maintenir
+## 09 Besoin d'aide ?
 
-- `AGENTS.md` est la source unique des consignes ; `CLAUDE.md` contient seulement `@AGENTS.md`.
-- Garder ici les commandes et invariants utiles à chaque session.
-- Mettre les détails dans `docs/context/` et les décisions durables dans `decisions.md`.
-- Dater les observations dans `etat.md` ; distinguer fait vérifié, préférence, proposition et travail restant.
-- Actualiser la rubrique concernée après une tâche ; remplacer les états périmés au lieu d'empiler les comptes rendus.
-- Lire les documents liés selon la tâche ; ne pas charger tout l'historique à chaque session.
-
-
-## Documentation à lire selon la tâche
-
-- [Index du contexte](docs/context/README.md) ; [architecture](docs/context/architecture.md).
-- [Métier](docs/context/metier.md), [décisions](docs/context/decisions.md), état de reprise local `docs/context/etat.md` (non versionné).
-- [Exploitation](docs/context/infra.md) ; les informations privées d’hébergement restent dans le projet Infra Homelab.
+- Chercher dans `docs/context/`, puis dans le code existant un cas similaire.
+- Demander avant une action destructive, une restauration, un changement de production ou une refonte.
+- `CLAUDE.md` contient seulement `@AGENTS.md` ; ce fichier reste la source unique des consignes.
