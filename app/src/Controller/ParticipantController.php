@@ -94,6 +94,8 @@ final class ParticipantController extends AbstractController
                 'debut' => null,
                 'fin' => null,
                 'qualifications' => [],
+                'typeStagePratique' => null,
+                'modifierStagePratique' => false,
             ];
             $erreurs = [...$erreurs, ...$validation['erreurs']];
 
