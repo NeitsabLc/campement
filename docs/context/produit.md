@@ -1,10 +1,34 @@
-# Métier — Campement
+# Produit — Campement
 
-Référence issue du contexte existant, à maintenir avec le code. Les détails de livraison historiques ont été retirés.
+> Ce que fait Campement, pour qui, selon quelles règles, et avec quel vocabulaire.
+> Référence fonctionnelle : à maintenir avec le code.
 
-## 7. Fonctionnalités actuelles
+## 01 Vue d'ensemble
 
-### Administration
+| Élément | Valeur |
+|---|---|
+| Objectif | Gérer les camps accompagnés des Scouts et Guides de France : séjours, unités, participants, dossiers et intendance |
+| Utilisateurs | Gestionnaires de séjour, responsables d'unité, administrateurs |
+| Supports | Ordinateur et mobile ; écran de distribution public |
+| Hors périmètre | Données conservées au-delà du séjour (anonymisation 48 h après la fin) |
+
+Chaque séjour active ses modules : **Intendance**, **Administratif** (participants et dossiers) et
+**Situations particulières**.
+
+## 02 Utilisateurs et habilitations
+
+| Rôle | Peut | Périmètre de données |
+|---|---|---|
+| `ROLE_ADMIN` | Tout ce que peut `ROLE_GESTIONNAIRE`, plus les utilisateurs et affectations | Tous les séjours |
+| `ROLE_GESTIONNAIRE` | Gérer les séjours qui lui sont affectés (`utilisateur_sejour`) | Ses séjours actifs uniquement |
+| `ROLE_GROUPE` | Accéder à la distribution et aux données de son unité (`utilisateur.groupe_id`) | Son unité, dans le séjour de celle-ci |
+| `ROLE_TECHNIQUE` | Compte de saisie publique, sans connexion interactive | Mouvements issus du parcours public |
+
+## 03 Règles métier
+
+### Fonctionnalités
+
+#### Administration
 
 L’application permet de gérer :
 
@@ -14,7 +38,7 @@ L’application permet de gérer :
 * les types de repas et publics cibles utilisés par chaque séjour ;
 * les unités participantes, leurs effectifs et leurs besoins alimentaires.
 
-### Intendance
+#### Intendance
 
 Pour le séjour sélectionné, le module Intendance permet de gérer :
 
@@ -28,41 +52,15 @@ Pour le séjour sélectionné, le module Intendance permet de gérer :
 * le lien et le QR code de distribution publique ;
 * les archives PDF de listes de courses, limitées à une période choisie.
 
-### Référentiels globaux
+#### Référentiels globaux
 
 Les unités, types de repas, types de mouvements et publics cibles constituent des
 référentiels globaux alimentés par Liquibase. Leur utilisation effective est
 ensuite configurée ou filtrée par séjour selon le modèle métier.
 
-## 8. Utilisateurs, rôles et accès
+### Comptes
 
-Les rôles métier sont :
-
-* `ROLE_ADMIN` ;
-* `ROLE_GESTIONNAIRE` ;
-* `ROLE_GROUPE` ;
-* `ROLE_TECHNIQUE`, réservé au compte de saisie publique.
-
-`ROLE_ADMIN` hérite de `ROLE_GESTIONNAIRE`.
-
-### Administrateur
-
-Un administrateur peut accéder à tous les séjours et administrer l’ensemble des
-utilisateurs et affectations.
-
-### Gestionnaire
-
-Un gestionnaire peut être associé à plusieurs séjours via `utilisateur_sejour`.
-Il ne peut travailler que sur les séjours actifs auxquels il est affecté, sauf
-les possibilités supplémentaires accordées aux administrateurs.
-
-### Utilisateur d’une unité participante
-
-Un utilisateur `ROLE_GROUPE` est associé à zéro ou une unité au moyen de
-`utilisateur.groupe_id`. Plusieurs utilisateurs peuvent être associés à la même
-unité. Son accès à la distribution est lié au séjour de cette unité.
-
-### Compte technique
+#### Compte technique
 
 Les mouvements issus du formulaire public sont associés à l’utilisateur :
 
@@ -77,7 +75,7 @@ Ce compte :
 * permet de conserver `mouvement_stock.utilisateur_id` obligatoire ;
 * identifie les mouvements issus du parcours public.
 
-### Authentification et mots de passe
+#### Authentification et mots de passe
 
 Les utilisateurs désactivés et le compte technique ne peuvent pas se connecter.
 L’application gère :
@@ -88,7 +86,7 @@ L’application gère :
 * la demande de réinitialisation de mot de passe ;
 * un jeton de réinitialisation temporaire et à usage unique.
 
-## 9. Contexte multi-séjour
+### Contexte multi-séjour
 
 L’application gère plusieurs séjours. Le service `ContexteSejour` centralise les
 séjours accessibles et le séjour courant.
@@ -110,9 +108,9 @@ Les règles transversales sont les suivantes :
 Il ne faut jamais déduire l’autorisation d’un identifiant ou d’un champ caché
 envoyé par le navigateur.
 
-## 10. Modèle métier
+### Modèle
 
-### Entités principales
+#### Entités principales
 
 Le modèle comprend notamment :
 
@@ -128,7 +126,7 @@ Le modèle comprend notamment :
   `MouvementStockLigneConditionnement` ;
 * `Utilisateur`.
 
-### Séjours et types de repas
+#### Séjours et types de repas
 
 ```text
 sejour
@@ -143,7 +141,7 @@ Un menu référence un séjour, un `sejour_type_repas`, une date, éventuellemen
 nom et un commentaire, ainsi qu’un statut actif. Il ne référence pas directement
 `type_repas`.
 
-### Unités participantes
+#### Unités participantes
 
 Une unité participante appartient à un séjour. Elle possède notamment un nom,
 un effectif jeune, un effectif adulte, des dates de présence et un statut actif.
@@ -155,7 +153,7 @@ de plusieurs besoins.
 Les effectifs décrivent l’unité mais ne sont pas utilisés automatiquement pour
 calculer les quantités du menu. Ils sont indépendants des publics cibles.
 
-### Publics cibles
+#### Publics cibles
 
 `public_cible` est le référentiel global des publics utilisés pour définir les
 portions individuelles :
@@ -173,7 +171,7 @@ Les pages de menu et de distribution n’affichent que les associations actives 
 séjour dont le public global est lui-même actif. Un public absent ou désactivé
 n’est pas proposé, même lorsqu’une ancienne quantité de menu le référence.
 
-### Composition des menus
+#### Composition des menus
 
 ```text
 menu
@@ -210,7 +208,7 @@ de sa zone de défilement. Sur le tableau de bord, le résumé affiche une fois
 chaque instance de recette et regroupe les denrées hors recette sous la mention
 « En supplément ».
 
-### Denrées et fournisseurs
+#### Denrées et fournisseurs
 
 Une denrée appartient obligatoirement à un séjour et possède une unité de
 référence globale. Son nom est unique au sein de ce séjour.
@@ -223,7 +221,7 @@ Le fournisseur et la denrée d’une référence doivent appartenir au même sé
 Les menus et mouvements ne peuvent utiliser que des denrées de leur propre
 séjour.
 
-## 11. Distribution publique
+### Distribution publique
 
 La distribution publique est accessible par une route contenant un jeton UUID
 propre au séjour :
@@ -295,7 +293,7 @@ Le serveur doit également vérifier l’activité des ressources, la disponibil
 du repas pour le séjour, l’appartenance de chaque denrée au menu, la validité des
 quantités et le jeton CSRF.
 
-## 12. Journal et mouvements de stock
+### Journal et mouvements de stock
 
 Un mouvement représente un événement du journal de stock. Il référence un
 séjour, l’utilisateur créateur, un type, une origine, éventuellement une unité et
@@ -331,16 +329,52 @@ la date et le motif. Toute opération reste protégée par CSRF et vérifie
 l’appartenance au séjour côté serveur. Sur mobile, le glissement vers la gauche
 propose l’annulation du mouvement.
 
-## 13. Index et contraintes
+### Participants et dossiers (module Administratif)
 
-Les tables et colonnes utilisent le `snake_case`. Les contraintes sont nommées
-explicitement avec les préfixes `pk_`, `fk_`, `uq_` et `chk_`. Les index utilisent
-le préfixe `idx_`.
+- Un participant appartient à une unité ; il est `jeune` ou `adulte`, avec identité, date de naissance, coordonnées,
+  contacts des parents et d'urgence, qualifications (BAFD, DSF, ASF, BAFA, autre diplôme) et période de présence.
+- Documents du dossier : autorisation de départ en camp, fiche sanitaire, vaccins, qualification.
+  Formats PDF, JPEG ou PNG, 10 Mo au plus, stockés sous un nom aléatoire hors de l'espace web.
+- Les présences des participants sont suivies jour par jour.
 
-Les noms d’index Doctrine et Liquibase doivent être identiques. Les relations
-facultatives utilisent des index complets, sans clause PostgreSQL
-`WHERE ... IS NOT NULL`, afin d’être reconnues correctement par Doctrine.
+### Situations particulières
 
-Les contraintes d’unicité de denrée et fournisseur portent également sur
-`sejour_id` : ces valeurs sont uniques au sein d’un séjour. Le code d’une origine
-de mouvement est, lui, unique globalement.
+- Une situation particulière rattache un ou plusieurs participants à un événement daté, avec des tâches de suivi
+  (déclaration d'accident SGDF, déclaration d'événement grave, information préoccupante ou signalement,
+  appel à la ligne d'urgence).
+- Elles sont supprimées 14 jours après la fin du séjour.
+
+### Fin de séjour
+
+- 48 heures après la fin d'un séjour, toutes les données rattachables à une personne sont supprimées
+  (participants, présences, documents) ; unités et intendance sont conservées.
+
+## 04 Glossaire
+
+> Un seul nom par notion, à l'écran, dans le code et en base. Campement code en français (`decisions.md`).
+
+| À l'écran | Dans le code | Table | Définition |
+|---|---|---|---|
+| Séjour, camp | `Sejour` | `sejour` | Camp daté, avec ses modules et ses gestionnaires ; « camp » et « séjour » sont tous deux admis à l'écran |
+| Unité participante | `Groupe` | `groupe` | Unité accueillie sur un séjour, avec ses effectifs |
+| Participant | `Participant` | `participant` | Jeune ou adulte d'une unité |
+| Document | `DocumentParticipant` | `document_participant` | Pièce du dossier d'un participant |
+| Situation particulière | `SituationParticuliere` | `situation_particuliere` | Événement à suivre pour un ou plusieurs participants |
+| Denrée | `Denree` | `denree` | Produit acheté et stocké |
+| Public | `PublicCible` | `public_cible` | Catégorie de convives pour les quantités |
+| Mouvement de stock | `MouvementStock` | `mouvement_stock` | Entrée ou sortie de stock |
+
+| À utiliser | À ne jamais utiliser |
+|---|---|
+| Séjour, camp | Événement, session |
+| Unité participante, `Groupe` | Troupe, patrouille, équipe |
+| Participant | Inscrit, enfant, membre |
+| Denrée | Produit, article, ingrédient |
+
+## 05 Parcours principaux
+
+1. Administrateur → crée un séjour, active ses modules et affecte ses gestionnaires.
+2. Gestionnaire → enregistre les unités puis les participants et leurs documents.
+3. Gestionnaire → compose les menus, prépare les commandes et suit le stock.
+4. Unité → saisit ses sorties de stock depuis le lien public de distribution.
+5. Fin du séjour → anonymisation automatique sous 48 heures.
