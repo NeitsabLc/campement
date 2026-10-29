@@ -1,5 +1,19 @@
 # Historique des versions
 
+## [1.0.17](https://github.com/NeitsabLc/campement/compare/v1.0.16...v1.0.17) (2026-10-29)
+
+
+### Dépendances
+
+* **deps:** bump the symfony group in /app with 8 updates ([#75](https://github.com/NeitsabLc/campement/issues/75)) ([c759de6](https://github.com/NeitsabLc/campement/commit/c759de69c8c37530c1d7c72361cb197fee6a4cab))
+
+
+### Documentation
+
+* aligner les fichiers de contexte sur les gabarits communs ([#79](https://github.com/NeitsabLc/campement/issues/79)) ([91e60ef](https://github.com/NeitsabLc/campement/commit/91e60ef6de9ce9e2ab4440c1c378a6bc3feb7483))
+* partager les consignes des assistants et le contexte du projet ([#72](https://github.com/NeitsabLc/campement/issues/72)) ([bbf6406](https://github.com/NeitsabLc/campement/commit/bbf6406f4a63dd2e953e6e715fd4d60dcfae5c10))
+* structurer AGENTS.md, architecture, infra et design system ([#74](https://github.com/NeitsabLc/campement/issues/74)) ([81311be](https://github.com/NeitsabLc/campement/commit/81311be0b3e9f11456bef39688c8863ada2fe757))
+
 ## [1.0.16](https://github.com/NeitsabLc/campement/compare/v1.0.15...v1.0.16) (2026-10-21)
 
 
