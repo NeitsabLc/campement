@@ -10,7 +10,7 @@
         "ext-iconv": "*",
         "ext-mbstring": "*",
         "ext-zip": "*",
-        "doctrine/collections": "^2.6",
+        "doctrine/collections": "^3.1",
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/orm": "^3.7.5",
         "dompdf/dompdf": "^3.1",
