@@ -1,5 +1,12 @@
 # Historique des versions
 
+## [1.0.18](https://github.com/NeitsabLc/campement/compare/v1.0.17...v1.0.18) (2026-11-10)
+
+
+### Corrections
+
+* **security:** mise à jour corrective des composants Symfony 8.1 ([#86](https://github.com/NeitsabLc/campement/issues/86)) ([b09f0e5](https://github.com/NeitsabLc/campement/commit/b09f0e558deb86b10a6ca3a5aa804b43db20ee09))
+
 ## [1.0.17](https://github.com/NeitsabLc/campement/compare/v1.0.16...v1.0.17) (2026-11-03)
 
 
