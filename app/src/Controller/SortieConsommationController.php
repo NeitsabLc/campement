@@ -114,7 +114,7 @@ final class SortieConsommationController extends AbstractController
                 }
             }
 
-            if ([] === $erreurs && null !== $groupe && $menu instanceof Menu) {
+            if ([] === $erreurs && $menu instanceof Menu) {
                 $selection = [
                     'groupe' => $groupe,
                     'menu' => $menu,
