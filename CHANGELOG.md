@@ -1,5 +1,16 @@
 # Historique des versions
 
+## [1.0.19](https://github.com/NeitsabLc/campement/compare/v1.0.18...v1.0.19) (2026-11-12)
+
+
+### Dépendances
+
+* **deps:** bump doctrine/collections from 2.6.0 to 3.1.0 in /app ([#83](https://github.com/NeitsabLc/campement/issues/83)) ([36dabec](https://github.com/NeitsabLc/campement/commit/36dabec50a09bf4d48c680a19088b0749e5e3595))
+* **deps:** bump doctrine/doctrine-bundle from 3.3.2 to 3.3.4 in /app ([#84](https://github.com/NeitsabLc/campement/issues/84)) ([3665a56](https://github.com/NeitsabLc/campement/commit/3665a5693f491a4a66c64088676e96ca4a270447))
+* **deps:** bump doctrine/orm from 3.7.5 to 3.7.6 in /app ([#82](https://github.com/NeitsabLc/campement/issues/82)) ([e386d78](https://github.com/NeitsabLc/campement/commit/e386d78b23810c5d369a60016986e380482b16c6))
+* **deps:** bump easycorp/easyadmin-bundle from 5.7.0 to 5.9.0 in /app ([#92](https://github.com/NeitsabLc/campement/issues/92)) ([cb71e8e](https://github.com/NeitsabLc/campement/commit/cb71e8eb9861ecf31f98810caddea1e56f942f32))
+* **deps:** bump the actions-github group across 1 directory with 2 updates ([#90](https://github.com/NeitsabLc/campement/issues/90)) ([8951ebb](https://github.com/NeitsabLc/campement/commit/8951ebb453dac42c687367ec8a4fe989af02b89b))
+
 ## [1.0.18](https://github.com/NeitsabLc/campement/compare/v1.0.17...v1.0.18) (2026-11-10)
 
 
