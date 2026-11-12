@@ -38,6 +38,9 @@ jobs:
       - name: Vérifier le refus des versions PHP vulnérables
         run: python3 tests/infrastructure/test_php_security.py
 
+      - name: Vérifier les référentiels des changesets versionnés
+        run: python3 tests/infrastructure/test_referentiels_versionnes.py
+
       - name: Valider la version et les configurations Compose
         shell: bash
         run: |

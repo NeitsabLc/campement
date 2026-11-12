@@ -91,7 +91,7 @@ Campement/
 
 ### Propre au projet
 
-- `versioned/` : changesets `Vxxx__description.sql` ; `dev/` : données de démonstration, réservées aux environnements jetables.
+- `versioned/` : changesets `Vxxx__description.sql` ; `dev/` : données de démonstration, réservées aux environnements jetables. Tout référentiel global dont dépend le code vient de `versioned/`, jamais seulement de `dev/` : la base de tests applique `dev/` et masquerait l'absence ; `tests/infrastructure/test_referentiels_versionnes.py` le contrôle.
 - Le master `db.changelog-master.yaml` inclut `versioned/`, `repeatable/` (prévu, absent aujourd'hui) et `dev/` ;
   vérifier avec `make db-validate` et `make db-sql`.
 - Sauvegarde restaurable obligatoire avant toute migration sur des données durables (`make backup-now`) ;
