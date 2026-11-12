@@ -1,5 +1,12 @@
 # Historique des versions
 
+## [1.0.20](https://github.com/NeitsabLc/campement/compare/v1.0.19...v1.0.20) (2026-11-12)
+
+
+### Corrections
+
+* **stocks:** fournir le référentiel des origines de mouvement hors données de développement ([#96](https://github.com/NeitsabLc/campement/issues/96)) ([6cd2025](https://github.com/NeitsabLc/campement/commit/6cd202516819300ccb7a927b1c389c66b5d92858))
+
 ## [1.0.19](https://github.com/NeitsabLc/campement/compare/v1.0.18...v1.0.19) (2026-11-12)
 
 
