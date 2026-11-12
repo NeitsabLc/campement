@@ -8,10 +8,10 @@ export const comptes = {
   groupe: 'groupe@campement.local',
 };
 
-export async function seConnecter(page, email) {
+export async function seConnecter(page, email, mdp = motDePasse) {
   await page.goto('/login');
   await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe', { exact: true }).fill(motDePasse);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(mdp);
   await page.getByRole('button', { name: 'Se connecter' }).click();
 
   await expect(page).not.toHaveURL(/\/login$/);

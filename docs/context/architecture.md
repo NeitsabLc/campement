@@ -39,7 +39,7 @@ Service backup      : sauvegardes chiffrées de la base et des documents
 | Symfony | `make console ARGS="about"`, `make composer ARGS="…"`, `make cache-clear`, `make assets-compile` |
 | Base | `make db-validate`, `make db-status`, `make db-sql`, `make db-update`, `make db-update-dev`, `make db-history`, `make db-shell` |
 | Qualité | `make style`, `make style-fix`, `make analyse-statique`, `make doctrine-validate` |
-| Tests | `make test`, `make test-db-reset`, `make test-accessibility`, `make test-e2e` |
+| Tests | `make test`, `make test-db-reset`, `make test-accessibility`, `make test-e2e`, `make test-recette` |
 | Livraison | `make prod-config`, `make release-config`, `make release-verify`, `make release-db-status` |
 | Exploitation | `make backup-now`, `make backup-restore-test`, `make maintenance-now`, `make purge-data` |
 | Destructif (accord requis) | `make reset`, `make prod-db-roles-finalize` |
@@ -125,6 +125,7 @@ de mouvement est, lui, unique globalement.
 | Cloisonnement par séjour et par unité | PHPUnit (tests fonctionnels) | `make test` | L'accès aux données change |
 | Accessibilité | Playwright + Axe | `make test-accessibility` | L'interface change |
 | Parcours | Playwright | `make test-e2e` | Un parcours change |
+| Parcours sur la recette déployée | Playwright (`tests/recette/`) | `make test-recette` | Avant une promotion en production (à la main, voir `infra.md` §07) |
 
 ## 09 Flux et frontières de sécurité
 
