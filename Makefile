@@ -16,7 +16,7 @@ TEST_DATABASE_URL := jdbc:postgresql://database:5432/$(TEST_DATABASE)
 	logs shell console composer composer-install cache-clear assets-compile \
 	db-validate db-status db-status-dev db-sql db-sql-dev db-update db-update-dev db-history db-shell db-check-connection \
 	doctrine-validate style style-fix analyse-statique \
-	test-accessibility test-e2e test-db-reset test reset clean purge-data \
+	test-accessibility test-e2e test-recette test-db-reset test reset clean purge-data \
 	backup-now backup-restore-test maintenance-now prod-db-roles-prepare prod-db-roles-finalize
 
 help: ## Afficher les commandes disponibles
@@ -140,6 +140,9 @@ test-accessibility: db-update-dev assets-compile ## Tester l'accessibilité sur 
 
 test-e2e: db-update-dev assets-compile ## Tester les parcours E2E sur les données de développement
 	npm run test:e2e
+
+test-recette: ## Parcours connectés sur la recette déployée (RECETTE_URL, RECETTE_EMAIL, RECETTE_MOT_DE_PASSE requis)
+	npm run test:recette
 
 test-db-reset: ## Recréer et initialiser la base de tests
 	$(DOCKER_COMPOSE) exec database sh -c \
