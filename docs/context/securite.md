@@ -167,5 +167,5 @@
 
 ### Recette
 
-- [ ] Parcours principaux vérifiés en recette ; accessibilité contrôlée si l'interface change.
+- [ ] Parcours principaux vérifiés en recette (`make test-recette`, `infra.md` §07) ; accessibilité contrôlée si l'interface change.
 - [ ] Promotion en production explicitement autorisée.
