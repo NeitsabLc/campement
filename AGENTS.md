@@ -38,7 +38,9 @@ données personnelles (mineurs, santé) : [confidentialite.md](docs/context/conf
 - [ ] Langues : code, tables, documentation, interface et commits en français (exception notée dans `decisions.md`).
 - [ ] Dépôt public : aucun détail d'infrastructure (IP, machines, domaines privés, chemins locaux)
       ni aucune faille de sécurité connue (uniquement dans `etat.md` §04, non versionné).
-- [ ] Répondre en français ; ne jamais fusionner sans accord explicite.
+- [ ] Répondre en français.
+- [ ] Fusion d'une PR autorisée sans nouvel accord une fois la CI verte et les contrôles de §08 validés,
+      sauf la PR de release (accord explicite : sa fusion publie une version et déclenche le déploiement en recette).
 - [ ] Commit uniquement quand le travail est terminé et que toutes les questions posées ont reçu une réponse.
 - [ ] Push autorisé sans nouvel accord une fois la fonctionnalité et le développement validés, après les contrôles de §08.
 
