@@ -31,3 +31,4 @@
 | Purges et sauvegardes lancées comme services permanents (#26, #29) | Exécution en tâche ponctuelle | Toute tâche planifiée est ponctuelle et rend un code de sortie contrôlé |
 | Le changelog n'était plus généré (#46) | Configuration de Release Please restaurée | La PR de version est relue avant fusion : changelog et version présents |
 | Image PHP vulnérable (CVE PHP 8.4, #71) | Image épinglée par digest, refus des versions vulnérables en CI | La CI refuse une image PHP antérieure à la version corrigée |
+| Le référentiel des origines de mouvement n'existait que dans `dev/` : entrées de stock impossibles sans données de développement, bug masqué par la base de tests (contexte dev) | Changeset versionné `V003` et test qui lit uniquement les changesets versionnés | Un référentiel global dont dépend le code vient d'un changeset `versioned/`, jamais seulement de `dev/` |
