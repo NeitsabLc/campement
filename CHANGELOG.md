@@ -1,5 +1,12 @@
 # Historique des versions
 
+## [1.0.21](https://github.com/NeitsabLc/campement/compare/v1.0.20...v1.0.21) (2026-11-12)
+
+
+### Documentation
+
+* **agents:** aligner la consigne de fusion des PR sur la consigne globale ([#98](https://github.com/NeitsabLc/campement/issues/98)) ([1e4b020](https://github.com/NeitsabLc/campement/commit/1e4b0200bc17da6b15ecf1df957553f8ef7a5456))
+
 ## [1.0.20](https://github.com/NeitsabLc/campement/compare/v1.0.19...v1.0.20) (2026-11-12)
 
 
