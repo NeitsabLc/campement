@@ -1,5 +1,17 @@
 # Historique des versions
 
+## [1.0.21](https://github.com/NeitsabLc/campement/compare/v1.0.20...v1.0.21) (2026-11-15)
+
+
+### Corrections
+
+* **security:** passer l'image PostgreSQL en 18.7 ([#100](https://github.com/NeitsabLc/campement/issues/100)) ([22145f2](https://github.com/NeitsabLc/campement/commit/22145f229f85ea98f00fc849c0911f4359f94302))
+
+
+### Documentation
+
+* **agents:** aligner la consigne de fusion des PR sur la consigne globale ([#98](https://github.com/NeitsabLc/campement/issues/98)) ([1e4b020](https://github.com/NeitsabLc/campement/commit/1e4b0200bc17da6b15ecf1df957553f8ef7a5456))
+
 ## [1.0.20](https://github.com/NeitsabLc/campement/compare/v1.0.19...v1.0.20) (2026-11-12)
 
 
