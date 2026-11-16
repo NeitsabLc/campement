@@ -141,8 +141,8 @@ test-accessibility: db-update-dev assets-compile ## Tester l'accessibilité sur 
 test-e2e: db-update-dev assets-compile ## Tester les parcours E2E sur les données de développement
 	npm run test:e2e
 
-test-recette: ## Parcours connectés sur la recette déployée (RECETTE_URL, RECETTE_EMAIL, RECETTE_MOT_DE_PASSE requis)
-	npm run test:recette
+test-recette: ## Parcours connectés sur la recette déployée (adresses dans .local/recette.env, mot de passe dans le trousseau)
+	./scripts/test-recette.sh
 
 test-db-reset: ## Recréer et initialiser la base de tests
 	$(DOCKER_COMPOSE) exec database sh -c \
