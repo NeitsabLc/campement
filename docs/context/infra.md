@@ -85,12 +85,13 @@ branche ──PR──▶ CI ──squash──▶ main ──▶ PR Release Ple
 - Compte de contrôle : un utilisateur `ROLE_GESTIONNAIRE` dédié, gestionnaire d'un seul séjour actif nommé « Contrôle recette automatique », sans participant réel. Il est créé à la main en recette (jamais via `database/changelog/dev/`).
   - Sa première connexion se fait à la main avant le premier lancement, à cause du changement de mot de passe imposé (`premiere_connexion`).
   - Il ne doit jamais être affecté à un autre séjour ni utilisé à la main pendant la suite : la sélection du séjour est persistée sur l'utilisateur.
-  - Son mot de passe reste hors dépôt, dans le trousseau macOS (service `campement-recette-controle`) :
+  - Son mot de passe reste hors dépôt, dans le trousseau macOS (service `campement-recette-controle`), créé une fois par le propriétaire :
 
 ```bash
 security add-generic-password -a "$RECETTE_EMAIL" -s campement-recette-controle -w
-RECETTE_MOT_DE_PASSE="$(security find-generic-password -a "$RECETTE_EMAIL" -s campement-recette-controle -w)" make test-recette
 ```
+
+- Lancement sans saisie : `make test-recette` appelle `scripts/test-recette.sh`, qui lit `RECETTE_URL` et `RECETTE_EMAIL` dans `.local/recette.env` (deux lignes `NOM=valeur` sans guillemets, fichier ignoré par Git, lu sans être exécuté) et le mot de passe dans le trousseau au moment du lancement. Une variable déjà définie dans l'environnement reste prioritaire. Le lanceur refuse un mot de passe écrit dans le fichier local et refuse de démarrer si `CI` est défini ; il est couvert par `tests/infrastructure/test_lanceur_recette.py` (faux trousseau, aucun accès réseau).
 
 - Prérequis dans le séjour de contrôle, créés à la main : les modules Intendance et Administratif actifs (sinon l'application redirige vers le tableau de bord et les titres attendus ne correspondent plus), et au moins une denrée active avec son unité de référence. Aucun fournisseur n'est nécessaire.
 - Prérequis hors séjour : l'origine de mouvement « Correction manuelle » (code `CORRECTION`) doit être présente et active. Les origines forment un référentiel global, commun à tous les séjours, fourni par les migrations versionnées ; elles ne se créent jamais à la main ni via `database/changelog/dev/`. La suite échoue si cette origine manque.
