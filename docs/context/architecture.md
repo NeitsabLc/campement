@@ -125,7 +125,7 @@ de mouvement est, lui, unique globalement.
 | Cloisonnement par séjour et par unité | PHPUnit (tests fonctionnels) | `make test` | L'accès aux données change |
 | Accessibilité | Playwright + Axe | `make test-accessibility` | L'interface change |
 | Parcours | Playwright | `make test-e2e` | Un parcours change |
-| Parcours sur la recette déployée | Playwright (`tests/recette/`) | `make test-recette` | Avant une promotion en production (à la main, voir `infra.md` §07) |
+| Parcours sur la recette déployée | Playwright (`tests/recette/`) | `make test-recette` | Avant une promotion en production (par `verificateur` mode recette, voir `infra.md` §07) |
 
 ## 09 Flux et frontières de sécurité
 
