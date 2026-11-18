@@ -141,7 +141,7 @@ test-accessibility: db-update-dev assets-compile ## Tester l'accessibilité sur 
 test-e2e: db-update-dev assets-compile ## Tester les parcours E2E sur les données de développement
 	npm run test:e2e
 
-test-recette: ## Parcours connectés sur la recette déployée (adresses dans .local/recette.env, mot de passe dans le trousseau)
+test-recette: ## Parcours connectés sur la recette déployée (configuration locale hors Git, voir la documentation privée)
 	./scripts/test-recette.sh
 
 test-db-reset: ## Recréer et initialiser la base de tests

@@ -2,7 +2,7 @@
 # Lance la suite de recette (tests/recette/) sans saisie : adresse de la recette et
 # adresse du compte de contrôle lues dans un fichier local ignoré par Git, mot de passe
 # lu dans le trousseau macOS au moment du lancement. Les variables déjà définies
-# dans l'environnement restent prioritaires. Voir docs/context/infra.md.
+# dans l'environnement restent prioritaires. Voir la documentation privée du déploiement.
 set -eu
 
 SERVICE_TROUSSEAU="campement-recette-controle"
@@ -31,7 +31,7 @@ fi
 RECETTE_URL="${RECETTE_URL:-$(lire RECETTE_URL)}"
 RECETTE_EMAIL="${RECETTE_EMAIL:-$(lire RECETTE_EMAIL)}"
 if [ -z "$RECETTE_URL" ] || [ -z "$RECETTE_EMAIL" ]; then
-  echec "RECETTE_URL ou RECETTE_EMAIL absent : les définir, ou les écrire dans .local/recette.env (docs/context/infra.md)."
+  echec "RECETTE_URL ou RECETTE_EMAIL absent : les définir, ou les écrire dans .local/recette.env (documentation privée du déploiement)."
 fi
 
 if [ -z "${RECETTE_MOT_DE_PASSE:-}" ]; then
