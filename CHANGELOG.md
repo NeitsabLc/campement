@@ -1,5 +1,23 @@
 # Historique des versions
 
+## [1.1.0](https://github.com/NeitsabLc/campement/compare/v1.0.21...v1.1.0) (2026-11-18)
+
+
+### Fonctionnalités
+
+* **recette:** lanceur sans saisie pour la suite de recette ([#101](https://github.com/NeitsabLc/campement/issues/101)) ([7051dae](https://github.com/NeitsabLc/campement/commit/7051daea56c0838429de3e8cb4ebd2c713a02495))
+
+
+### Corrections
+
+* **deps:** monter easyadmin-bundle en 5.10.2 (avis de sécurité amont) ([#104](https://github.com/NeitsabLc/campement/issues/104)) ([296a634](https://github.com/NeitsabLc/campement/commit/296a634c7768030946eed56b5f93d89291da01ab))
+
+
+### Documentation
+
+* **recette:** la suite de recette est lancée par verificateur après le déploiement en recette ([#103](https://github.com/NeitsabLc/campement/issues/103)) ([77f9782](https://github.com/NeitsabLc/campement/commit/77f9782896b7bdf2ea260144ba36f40ed31a3db2))
+* **recette:** retirer les détails de lancement de la documentation publique ([#105](https://github.com/NeitsabLc/campement/issues/105)) ([f71ab85](https://github.com/NeitsabLc/campement/commit/f71ab8512e2f7cea2e827e709d364b89b25a0b08))
+
 ## [1.0.21](https://github.com/NeitsabLc/campement/compare/v1.0.20...v1.0.21) (2026-11-15)
 
 
