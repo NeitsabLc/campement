@@ -1,5 +1,12 @@
 # Historique des versions
 
+## [1.1.1](https://github.com/NeitsabLc/campement/compare/v1.1.0...v1.1.1) (2026-11-19)
+
+
+### Corrections
+
+* **deps:** PHP 8.4.28 ([#114](https://github.com/NeitsabLc/campement/issues/114)) ([7275825](https://github.com/NeitsabLc/campement/commit/72758250dc3d3c0e38b25d1c20544b602aa7e721))
+
 ## [1.1.0](https://github.com/NeitsabLc/campement/compare/v1.0.21...v1.1.0) (2026-11-18)
 
 
