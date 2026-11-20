@@ -20,17 +20,17 @@ class PhpSecurityTest(unittest.TestCase):
             return subprocess.run(["sh", str(GUARD)], env=env, capture_output=True, text=True)
 
     def test_corrected_84_versions(self):
-        for version in ("80427", "80428"):
+        for version in ("80428", "80429"):
             with self.subTest(version=version):
                 self.assertEqual(self.check_version(version).returncode, 0)
 
     def test_vulnerable_other_branch_and_invalid_versions(self):
-        for version in ("80424", "80426", "80336", "80511", "80512", "", "unknown", "99999999999999999999"):
+        for version in ("80424", "80426", "80427", "80336", "80511", "80512", "", "unknown", "99999999999999999999"):
             with self.subTest(version=version):
                 self.assertNotEqual(self.check_version(version).returncode, 0)
 
     def test_failed_interpreter_is_rejected(self):
-        self.assertNotEqual(self.check_version("80427", "1").returncode, 0)
+        self.assertNotEqual(self.check_version("80428", "1").returncode, 0)
 
 
 if __name__ == "__main__":
