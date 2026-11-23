@@ -13,9 +13,9 @@ RUN test -n "$OS_PACKAGE_REFRESH" \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* /liquibase/bin/lpm
 
-ADD --checksum=sha256:31fbf6f06b2217fb51d5100cee51b22625cc81640da0679b47914e54c1e6377c \
+ADD --checksum=sha256:9776fca62dfc84f312d5c1aff9791f6f3cf56d518a8eca4a3a8dca7a95ef8881 \
     --chown=liquibase:liquibase \
-    https://jdbc.postgresql.org/download/postgresql-42.7.12.jar \
+    https://jdbc.postgresql.org/download/postgresql-42.7.15.jar \
     /liquibase/lib/postgresql.jar
 
 COPY database/changelog /liquibase/changelog
