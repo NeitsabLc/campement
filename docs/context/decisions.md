@@ -18,6 +18,7 @@
 | 2026-09-30 | Release Please pilote les versions | Versions et changelog sans intervention manuelle |
 | 2026-10-22 | Contrôleurs fins ; règles métier et contrôles d'accès côté serveur | Testabilité, sécurité |
 | 2026-10-22 | Les détails privés de production appartiennent au projet Infra Homelab | Dépôt public |
+| 2026-11-25 | Aucun workflow de production dans ce dépôt : la promotion se lance depuis le dépôt de déploiement ; le jeton de déclenchement, propre à ce dépôt, ne sert qu'à la recette | Une promotion en production exige l'opérateur, pas un secret de CI |
 | 2026-10-28 | Code, tables et colonnes en français, par exception à la règle commune (code en anglais) | Vocabulaire métier SGDF entièrement français |
 
 ## 02 Leçons apprises

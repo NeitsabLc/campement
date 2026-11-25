@@ -16,7 +16,7 @@ branche ──PR──▶ CI ──squash──▶ main ──▶ PR Release Ple
                      ▼ automatique
                RECETTE (dépôt de déploiement privé)
                      │
-                     ▼ manuel : « Promouvoir en production » + confirmation production-VERSION
+                     ▼ manuel, depuis le dépôt de déploiement : « Promouvoir Campement en production » + production-VERSION
                PRODUCTION
 ```
 
@@ -63,7 +63,7 @@ branche ──PR──▶ CI ──squash──▶ main ──▶ PR Release Ple
 | Environnement | Déclenchement | Garde-fous |
 |---|---|---|
 | Recette | **Automatique** après la publication des images d'une release | Manifeste immuable (digests), migrations, contrôle HTTPS |
-| Production | **Manuel** : workflow **Promouvoir en production**, version + saisie `production-VERSION` | Environnement GitHub protégé, sauvegarde restaurable avant migration, vérification des signatures |
+| Production | **Manuel**, depuis le dépôt de déploiement : workflow **Promouvoir Campement en production**, version + saisie `production-VERSION` | Environnement GitHub protégé, sauvegarde restaurable avant migration, vérification des signatures |
 
 - Le déploiement est exécuté par le dépôt de déploiement privé, sur un runner auto-hébergé ; ce dépôt ne fait que le déclencher.
 - Une release publiée ne prouve pas son déploiement : vérifier le manifeste et l'état réel.
@@ -72,7 +72,7 @@ branche ──PR──▶ CI ──squash──▶ main ──▶ PR Release Ple
 ## 06 Secrets
 
 - Valeurs locales dans les fichiers d'environnement ignorés par Git ; modèles : `.env.example`, `app/.env.example`.
-- CI : `RELEASE_PLEASE_TOKEN` (PR de version, tag, release) et `HOMELAB_DEPLOY_DISPATCH_TOKEN` (déclenchement du déploiement) ;
+- CI : `RELEASE_PLEASE_TOKEN` (PR de version, tag, release) et `HOMELAB_DEPLOY_DISPATCH_TOKEN` (déclenchement de la recette seule) ;
   détail et droits minimaux dans `GITHUB_SETUP.md`. Les paquets GHCR `campement-app-*` sont publics.
 - Sauvegardes chiffrées avec une clé publique ; la clé privée reste hors des serveurs et des archives.
 - Ne documenter que des noms de variables, jamais de valeurs.

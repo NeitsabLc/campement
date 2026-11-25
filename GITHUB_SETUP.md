@@ -10,7 +10,7 @@ Créer ces secrets dans **Settings > Secrets and variables > Actions** :
 | Secret | Usage | Accès minimal conseillé |
 |---|---|---|
 | `RELEASE_PLEASE_TOKEN` | créer ou actualiser la PR Release Please, puis créer le tag et la GitHub Release | jeton fin de l'utilisateur `NeitsabLc`, limité à `campement`, avec Contents, Issues et Pull requests en lecture/écriture |
-| `HOMELAB_DEPLOY_DISPATCH_TOKEN` | déclencher la recette et le workflow de production de `homelab-deploy` | jeton fin limité à `homelab-deploy`, avec Contents et Actions en lecture/écriture |
+| `HOMELAB_DEPLOY_DISPATCH_TOKEN` | déclencher la recette de `homelab-deploy` (`repository_dispatch`) | jeton fin propre à ce dépôt, limité à `homelab-deploy`, avec Contents en lecture/écriture seulement (Metadata en lecture, imposé), sans Actions ; expiration fixée et renouvellement planifié |
 
 Le jeton de release doit appartenir au propriétaire du dépôt : le déploiement de
 production vérifie l'auteur de la GitHub Release. Les cinq paquets
@@ -45,9 +45,10 @@ types purement techniques masqués par la configuration n’ouvrent pas de versi
 Une version existante peut être retestée et repromue depuis le lancement manuel
 du workflow **Publier et déployer une version**.
 
-La production reste manuelle : lancer **Promouvoir en production**, renseigner
-la version et confirmer avec `production-VERSION`. Le dépôt `homelab-deploy`
-applique ensuite ses propres protections d'environnement.
+La production reste manuelle et se lance uniquement depuis le dépôt de
+déploiement privé : workflow **Promouvoir Campement en production**, version et
+confirmation `production-VERSION`. Ce dépôt n'a aucun workflow de production et
+son jeton ne sert qu'à déclencher la recette.
 
 ## Maintenance
 
