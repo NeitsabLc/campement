@@ -44,6 +44,9 @@ jobs:
       - name: Vérifier les référentiels des changesets versionnés
         run: python3 tests/infrastructure/test_referentiels_versionnes.py
 
+      - name: Vérifier que la relance manuelle de la publication déclenche la recette
+        run: python3 tests/infrastructure/test_relance_publication.py
+
       - name: Valider la version et les configurations Compose
         shell: bash
         run: |

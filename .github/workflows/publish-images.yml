@@ -240,6 +240,10 @@ jobs:
 
   promote-version:
     name: Promouvoir ${{ matrix.image }}
+    if: >-
+      needs.validate-release.result == 'success' &&
+      needs.test-candidates.result == 'success' &&
+      !cancelled()
     needs:
       - validate-release
       - test-candidates
@@ -293,6 +297,11 @@ jobs:
 
   deploy-staging:
     name: Déclencher le déploiement en recette
+    if: >-
+      needs.validate-release.result == 'success' &&
+      needs.test-candidates.result == 'success' &&
+      needs.promote-version.result == 'success' &&
+      !cancelled()
     needs:
       - validate-release
       - test-candidates
