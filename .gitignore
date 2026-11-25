@@ -47,3 +47,7 @@ database/import/
 
 # Mémoire de travail locale (non publiée)
 /docs/context/etat.md
+
+# Python
+__pycache__/
+*.py[cod]
