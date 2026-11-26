@@ -1,5 +1,14 @@
 # Historique des versions
 
+## [1.1.3](https://github.com/NeitsabLc/campement/compare/v1.1.2...v1.1.3) (2026-11-26)
+
+
+### Corrections
+
+* **ci:** la relance manuelle de la publication déclenche la recette ([#122](https://github.com/NeitsabLc/campement/issues/122)) ([0dae350](https://github.com/NeitsabLc/campement/commit/0dae35057d997499bcfccf20f836439923c15837))
+* **deps:** mise à jour de Symfony ([#126](https://github.com/NeitsabLc/campement/issues/126)) ([053c449](https://github.com/NeitsabLc/campement/commit/053c4493faa76b1141e420e991afcdc5a5b48310))
+* **deps:** twig 3.31.1 ([#120](https://github.com/NeitsabLc/campement/issues/120)) ([768a008](https://github.com/NeitsabLc/campement/commit/768a0081a0b0f9d7135c0ab5918574459240ba6f))
+
 ## [1.1.2](https://github.com/NeitsabLc/campement/compare/v1.1.1...v1.1.2) (2026-11-23)
 
 
